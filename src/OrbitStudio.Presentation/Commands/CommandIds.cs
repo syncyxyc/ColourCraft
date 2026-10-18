@@ -88,8 +88,10 @@ public static class CommandIds
     public const string AdjustBlackWhite = "adjust.blackWhite";
     public const string AdjustInvert = "adjust.invert";
     public const string AdjustSepia = "adjust.sepia";
+    public const string AdjustChannels = "adjust.channels";
 
     public const string EffectBlur = "effect.blur";
+    public const string EffectBoxBlur = "effect.boxBlur";
     public const string EffectSharpen = "effect.sharpen";
     public const string EffectNoise = "effect.noise";
     public const string EffectDenoise = "effect.denoise";

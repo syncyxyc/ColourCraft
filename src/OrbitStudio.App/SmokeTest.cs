@@ -12,6 +12,7 @@ using OrbitStudio.Configuration;
 using OrbitStudio.Domain.Documents;
 using OrbitStudio.Domain.Imaging;
 using OrbitStudio.Domain.Layers;
+using OrbitStudio.Effects;
 using OrbitStudio.Imaging.Codecs;
 using OrbitStudio.Presentation.Commands;
 using OrbitStudio.Presentation.Localization;
@@ -83,6 +84,7 @@ internal static class SmokeTest
             await CheckLayersAsync(context, shotBase);
             CheckTools(context, shotBase);
             CheckDashPattern(context, shotBase);
+            await CheckEffectsAsync(context, shotBase);
             CheckFullScreen(context);
         }
         catch (Exception ex)
@@ -125,6 +127,8 @@ internal static class SmokeTest
         public ImageCodecRegistry Codecs { get; } = services.GetRequiredService<ImageCodecRegistry>();
 
         public SmokeDialogService Dialogs { get; } = services.GetRequiredService<SmokeDialogService>();
+
+        public HistoryService Histories { get; } = services.GetRequiredService<HistoryService>();
 
         public ShellService Shell { get; } = services.GetRequiredService<ShellService>();
 
@@ -787,6 +791,155 @@ internal static class SmokeTest
         }
     }
 
+    // --- M6: Effekte -------------------------------------------------------------------------------
+
+    private static async Task CheckEffectsAsync(Context c, string shotBase)
+    {
+        var vm = c.Vm;
+        var doc = vm.CreateDocument(new NewDocumentRequest("Effekte", 120, 80, DocumentBackground.White));
+        Flush(c.Window);
+        var layer = doc.Document.PixelLayers.Single();
+        var sample = Bgra32.FromStraight(100, 150, 200, 255);
+        layer.Pixels.Fill(new IntRect(0, 0, 60, 80), sample);
+        doc.Document.CommitPixelChange(doc.Document.Bounds);
+        var history = c.Histories.For(doc.Document);
+
+        async Task RunCommand(string id)
+        {
+            c.Execute(id);
+            await WaitUntilAsync(() => !vm.IsBusy);
+            Flush(c.Window);
+        }
+
+        c.Check("Farben/Effekte-Befehle aktiv, Farbkurven noch geplant",
+            c.CanExecute(CommandIds.AdjustInvert) && c.CanExecute(CommandIds.EffectBlur)
+            && c.CanExecute(CommandIds.EffectDistort) && !c.CanExecute(CommandIds.AdjustCurves));
+
+        // Invertieren (ohne Dialog), Rückgängig, Wiederholen
+        var original = layer.Pixels.Clone();
+        await RunCommand(CommandIds.AdjustInvert);
+        c.Check("Invertieren über den Befehl: exakte Pixel, Statusmeldung",
+            layer.Pixels.GetPixel(10, 10) == Bgra32.FromStraight(155, 105, 55, 255) && layer.Pixels.GetPixel(100, 10) == Bgra32.Black
+            && vm.StatusMessage == Loc.Format("Status.EffectApplied", Loc.Get("Effect.invert")));
+        c.Check("Komposit und Bitmap zeigen den Effekt", doc.Composite.GetPixel(10, 10) == layer.Pixels.GetPixel(10, 10)
+                                                         && BitmapMatches(doc.Bitmap, doc.Composite));
+        var inverted = layer.Pixels.Clone();
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Effekt rückgängig (exakt)", layer.Pixels.ContentEquals(original)
+                                            && vm.StatusMessage.Contains(Loc.Get("Effect.invert"), StringComparison.Ordinal));
+        c.Execute(CommandIds.EditRedo);
+        c.Check("Effekt wiederholen (exakt)", layer.Pixels.ContentEquals(inverted));
+        c.Execute(CommandIds.EditUndo);
+
+        // Helligkeit/Kontrast über den (geskripteten) Dialog; Vorschau = Ergebnis bei kleinem Bild
+        var bc = vm.Effects.Get("brightnessContrast");
+        c.Dialogs.EffectAnswers.Enqueue(s => s.With(bc, "brightness", 20.0).With(bc, "contrast", 50.0));
+        await RunCommand(CommandIds.AdjustBrightnessContrast);
+        // 100 + 51 = 151 → (151 − 127,5) · 2,25 + 127,5 = 180,4 → 180; 201 und 251 → 255
+        var expected = Bgra32.FromStraight(180, 255, 255, 255);
+        c.Check("Helligkeit/Kontrast mit Dialogwerten: exakte Pixel", layer.Pixels.GetPixel(10, 10) == expected);
+        c.Check("Dialog bekam die Vorschau der Ebene in voller Auflösung; Vorschau = Ergebnis",
+            c.Dialogs.LastEffectRequest?.Preview.Scale == 1 && c.Dialogs.LastEffectPreview?.GetPixel(10, 10) == expected
+            && c.Dialogs.LastEffectPreview.ContentEquals(layer.Pixels));
+        c.Check("Letzte Einstellungen werden beim nächsten Öffnen vorgeschlagen",
+            vm.LastSettings("brightnessContrast")?.Number("brightness") == 20);
+
+        var undoCount = history.UndoCount;
+        var beforeCancelDialog = layer.Pixels.Clone();
+        c.Dialogs.EffectAnswers.Enqueue(_ => null);
+        await RunCommand(CommandIds.EffectBlur);
+        c.Check("Dialog abbrechen ändert nichts", layer.Pixels.ContentEquals(beforeCancelDialog) && history.UndoCount == undoCount);
+
+        // Auswahl begrenzt den Effekt
+        var selection = OrbitStudio.Domain.Selection.SelectionMask.CreateEmpty(120, 80);
+        selection.Fill(new IntRect(0, 0, 62, 80), 255);
+        doc.Document.SetSelection(selection);
+        var blur = vm.Effects.Get("gaussianBlur");
+        c.Dialogs.EffectAnswers.Enqueue(s => s.With(blur, "radius", 6.0));
+        await RunCommand(CommandIds.EffectBlur);
+        c.Check("Gaußscher Weichzeichner nur in der Auswahl",
+            layer.Pixels.GetPixel(59, 40) != beforeCancelDialog.GetPixel(59, 40)
+            && layer.Pixels.GetPixel(63, 40) == beforeCancelDialog.GetPixel(63, 40)
+            && layer.Pixels.GetPixel(10, 40) == beforeCancelDialog.GetPixel(10, 40));
+        c.Execute(CommandIds.EditDeselect);
+
+        // Echter Effektdialog: Live-Vorschau reagiert auf den Schieberegler, Original zeigen, Validierung
+        var dialog = new EffectDialog(new EffectDialogRequest(blur, EffectSettings.Defaults(blur),
+            EffectEngine.CreatePreview(layer.Pixels, null, EffectDialog.PreviewWidth, EffectDialog.PreviewHeight))) { Owner = c.Window };
+        dialog.Show();
+        await WaitUntilAsync(() => dialog.LastPreview is not null);
+        var firstPreview = dialog.LastPreview;
+        var slider = FindAll<System.Windows.Controls.Slider>(dialog)
+            .First(s => System.Windows.Automation.AutomationProperties.GetName(s) == "Radius");
+        slider.Value = 0;
+        await WaitUntilAsync(() => dialog.LastPreview != firstPreview);
+        c.Check("Echter Dialog: Live-Vorschau berechnet und folgt dem Schieberegler (Radius 0 = Original)",
+            firstPreview is not null && !firstPreview.ContentEquals(layer.Pixels) && dialog.LastPreview!.ContentEquals(layer.Pixels)
+            && dialog.Current.Number("radius") == 0);
+        var box = FindAll<System.Windows.Controls.TextBox>(dialog)
+            .First(t => System.Windows.Automation.AutomationProperties.GetName(t) == "Radius");
+        box.Text = "9999";
+        box.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice,
+            PresentationSource.FromVisual(box)!, 0, System.Windows.Input.Key.Enter) { RoutedEvent = System.Windows.UIElement.KeyDownEvent });
+        c.Check($"Echter Dialog: Zahlenfeld begrenzt 9999 auf 200 (Feld zeigt {box.Text})",
+            dialog.Current.Number("radius") == 200 && box.Text == "200" && slider.Value == 200);
+        var beforeSix = dialog.LastPreview;
+        slider.Value = 6;
+        await WaitUntilAsync(() => dialog.LastPreview != beforeSix && dialog.Current.Number("radius") == 6);
+        SaveScreenshot(dialog, shotBase + "-effektdialog.png");
+        dialog.Close();
+
+        var levels = vm.Effects.Get("levels");
+        var levelsDialog = new EffectDialog(new EffectDialogRequest(levels, EffectSettings.Defaults(levels),
+            EffectEngine.CreatePreview(layer.Pixels, null, EffectDialog.PreviewWidth, EffectDialog.PreviewHeight))) { Owner = c.Window };
+        levelsDialog.Show();
+        Flush(levelsDialog);
+        levelsDialog.SetValue("inBlack", 200.0);
+        levelsDialog.SetValue("inWhite", 100.0);
+        Flush(levelsDialog);
+        var okButton = FindAll<System.Windows.Controls.Button>(levelsDialog).First(b => b.IsDefault);
+        c.Check("Echter Dialog: Regelverstoß (Schwarz ≥ Weiß) sperrt OK mit Meldung",
+            !okButton.IsEnabled && FindAll<System.Windows.Controls.TextBlock>(levelsDialog)
+                .Any(t => t.Text == Loc.Get("Effect.Error.LevelsInput") && t.IsVisible));
+        levelsDialog.Close();
+
+        // Großes Bild: verkleinerte Vorschau, Abbruch einer laufenden Berechnung, Werkzeuge gesperrt
+        var big = vm.CreateDocument(new NewDocumentRequest("Groß", 3000, 2000, DocumentBackground.White));
+        Flush(c.Window);
+        var bigLayer = big.Document.PixelLayers.Single();
+        bigLayer.Pixels.Fill(new IntRect(0, 0, 1500, 2000), Bgra32.Black);
+        big.Document.CommitPixelChange(big.Document.Bounds);
+        var bigBefore = bigLayer.Pixels.Clone();
+        c.Dialogs.EffectAnswers.Enqueue(s => s.With(blur, "radius", 80.0));
+        c.Execute(CommandIds.EffectBlur);
+        var blocked = vm.IsBusy && vm.IsEffectRunning && vm.Tools.InputBlocked && !c.CanExecute(CommandIds.EditUndo);
+        var cancelled = vm.CancelEffect();
+        await WaitUntilAsync(() => !vm.IsBusy, 60000);
+        Flush(c.Window);
+        c.Check($"Große Bilder: Vorschau verkleinert ({c.Dialogs.LastEffectRequest?.Preview.Scale:0.###})",
+            c.Dialogs.LastEffectRequest?.Preview.Scale < 0.2 && c.Dialogs.LastEffectRequest.Preview.Source.Width <= EffectDialog.PreviewWidth);
+        c.Check("Während der Berechnung: beschäftigt, Werkzeuge und Rückgängig gesperrt", blocked);
+        c.Check($"Abbruch (Esc-Weg) verwirft die Berechnung ({vm.StatusMessage})",
+            cancelled && bigLayer.Pixels.ContentEquals(bigBefore) && !vm.IsEffectRunning && !vm.Tools.InputBlocked
+            && vm.StatusMessage == Loc.Format("Status.EffectCancelled", Loc.Get("Effect.gaussianBlur"))
+            && !c.CanExecute(CommandIds.EditUndo));
+
+        // Vollständige Berechnung im Hintergrund auf dem großen Bild (Zeit nur informativ, keine Messung im Sinne von M11)
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        c.Dialogs.EffectAnswers.Enqueue(s => s.With(blur, "radius", 4.0));
+        await RunCommand(CommandIds.EffectBlur);
+        c.Check($"Effekt auf 6-MP-Bild im Hintergrund fertig ({watch.ElapsedMilliseconds} ms), Kante weichgezeichnet",
+            bigLayer.Pixels.GetPixel(1500, 1000).R is > 0 and < 255 && bigLayer.Pixels.GetPixel(100, 1000) == Bgra32.Black);
+        c.Dialogs.ConfirmAnswer = true;
+        c.Execute(CommandIds.FileClose);
+
+        // Gesperrte Ebene: Effekte deaktiviert
+        c.Execute(CommandIds.LayerLock);
+        c.Check("Gesperrte Ebene: Effektbefehle deaktiviert", !c.CanExecute(CommandIds.AdjustInvert) && !c.CanExecute(CommandIds.EffectBlur));
+        c.Execute(CommandIds.LayerLock);
+        c.Execute(CommandIds.FileCloseAll);
+    }
+
     // --- M1: Vollbild -----------------------------------------------------------------------------
 
     private static void CheckFullScreen(Context c)
@@ -882,9 +1035,12 @@ internal static class SmokeTest
             return;
         }
 
+        Flush(window);
         var dpi = VisualTreeHelper.GetDpi(window);
+        var width = content.ActualWidth + content.Margin.Left + content.Margin.Right; // Inhalt wird mit Außenabstand gerendert
+        var height = content.ActualHeight + content.Margin.Top + content.Margin.Bottom;
         var bitmap = new RenderTargetBitmap(
-            (int)Math.Ceiling(content.ActualWidth * dpi.DpiScaleX), (int)Math.Ceiling(content.ActualHeight * dpi.DpiScaleY),
+            (int)Math.Ceiling(width * dpi.DpiScaleX), (int)Math.Ceiling(height * dpi.DpiScaleY),
             dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();

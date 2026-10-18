@@ -21,6 +21,7 @@ public class DependencyRuleTests
         { "OrbitStudio.Layers", ["OrbitStudio.Domain", "OrbitStudio.Rendering"] },
         { "OrbitStudio.History", ["OrbitStudio.Domain"] },
         { "OrbitStudio.Tools", ["OrbitStudio.Domain", "OrbitStudio.History", "OrbitStudio.Rendering", "OrbitStudio.Layers"] },
+        { "OrbitStudio.Effects", ["OrbitStudio.Domain", "OrbitStudio.History"] },
         {
             "OrbitStudio.Application",
             ["OrbitStudio.Domain", "OrbitStudio.Configuration", "OrbitStudio.Imaging", "OrbitStudio.History"]
@@ -43,6 +44,7 @@ public class DependencyRuleTests
     [InlineData("OrbitStudio.Rendering")]
     [InlineData("OrbitStudio.History")]
     [InlineData("OrbitStudio.Tools")]
+    [InlineData("OrbitStudio.Effects")]
     [InlineData("OrbitStudio.Application")]
     public void Project_DoesNotReferenceCodecLibrary(string assemblyName)
     {
@@ -59,6 +61,7 @@ public class DependencyRuleTests
     [InlineData("OrbitStudio.Layers")]
     [InlineData("OrbitStudio.History")]
     [InlineData("OrbitStudio.Tools")]
+    [InlineData("OrbitStudio.Effects")]
     [InlineData("OrbitStudio.Application")]
     public void CoreProject_HasNoUiDependency(string assemblyName)
     {

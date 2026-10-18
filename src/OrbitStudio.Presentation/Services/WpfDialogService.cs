@@ -49,6 +49,12 @@ public sealed class WpfDialogService : IDialogService
         return dialog.ShowDialog() == true ? dialog.Result : null;
     }
 
+    public Effects.EffectSettings? ShowEffect(EffectDialogRequest request)
+    {
+        var dialog = new EffectDialog(request) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Result : null;
+    }
+
     public double[]? ShowNumbers(string titleKey, IReadOnlyList<NumberField> fields, bool linkFirstTwo = false)
     {
         var dialog = new NumberFieldsDialog(titleKey, fields, linkFirstTwo) { Owner = Owner };

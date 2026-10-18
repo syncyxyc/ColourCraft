@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Effekt-API (Parameter, Validierung, Registry, Engine) und alle Effekte. Ohne UI. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+    <ProjectReference Include="..\OrbitStudio.History\OrbitStudio.History.csproj" />
+  </ItemGroup>
+</Project>

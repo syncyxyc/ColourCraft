@@ -115,9 +115,20 @@ public sealed partial class ToolController : ObservableObject
         return context;
     }
 
+    /// <summary>
+    /// True, solange ein Hintergrundjob (z. B. Effekt) die Ebene bearbeitet: Zeiger- und Tasteneingaben der Werkzeuge
+    /// werden ignoriert, damit die Pixel nicht gleichzeitig verändert werden.
+    /// </summary>
+    public bool InputBlocked { get; set; }
+
     public void PointerDown(DocumentViewModel document, PointD position, PointD viewport, PointerButton button,
         ToolModifiers modifiers, int clickCount)
     {
+        if (InputBlocked)
+        {
+            return;
+        }
+
         if (_operationDocument is not null && _operationDocument != document)
         {
             CommitActive();
@@ -128,12 +139,22 @@ public sealed partial class ToolController : ObservableObject
     }
 
     public void PointerMove(DocumentViewModel document, PointD position, PointD viewport, PointerButton button,
-        ToolModifiers modifiers) =>
-        ActiveTool.PointerMove(ContextFor(document), new ToolPointerEvent(position, viewport, button, modifiers));
+        ToolModifiers modifiers)
+    {
+        if (!InputBlocked)
+        {
+            ActiveTool.PointerMove(ContextFor(document), new ToolPointerEvent(position, viewport, button, modifiers));
+        }
+    }
 
     public void PointerUp(DocumentViewModel document, PointD position, PointD viewport, PointerButton button,
-        ToolModifiers modifiers) =>
-        ActiveTool.PointerUp(ContextFor(document), new ToolPointerEvent(position, viewport, button, modifiers));
+        ToolModifiers modifiers)
+    {
+        if (!InputBlocked)
+        {
+            ActiveTool.PointerUp(ContextFor(document), new ToolPointerEvent(position, viewport, button, modifiers));
+        }
+    }
 
     public void Hover(DocumentViewModel document, PointD position) => ActiveTool.Hover(ContextFor(document), position);
 
@@ -164,6 +185,11 @@ public sealed partial class ToolController : ObservableObject
 
     public bool Key(DocumentViewModel document, ToolKey key, ToolModifiers modifiers)
     {
+        if (InputBlocked)
+        {
+            return false;
+        }
+
         _operationDocument = document;
         return ActiveTool.Key(ContextFor(document), key, modifiers);
     }

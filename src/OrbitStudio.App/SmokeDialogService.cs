@@ -31,6 +31,26 @@ internal sealed class SmokeDialogService : IDialogService
 
     public ColorRgba? ShowColorPicker(ColorRgba initial) => ColorAnswers.TryDequeue(out var answer) ? answer : null;
 
+    /// <summary>Antworten des Effektdialogs: aus den Startwerten die bestätigten Werte (null = Abbrechen).</summary>
+    public Queue<Func<Effects.EffectSettings, Effects.EffectSettings?>> EffectAnswers { get; } = new();
+
+    /// <summary>Letzte Anfrage an den Effektdialog und die dafür berechnete Vorschau (wie der echte Dialog).</summary>
+    public EffectDialogRequest? LastEffectRequest { get; private set; }
+
+    public PixelBuffer? LastEffectPreview { get; private set; }
+
+    public Effects.EffectSettings? ShowEffect(EffectDialogRequest request)
+    {
+        LastEffectRequest = request;
+        if (!EffectAnswers.TryDequeue(out var answer) || answer(request.Initial) is not { } chosen)
+        {
+            return null;
+        }
+
+        LastEffectPreview = request.Preview.Render(request.Effect, chosen, CancellationToken.None);
+        return chosen;
+    }
+
     public double[]? ShowNumbers(string titleKey, IReadOnlyList<NumberField> fields, bool linkFirstTwo = false)
     {
         if (!NumberAnswers.TryDequeue(out var answer) || answer is null)

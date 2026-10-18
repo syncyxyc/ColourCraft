@@ -13,6 +13,7 @@
 | Historie (Deltas, Schnappschüsse, Grenzen) | `tests/OrbitStudio.History.Tests` | aktiv |
 | Werkzeuge (Zeichnen, Auswahl, Füllung, Transformation, Ansicht) | `tests/OrbitStudio.Tools.Tests` | aktiv |
 | **Segmentberechnung und Werkzeug Strichmuster** | `tests/OrbitStudio.Tools.Tests/DashPatternTests.cs` | aktiv |
+| **Effekte: Referenzwerte, Engine, Registry, Vorschau, Abbruch** | `tests/OrbitStudio.Effects.Tests` | aktiv |
 | Integration je Werkzeuggruppe | `tests/OrbitStudio.Integration.Tests/ToolGroupWorkflowTests.cs` | aktiv |
 | Integration Dateien (echte Dateien, atomares Schreiben, Fehler) | `tests/OrbitStudio.Integration.Tests` | aktiv |
 | Architekturtest | `tests/OrbitStudio.Architecture.Tests` | aktiv |
@@ -81,7 +82,59 @@ Rot mit Alpha 128 über Weiß: (R 255, G 127, B 127). Segmente: 0–100 mit 10/5
 0–95 → letzter [90,95]; 0–30 → kein Strich bei 30; 37 px bei 4/3 → 5 volle Striche + 2 px, für alle Winkel in
 5°-Schritten; 10.000.000 px bei 1/1 → 5.000.000 Striche ohne Speicherliste.
 
+### Effekt-Referenzwerte (Auszug)
+
+Opakes Pixel (100, 150, 200): Helligkeit +20 % → (151, 201, 251); Kontrast +50 % (Faktor 2,25) → (66, 178, 255);
+Kontrast −100 % → 128; Invertieren → (155, 105, 55); Schwarzweiß → 141 (140,75); Kanäle 50/200/0 % → (50, 255, 0);
+Tonwert Eingang 50–200 → (85, 170, 255), mit Gamma 2 auf 100 → 147, Ausgabe 20–220 → 87; Helligkeit/Kontrast
++20/+50 auf 100 → 180. (10, 20, 30) Sepia → (25, 22, 17), 50 % → (17, 21, 24). Rot Farbton ±120° → Grün/Blau, 180° →
+Cyan. (200, 100, 50) Sättigung −100 % → 125, +100 % → (250, 83, 0). Halbtransparent (50, 50, 50, 128) invertiert →
+(78, 78, 78, 128). Gauß Radius 2 auf einem weißen Punkt: 0, 1, 14, 62, 102, 62, 14, 1, 0. Einfacher Weichzeichner
+r = 1: 28 (255/9), r = 2: 10. Schärfen 50 %, Radius 2 an der Kante 100|150: 93 und 158. Sobel an einer harten Kante:
+0, 255, 255, 0. Median entfernt einen Störpixel vollständig, mit 50 %: 178. Verpixeln 2 × 2: 75, 70, Randzelle 9.
+Schlagschatten (3, 3): Deckkraft 100 % → Schwarz, 50 % → Alpha 128, Weichheit 2 → Alpha 41. Rauschen σ = 20:
+Mittelwert 128 ± 0,5, Standardabweichung 20 ± 0,6 (40.000 Pixel).
+
+| Prüfung | Toleranz | Begründung |
+|---|---|---|
+| Farbeffekte, einfacher Weichzeichner, Median, Verpixeln, Kanten, Schatten | exakt | Rechenweg festgelegt |
+| Gauß gegen naive 2D-Faltung | ±1 | andere Summationsreihenfolge (separierbar) |
+| Rauschen (Statistik) | Mittelwert ±0,5, σ ±0,6 | Zufallsstichprobe mit festem Startwert |
+
 ## Ergebnisse
+
+### 18.10.2026 – M6 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+| Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |
+|---|---|---|---|
+| OrbitStudio.Domain.Tests | 74 | 0 | 0 |
+| OrbitStudio.Configuration.Tests | 19 | 0 | 0 |
+| OrbitStudio.Application.Tests | 24 | 0 | 0 |
+| OrbitStudio.Imaging.Tests | 27 | 0 | 0 |
+| OrbitStudio.Rendering.Tests | 60 | 0 | 0 |
+| OrbitStudio.Layers.Tests | 23 | 0 | 0 |
+| OrbitStudio.History.Tests | 12 | 0 | 0 |
+| OrbitStudio.Tools.Tests | 106 | 0 | 0 |
+| **OrbitStudio.Effects.Tests** | **42** | 0 | 0 |
+| OrbitStudio.Integration.Tests | 22 | 0 | 0 |
+| OrbitStudio.Architecture.Tests | 27 | 0 | 0 |
+| **Summe** | **436** | **0** | **0** |
+
+Alle Tests bestanden im ersten Lauf. Neu: 42 Effekttests, 1 Integrationsablauf (Zeichnen, Auswahl, Effekt,
+Rückgängig/Wiederholen, PNG-Export und Wiedereinlesen = Effekt-Teil des Pflicht-Workflows), 3 Architekturfälle für
+`OrbitStudio.Effects` (erlaubte Referenzen, kein SkiaSharp, keine UI).
+
+UI-Smoke-Test: Debug 153 von 153, veröffentlichte EXE (157,9 MB) 153 von 153 bestanden, Exitcode 0. Neu sind 18
+Effektprüfungen: Befehle aktiv (Farbkurven noch geplant), Invertieren über den Menübefehl mit exakten Pixeln,
+Bitmap = Komposit, Rückgängig/Wiederholen exakt, Helligkeit/Kontrast mit Dialogwerten exakt, Vorschau = Ergebnis bei
+voller Auflösung, gemerkte Einstellungen, Dialog abbrechen ändert nichts, Weichzeichner nur in der Auswahl, **echter
+Effektdialog** (Live-Vorschau folgt dem Schieberegler, Zahlenfeld begrenzt 9999 auf 200, Regelverstoß sperrt OK),
+verkleinerte Vorschau bei 3000 × 2000 (Maßstab 0,12), Sperre während der Berechnung, Abbruch ohne Änderung und ohne
+Historieneintrag, vollständige Berechnung auf 6 MP im Hintergrund, gesperrte Ebene deaktiviert die Befehle.
+Bei der Sichtprüfung des ersten Dialog-Fotos war das Bild abgeschnitten: Fehler im Foto-Helfer des Smoke-Tests
+(Außenabstand nicht berücksichtigt), nicht im Dialog; behoben.
+
+UI-Eingabetest: für M6 nicht erweitert und nicht ausgeführt (siehe M5).
 
 ### 18.10.2026 – M5 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 

@@ -174,6 +174,43 @@ zu große Bilder werden beschnitten).
 Alle Ebenenänderungen lassen sich mit Strg+Z rückgängig machen. Ebenen bleiben erst mit dem Projektformat `.orbit`
 (Meilenstein M7) über das Schließen hinaus erhalten.
 
+## Farben und Effekte
+
+Farbanpassungen und Effekte wirken auf die **aktive Ebene**, bei einer Auswahl nur auf den ausgewählten Bereich
+(weiche Auswahlränder anteilig). Gesperrte Ebenen und Gruppen können nicht bearbeitet werden; die Befehle sind dann
+ausgegraut.
+
+Befehle mit „…“ öffnen einen Dialog: je Wert ein Schieberegler und ein Zahlenfeld (Enter übernimmt; zu große oder zu
+kleine Werte werden auf den erlaubten Bereich begrenzt, ungültige Eingaben verworfen), rechts eine **Vorschau** der
+aktiven Ebene, die sich bei jeder Änderung neu berechnet. Bei großen Bildern ist die Vorschau verkleinert; Radien
+und Abstände werden dafür mitskaliert. **Original zeigen** blendet zum Vergleich den Zustand vorher ein,
+**Zurücksetzen** stellt die Standardwerte her. Der Dialog merkt sich die zuletzt bestätigten Werte.
+
+Nach „OK“ wird der Effekt im Hintergrund auf die ganze Auflösung angewendet; die Statusleiste zeigt den Fortschritt.
+**Esc** bricht die Berechnung ab – das Bild bleibt dann unverändert. Jede Anwendung ist ein Schritt für Rückgängig
+(Strg+Z) und Wiederholen (Strg+Y).
+
+| Menü | Befehl | Taste | Werte |
+|---|---|---|---|
+| Farben | Helligkeit/Kontrast … | | Helligkeit −100–100 %, Kontrast −100–100 % |
+| Farben | Farbton/Sättigung … | Strg+U | Farbton −180–180°, Sättigung −100–100 % |
+| Farben | Tonwertkorrektur … | Strg+L | Eingabe-Schwarz/-Weiß, Gamma 0,1–10, Ausgabe-Schwarz/-Weiß |
+| Farben | Farbkanäle anpassen … | | Rot, Grün, Blau je 0–200 % |
+| Farben | Schwarzweiß | Strg+Umschalt+B | – |
+| Farben | Invertieren | Strg+Umschalt+I | – |
+| Farben | Sepia … | | Intensität 0–100 % |
+| Effekte | Gaußscher Weichzeichner … | | Radius 0–200 px |
+| Effekte | Einfacher Weichzeichner … | | Radius 0–200 px (Mittelwert eines Quadrats) |
+| Effekte | Schärfen … | | Stärke 0–500 %, Radius 0,5–50 px |
+| Effekte | Rauschen hinzufügen … | | Stärke 0–100, Farbanteil 0–100 %, Startwert |
+| Effekte | Rauschreduktion … | | Radius 1–10 px, Stärke 0–100 % |
+| Effekte | Kantenerkennung … | | Stärke 10–500 %, dunkle Kanten auf Weiß |
+| Effekte | Schlagschatten … | | Versatz X/Y, Weichheit, Deckkraft, Schattenfarbe |
+| Effekte | Verpixeln … | | Zellgröße 2–200 px |
+
+Tonwertkorrektur: Eingabe-Schwarz muss kleiner als Eingabe-Weiß sein, sonst ist „OK“ gesperrt und der Dialog nennt
+den Grund. Farbkurven folgen mit dem Kurveneditor (M8).
+
 ## Exportieren
 
 **Datei › Exportieren** (Strg+Umschalt+E): Format über die Dateiendung bzw. den Dateityp wählen –

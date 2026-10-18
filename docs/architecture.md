@@ -1,12 +1,13 @@
 # Architektur – ORBIT Studio
 
-Stand: 18.10.2026, Meilenstein M4
+Stand: 18.10.2026, Meilenstein M6
 
 ## Schichten und Projekte
 
 ```
 OrbitStudio.App            WPF-Startprojekt: Kompositionswurzel (DI), Theme-Ressourcen, Manifest, Smoke-Test
   └─ OrbitStudio.Presentation   ViewModels, Views, Dialoge, Menüaufbau, Leinwand, Panels, ToolController, Zwischenablage
+       ├─ OrbitStudio.Effects      Effekt-API, Registry, Engine (Validierung, Auswahl, Abbruch, Vorschau), 19 Effekte
        ├─ OrbitStudio.Tools        Werkzeug-API, Werkzeuge, Malsitzung, Bildtransformationen, Auswahlbefehle
        │    ├─ OrbitStudio.History   Rückgängig/Wiederholen je Dokument (Deltas, Schnappschüsse)
        │    └─ OrbitStudio.Layers    Ebenenoperationen (Neu, Duplizieren, Gruppen, Masken, Zusammenführen, Import)
@@ -18,7 +19,7 @@ OrbitStudio.App            WPF-Startprojekt: Kompositionswurzel (DI), Theme-Ress
   └─ OrbitStudio.Diagnostics    Datei-Logger (Microsoft.Extensions.Logging), keine Telemetrie
 ```
 
-Weitere Projekte der Spezifikation (Effects, Storage, Themes, Docking, Plugin.*)
+Weitere Projekte der Spezifikation (Storage, Themes, Docking, Plugin.*)
 werden in dem Meilenstein angelegt, in dem sie Code erhalten ([entscheidungen.md](entscheidungen.md), E-003).
 
 | Projekt | Zielframework | Darf referenzieren |
@@ -31,8 +32,9 @@ werden in dem Meilenstein angelegt, in dem sie Code erhalten ([entscheidungen.md
 | Layers | net10.0 | Domain, Rendering |
 | History | net10.0 | Domain |
 | Tools | net10.0 | Domain, History, Rendering, Layers |
+| Effects | net10.0 | Domain, History |
 | Application | net10.0 | Domain, Configuration, Imaging, History, Logging.Abstractions |
-| Presentation | net10.0-windows | Application, Rendering, Layers, Tools, CommunityToolkit.Mvvm |
+| Presentation | net10.0-windows | Application, Rendering, Layers, Tools, Effects, CommunityToolkit.Mvvm |
 | App | net10.0-windows | alle, DI, Logging |
 
 ## Abhängigkeitsregeln
@@ -190,6 +192,33 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
 - Bildweite Transformationen (`DocumentTransforms`): Bildgröße (Verkleinern: Flächenmittel, Vergrößern: bilinear,
   vormultipliert), Leinwandgröße mit Ausrichtung (neue Fläche transparent, Masken sichtbar), Drehen 90/180/270,
   Spiegeln, Zuschneiden; Ebenen spiegeln und frei drehen/skalieren (bilinear, um die Bildmitte).
+
+## Effekte (`OrbitStudio.Effects`)
+
+- **Vertrag** `IEffect` (Spezifikation 9): ID, Name (`Effect.<Id>`), Beschreibung (`Effect.<Id>.Description`),
+  Kategorie, Parameter (`NumberParameter` mit Bereich, Schrittweite, Nachkommastellen, Einheit und Kennzeichen
+  „Länge“; `BoolParameter`; `ColorParameter`), Standardwerte, Regeln über mehrere Parameter (`ValidateRules`),
+  Berechnung (`Render`). `EffectSettings` sind unveränderlich; `With` begrenzt Zahlen auf den Bereich.
+- **Registry** `EffectRegistry`: Standardsatz in Menüreihenfolge, doppelte IDs werden abgewiesen (Plugins ab M10).
+- **Engine** `EffectEngine`: Validierung (Einzelwerte, dann Regeln) → Berechnung nur im Zielbereich (Umriss der
+  Auswahl, sonst die Ebene) → Mischung mit der Auswahl (Original + (Effekt − Original) · Auswahl/255) → Übernahme
+  (`Commit`) als ein `PixelRegionEntry`. Abbruch über `CancellationToken` (zeilen- bzw. bandweise geprüft).
+  Nachbarschaftseffekte lesen auch außerhalb des Zielbereichs; außerhalb des Bildes wird der Rand verlängert.
+- **Vorschau** `EffectPreview`: Ebene (Flächenmittel) und Auswahl (nächster Nachbar) auf höchstens 360 × 280
+  verkleinert; Längenparameter werden mit dem Maßstab skaliert (≠ 0 bleibt ≥ 1 px).
+- **Rechenregeln:** Farbeffekte rechnen auf der geraden Farbe (Alpha bleibt, transparente Pixel bleiben transparent),
+  Faltungen vormultipliziert; gerundet wird kaufmännisch und nur am Ende; Farbe ≤ Alpha. Faltungen laufen in
+  Zeilenbändern parallel, die Zahl gleichzeitiger Bänder ist durch ein Speicherbudget (256 MB) begrenzt.
+- **Effekte:** Farben – Helligkeit/Kontrast (kombiniert), Helligkeit, Kontrast, Farbton/Sättigung (kombiniert),
+  Farbton, Sättigung, Tonwertkorrektur, Farbkanäle, Schwarzweiß, Invertieren, Sepia; Effekte – Gaußscher
+  Weichzeichner, Einfacher Weichzeichner (exakt, gleitende Summen), Schärfen (Unscharf maskieren), Rauschen
+  (reproduzierbar je Startwert und Position), Rauschreduktion (Median), Kantenerkennung (Sobel), Schlagschatten,
+  Verpixeln. Formeln stehen jeweils an der Klasse.
+- **Oberfläche:** `EffectDialog` (Regler + Zahlenfeld je Parameter, Farbfeld + Hex, Live-Vorschau im Hintergrund,
+  jede Änderung bricht die laufende Vorschau ab, „Original zeigen“, „Zurücksetzen“, Regelverstöße sperren OK).
+  `MainViewModel.Effects` rechnet auf einer Kopie der Ebene mit `Task.Run`; währenddessen sind Befehle und
+  Werkzeugeingaben gesperrt (`ToolController.InputBlocked`), Esc bricht ab. Effekte sind destruktiv mit Rückgängig
+  (E-039).
 
 ## Werkzeugsteuerung in der Oberfläche
 

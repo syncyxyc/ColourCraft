@@ -53,6 +53,7 @@ sowie libmicrohttpd (LGPL-2.1).
 | SixLabors.ImageSharp | Six Labors Split License: kostenpflichtig für bestimmte kommerzielle Nutzung |
 | SkiaSharp.Views.WPF | nicht nötig: Anzeige über WPF-`WriteableBitmap` (gleiches Pixelformat) |
 | FluentAssertions (ab v8) | Xceed-Lizenz: kostenpflichtig für kommerzielle Nutzung; stattdessen Shouldly |
+| SkiaSharp-Bildfilter für Effekte | technisch, nicht lizenzrechtlich: keine exakt prüfbaren Rundungs-/Randregeln; Effekte sind eigene Implementierungen ohne neue Abhängigkeit (E-040) |
 
 ## Icons, Schriften
 

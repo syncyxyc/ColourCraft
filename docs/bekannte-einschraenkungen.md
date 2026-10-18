@@ -1,6 +1,6 @@
 # Bekannte Einschränkungen
 
-Stand: 18.10.2026, nach M5. Jeder Punkt nennt den Meilenstein, in dem er behoben wird.
+Stand: 18.10.2026, nach M6. Jeder Punkt nennt den Meilenstein, in dem er behoben wird.
 
 ## Funktionen, die noch fehlen
 
@@ -14,7 +14,18 @@ Stand: 18.10.2026, nach M5. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - **Zwischenablage:** Einfügen fügt immer als neue Ebene ein (nicht in die aktive Ebene); „Kopieren aus allen Ebenen“
   fehlt.
 - **Pinsel:** nur rund; keine Druckempfindlichkeit für Grafiktabletts.
-- **Farben und Effekte:** deaktiviert. → M6
+- **Farbkurven:** fehlen (brauchen einen Kurveneditor). → M8
+- **Effekte allgemein:** wirken destruktiv auf die Ebenenpixel (mit Rückgängig), nicht als nachträglich änderbare
+  Ebeneneffekte (E-039). Kein „Letzten Effekt wiederholen“, kein Effektbrowser (→ M8). Im Modus „Maske bearbeiten“
+  wirken Effekte trotzdem auf die Pixel, nicht auf die Maske.
+- **Effektvorschau:** zeigt nur die aktive Ebene (ohne andere Ebenen, Ebenendeckkraft und Mischmodus) und bei großen
+  Bildern verkleinert; Effekte mit Radius sehen in der verkleinerten Vorschau daher nur ungefähr so aus wie das
+  Ergebnis. Rauschen ergibt in der verkleinerten Vorschau ein anderes Muster als im Ergebnis.
+- **Einzel-Effekte Helligkeit, Kontrast, Farbton, Sättigung:** im Effektmodell vorhanden und getestet, im Menü aber nur
+  über die kombinierten Dialoge erreichbar (Effektbrowser → M8).
+- **Kombinierte Effekte** runden nach jedem Teilschritt auf 8 Bit (wie zwei getrennte Anwendungen).
+- **Verzerrungen:** nur „Verpixeln“; Wellen, Verwirbeln u. Ä. fehlen. Erweiterungen (Plugin-Effekte) → M10.
+- **Fortschritt:** Die Statusleiste meldet nur „wird berechnet“, keinen Prozentwert; Abbrechen nur mit Esc. → M8
 - **Speichern, Speichern unter, Kopie speichern (.orbit):** deaktiviert. Ebenen gehen beim Schließen verloren;
   der Export schreibt nur das zusammengesetzte Bild (mit Warnung). Die Rückfrage bei ungespeicherten Änderungen
   bietet nur „Verwerfen“ (OK) oder „Abbrechen“. → M7
@@ -70,6 +81,11 @@ Stand: 18.10.2026, nach M5. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - Jeder Malzug kopiert zu Beginn die ganze Ebene und legt einen Abdeckungspuffer an (zusammen 8 Byte/Pixel);
   bei sehr großen Bildern spürbar. Verlauf und Formvorschau berechnen bei jeder Mausbewegung den betroffenen Bereich neu.
 - Zauberstab mit Quelle „Bild“, Farbeimer mit Quelle „Bild“ und Bildtransformationen laufen im UI-Thread.
+- Effekte: Gaußscher Weichzeichner, Schärfen und Schlagschatten kosten O(Radius) je Pixel, Rauschreduktion O(Radius) je
+  Pixel und Kanal plus Median-Suche; bei großen Radien auf großen Bildern spürbar (läuft im Hintergrund, abbrechbar).
+  Im Smoke-Test protokolliert, keine Messung nach Spezifikation 14.2: Gauß Radius 4 auf 3000 × 2000 in 752 ms
+  (Debug) bzw. 169 ms (veröffentlichte EXE), je ein Lauf auf dem Entwicklungsrechner.
+  Für die Effektberechnung wird die Ebene kopiert (4 Byte/Pixel) plus Ergebnis für den Zielbereich.
 
 ## Ebenen und Komposition
 

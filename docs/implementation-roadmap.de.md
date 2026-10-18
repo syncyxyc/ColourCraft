@@ -8,7 +8,7 @@
 | M3 | Ebenen und Komposition | ✅ abgeschlossen (18.10.2026) |
 | M4 | Werkzeuge, Auswahl, Historie | ✅ abgeschlossen (18.10.2026) |
 | M5 | Strichmuster-Werkzeug | ✅ abgeschlossen (18.10.2026) |
-| M6 | Effekte | offen |
+| M6 | Effekte | ✅ abgeschlossen (18.10.2026) |
 | M7 | Projektformat `.orbit` | offen |
 | M8 | Professionelle Oberfläche | offen |
 | M9 | Anpassbarkeit | offen |
@@ -164,8 +164,31 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Vorschau ohne Ebenen-Deckkraft/-Mischmodus; Optionsleiste mehrzeilig bis zur Options-Palette (M8);
   Parameter nicht gespeichert (M9).
 
-## Nächster Schritt: M6
+## M6 – Effekte (18.10.2026)
 
-Effektsystem (registrierbares Effektmodell mit Parametern, Validierung, Vorschau, Abbruch) und die 14 Effekte aus
-Abschnitt 9 mit Referenzbildern; Effektdialoge mit Schiebereglern, Zahlenfeldern und Live-Vorschau; Menüs Farben und
-Effekte aktivieren.
+Erfüllt:
+- Neues Projekt `OrbitStudio.Effects` (nur Domain und History): Effektvertrag mit ID, Name, Kategorie, Beschreibung,
+  Parametern (Zahl, Ja/Nein, Farbe) mit Standardwerten, Wertebereichen und Validierung (Einzelwerte und Regeln),
+  Registry, Engine mit Auswahl-Mischung, Abbruch, Vorschau in reduzierter Auflösung und Übernahme als Rückgängig-Schritt.
+- Alle 14 Pflicht-Effekte aus Abschnitt 9 (Gaußscher und einfacher Weichzeichner, Schärfen, Helligkeit, Kontrast,
+  Farbton, Sättigung, Invertieren, Schwarzweiß, Sepia, Kantenerkennung, Rauschen, Rauschreduktion,
+  Farbkanalanpassung), dazu Tonwertkorrektur, Schlagschatten, Verpixeln und die kombinierten Dialoge
+  Helligkeit/Kontrast und Farbton/Sättigung – 19 registrierte Effekte.
+- **Referenztests mit exakten, von Hand berechneten Pixelwerten** je Effekt (Gauß gegen eine naive 2D-Referenz ±1,
+  einfacher Weichzeichner exakt gegen eine naive Referenz).
+- Menüs „Farben“ und „Effekte“ aktiv (außer Farbkurven → M8, Erweiterungen → M10), Tastenkürzel Strg+U, Strg+L,
+  Strg+Umschalt+B, Strg+Umschalt+I.
+- Effektdialog mit Schiebereglern, Zahlenfeldern, Farbfeld, Live-Vorschau (Hintergrund, abbrechbar), „Original
+  zeigen“, „Zurücksetzen“, Regelprüfung; Ausführung als abbrechbarer Hintergrundjob (Esc), Befehle und Werkzeuge
+  währenddessen gesperrt.
+- Tests: 436 Unit-/Integrations-/Architekturtests, 153 Smoke-Prüfungen (Debug und veröffentlichte EXE).
+
+Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
+- Farbkurven (Kurveneditor), Effektbrowser, Fortschrittsanzeige → M8; Plugin-Effekte → M10; Messungen → M11.
+- Effekte sind destruktiv mit Rückgängig (E-039).
+
+## Nächster Schritt: M7
+
+Projektformat `.orbit` (ZIP mit `manifest.json` und Pixeldaten je Ebene), Validierung vor dem Laden, Versionierung,
+Migrationsgrundlage, Speichern/Speichern unter/Kopie speichern/Öffnen, sichere Dateiersetzung; Pflicht-Workflow aus
+Abschnitt 13 als automatisierter Test.

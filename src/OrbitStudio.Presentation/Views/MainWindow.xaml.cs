@@ -83,6 +83,13 @@ public partial class MainWindow : Window
         var modifiers = Keyboard.Modifiers;
         var document = _viewModel.ActiveDocument;
 
+        // Esc bricht eine laufende Effektberechnung ab.
+        if (key == Key.Escape && _viewModel.CancelEffect())
+        {
+            e.Handled = true;
+            return;
+        }
+
         // Escape, Enter und Pfeiltasten zuerst an das aktive Werkzeug (Abbrechen, Übernehmen, Verschieben).
         ToolKey? toolKey = key switch
         {

@@ -306,23 +306,9 @@ public sealed partial class MainViewModel : ObservableObject
         // Ebenen (MainViewModel.Layers.cs)
         RegisterLayerCommands();
 
-        // Farben
-        Plan(AdjustBrightnessContrast, "Cmd.Adjust.BrightnessContrast", "M6");
-        Plan(AdjustHueSaturation, "Cmd.Adjust.HueSaturation", "M6", "Ctrl+U");
-        Plan(AdjustLevels, "Cmd.Adjust.Levels", "M6", "Ctrl+L");
-        Plan(AdjustCurves, "Cmd.Adjust.Curves", "M6", "Ctrl+M");
-        Plan(AdjustBlackWhite, "Cmd.Adjust.BlackWhite", "M6", "Ctrl+Shift+B");
-        Plan(AdjustInvert, "Cmd.Adjust.Invert", "M6", "Ctrl+Shift+I");
-        Plan(AdjustSepia, "Cmd.Adjust.Sepia", "M6");
-
-        // Effekte
-        Plan(EffectBlur, "Cmd.Effect.Blur", "M6");
-        Plan(EffectSharpen, "Cmd.Effect.Sharpen", "M6");
-        Plan(EffectNoise, "Cmd.Effect.Noise", "M6");
-        Plan(EffectDenoise, "Cmd.Effect.Denoise", "M6");
-        Plan(EffectEdges, "Cmd.Effect.Edges", "M6");
-        Plan(EffectShadow, "Cmd.Effect.Shadow", "M6");
-        Plan(EffectDistort, "Cmd.Effect.Distort", "M6");
+        // Farben und Effekte (MainViewModel.Effects.cs); Farbkurven brauchen einen Kurveneditor (M8)
+        RegisterEffectCommands();
+        Plan(AdjustCurves, "Cmd.Adjust.Curves", "M8", "Ctrl+M");
         Plan(EffectExtensions, "Cmd.Effect.Extensions", "M10");
 
         // Werkzeuge

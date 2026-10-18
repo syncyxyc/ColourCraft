@@ -10,6 +10,7 @@
     <ProjectReference Include="..\OrbitStudio.Rendering\OrbitStudio.Rendering.csproj" />
     <ProjectReference Include="..\OrbitStudio.Layers\OrbitStudio.Layers.csproj" />
     <ProjectReference Include="..\OrbitStudio.Tools\OrbitStudio.Tools.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Effects\OrbitStudio.Effects.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\src\OrbitStudio.Rendering\OrbitStudio.Rendering.csproj" />
     <ProjectReference Include="..\..\src\OrbitStudio.Layers\OrbitStudio.Layers.csproj" />
     <ProjectReference Include="..\..\src\OrbitStudio.Tools\OrbitStudio.Tools.csproj" />
+    <ProjectReference Include="..\..\src\OrbitStudio.Effects\OrbitStudio.Effects.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

@@ -175,19 +175,103 @@
     <sys:String x:Key="Cmd.Adjust.HueSaturation">_Farbton/Sättigung …</sys:String>
     <sys:String x:Key="Cmd.Adjust.Levels">_Tonwertkorrektur …</sys:String>
     <sys:String x:Key="Cmd.Adjust.Curves">Farb_kurven …</sys:String>
+    <sys:String x:Key="Cmd.Adjust.Channels">Farbk_anäle anpassen …</sys:String>
     <sys:String x:Key="Cmd.Adjust.BlackWhite">_Schwarzweiß</sys:String>
     <sys:String x:Key="Cmd.Adjust.Invert">_Invertieren</sys:String>
-    <sys:String x:Key="Cmd.Adjust.Sepia">S_epia</sys:String>
+    <sys:String x:Key="Cmd.Adjust.Sepia">S_epia …</sys:String>
 
     <!-- Effekte -->
-    <sys:String x:Key="Cmd.Effect.Blur">_Weichzeichnen</sys:String>
-    <sys:String x:Key="Cmd.Effect.Sharpen">_Schärfen</sys:String>
-    <sys:String x:Key="Cmd.Effect.Noise">_Rauschen</sys:String>
-    <sys:String x:Key="Cmd.Effect.Denoise">Rausch_reduktion</sys:String>
-    <sys:String x:Key="Cmd.Effect.Edges">_Kantenerkennung</sys:String>
-    <sys:String x:Key="Cmd.Effect.Shadow">Sc_hatten</sys:String>
-    <sys:String x:Key="Cmd.Effect.Distort">_Verzerrungen</sys:String>
-    <sys:String x:Key="Cmd.Effect.Extensions">_Erweiterungen</sys:String>
+    <sys:String x:Key="Cmd.Effect.Blur">_Gaußscher Weichzeichner …</sys:String>
+    <sys:String x:Key="Cmd.Effect.BoxBlur">_Einfacher Weichzeichner …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Sharpen">_Schärfen …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Noise">_Rauschen hinzufügen …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Denoise">Rausch_reduktion …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Edges">_Kantenerkennung …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Shadow">Sc_hlagschatten …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Distort">_Verpixeln …</sys:String>
+    <sys:String x:Key="Cmd.Effect.Extensions">E_rweiterungen</sys:String>
+
+    <!-- Effektnamen und -beschreibungen (Schlüssel Effect.<Id>) -->
+    <sys:String x:Key="Effect.brightnessContrast">Helligkeit/Kontrast</sys:String>
+    <sys:String x:Key="Effect.brightnessContrast.Description">Hellt das Bild auf oder dunkelt es ab und verstärkt oder verringert den Kontrast um die Mitte (Grau 127,5).</sys:String>
+    <sys:String x:Key="Effect.brightness">Helligkeit</sys:String>
+    <sys:String x:Key="Effect.brightness.Description">Addiert zu jedem Farbkanal 2,55 × Wert.</sys:String>
+    <sys:String x:Key="Effect.contrast">Kontrast</sys:String>
+    <sys:String x:Key="Effect.contrast.Description">Spreizt oder staucht die Farbwerte um die Mitte; −100 % ergibt Grau.</sys:String>
+    <sys:String x:Key="Effect.hueSaturation">Farbton/Sättigung</sys:String>
+    <sys:String x:Key="Effect.hueSaturation.Description">Dreht den Farbton und ändert die Sättigung (HSL); Helligkeit bleibt.</sys:String>
+    <sys:String x:Key="Effect.hue">Farbton</sys:String>
+    <sys:String x:Key="Effect.hue.Description">Dreht den Farbton (HSL) um den angegebenen Winkel.</sys:String>
+    <sys:String x:Key="Effect.saturation">Sättigung</sys:String>
+    <sys:String x:Key="Effect.saturation.Description">Verstärkt oder verringert die Sättigung (HSL); −100 % ergibt Grau.</sys:String>
+    <sys:String x:Key="Effect.levels">Tonwertkorrektur</sys:String>
+    <sys:String x:Key="Effect.levels.Description">Bildet den Eingabebereich (Schwarz- bis Weißpunkt) mit Gamma auf den Ausgabebereich ab.</sys:String>
+    <sys:String x:Key="Effect.channels">Farbkanäle anpassen</sys:String>
+    <sys:String x:Key="Effect.channels.Description">Verstärkt oder dämpft Rot, Grün und Blau einzeln (0–200 %).</sys:String>
+    <sys:String x:Key="Effect.blackWhite">Schwarzweiß</sys:String>
+    <sys:String x:Key="Effect.blackWhite.Description">Wandelt in Graustufen um (Helligkeit nach BT.601).</sys:String>
+    <sys:String x:Key="Effect.invert">Invertieren</sys:String>
+    <sys:String x:Key="Effect.invert.Description">Kehrt alle Farben um (255 − Wert); die Deckkraft bleibt.</sys:String>
+    <sys:String x:Key="Effect.sepia">Sepia</sys:String>
+    <sys:String x:Key="Effect.sepia.Description">Färbt das Bild bräunlich wie ein altes Foto.</sys:String>
+    <sys:String x:Key="Effect.gaussianBlur">Gaußscher Weichzeichner</sys:String>
+    <sys:String x:Key="Effect.gaussianBlur.Description">Weiches Verwischen mit Gaußverteilung (σ = Radius/2).</sys:String>
+    <sys:String x:Key="Effect.boxBlur">Einfacher Weichzeichner</sys:String>
+    <sys:String x:Key="Effect.boxBlur.Description">Mittelwert über ein Quadrat der Kantenlänge 2 × Radius + 1.</sys:String>
+    <sys:String x:Key="Effect.sharpen">Schärfen</sys:String>
+    <sys:String x:Key="Effect.sharpen.Description">Verstärkt Kanten (Unscharf maskieren): Original + Stärke × (Original − Weichgezeichnet).</sys:String>
+    <sys:String x:Key="Effect.noise">Rauschen hinzufügen</sys:String>
+    <sys:String x:Key="Effect.noise.Description">Fügt gaußverteiltes Rauschen hinzu; gleicher Startwert ergibt dasselbe Muster.</sys:String>
+    <sys:String x:Key="Effect.denoise">Rauschreduktion</sys:String>
+    <sys:String x:Key="Effect.denoise.Description">Entfernt Bildrauschen und einzelne Störpixel mit einem Medianfilter; Kanten bleiben erhalten.</sys:String>
+    <sys:String x:Key="Effect.edges">Kantenerkennung</sys:String>
+    <sys:String x:Key="Effect.edges.Description">Zeigt Helligkeitskanten (Sobel) als helle Linien auf Schwarz.</sys:String>
+    <sys:String x:Key="Effect.dropShadow">Schlagschatten</sys:String>
+    <sys:String x:Key="Effect.dropShadow.Description">Legt einen versetzten, weichen Schatten der Ebenenform unter den Inhalt.</sys:String>
+    <sys:String x:Key="Effect.pixelate">Verpixeln</sys:String>
+    <sys:String x:Key="Effect.pixelate.Description">Fasst Zellen gleicher Größe zu einer Farbe zusammen (Mittelwert).</sys:String>
+
+    <!-- Effektparameter -->
+    <sys:String x:Key="EffectParam.Brightness">_Helligkeit</sys:String>
+    <sys:String x:Key="EffectParam.Contrast">_Kontrast</sys:String>
+    <sys:String x:Key="EffectParam.Hue">_Farbton</sys:String>
+    <sys:String x:Key="EffectParam.Saturation">_Sättigung</sys:String>
+    <sys:String x:Key="EffectParam.Intensity">_Intensität</sys:String>
+    <sys:String x:Key="EffectParam.Red">_Rot</sys:String>
+    <sys:String x:Key="EffectParam.Green">_Grün</sys:String>
+    <sys:String x:Key="EffectParam.Blue">_Blau</sys:String>
+    <sys:String x:Key="EffectParam.InputBlack">Eingabe-_Schwarz</sys:String>
+    <sys:String x:Key="EffectParam.InputWhite">Eingabe-_Weiß</sys:String>
+    <sys:String x:Key="EffectParam.Gamma">_Gamma</sys:String>
+    <sys:String x:Key="EffectParam.OutputBlack">_Ausgabe-Schwarz</sys:String>
+    <sys:String x:Key="EffectParam.OutputWhite">Ausgabe-W_eiß</sys:String>
+    <sys:String x:Key="EffectParam.Radius">_Radius</sys:String>
+    <sys:String x:Key="EffectParam.Amount">_Stärke</sys:String>
+    <sys:String x:Key="EffectParam.Strength">_Stärke</sys:String>
+    <sys:String x:Key="EffectParam.InvertEdges">_Dunkle Kanten auf Weiß</sys:String>
+    <sys:String x:Key="EffectParam.ColorSaturation">_Farbanteil</sys:String>
+    <sys:String x:Key="EffectParam.Seed">Start_wert</sys:String>
+    <sys:String x:Key="EffectParam.CellSize">_Zellgröße</sys:String>
+    <sys:String x:Key="EffectParam.OffsetX">Versatz _X</sys:String>
+    <sys:String x:Key="EffectParam.OffsetY">Versatz _Y</sys:String>
+    <sys:String x:Key="EffectParam.Softness">_Weichheit</sys:String>
+    <sys:String x:Key="EffectParam.Opacity">_Deckkraft</sys:String>
+    <sys:String x:Key="EffectParam.ShadowColor">Schatten_farbe</sys:String>
+
+    <!-- Effektdialog und Meldungen -->
+    <sys:String x:Key="Dlg.Effect.Preview">Vorschau</sys:String>
+    <sys:String x:Key="Dlg.Effect.ShowOriginal">_Original zeigen</sys:String>
+    <sys:String x:Key="Dlg.Effect.Reset">_Zurücksetzen</sys:String>
+    <sys:String x:Key="Dlg.Effect.Computing">Vorschau wird berechnet …</sys:String>
+    <sys:String x:Key="Dlg.Effect.Failed">Vorschau fehlgeschlagen: {0}</sys:String>
+    <sys:String x:Key="Dlg.Effect.Reduced">Vorschau der aktiven Ebene, verkleinert auf {0} %</sys:String>
+    <sys:String x:Key="Effect.Error.Range">Ein Wert liegt außerhalb des erlaubten Bereichs.</sys:String>
+    <sys:String x:Key="Effect.Error.Type">Ein Wert hat einen ungültigen Typ.</sys:String>
+    <sys:String x:Key="Effect.Error.LevelsInput">Eingabe-Schwarz muss kleiner als Eingabe-Weiß sein.</sys:String>
+    <sys:String x:Key="Msg.Effect.Title">Effekt</sys:String>
+    <sys:String x:Key="Status.EffectRunning">{0} wird berechnet … (Esc bricht ab)</sys:String>
+    <sys:String x:Key="Status.EffectApplied">Angewendet: {0}</sys:String>
+    <sys:String x:Key="Status.EffectCancelled">Abgebrochen: {0} – das Bild ist unverändert.</sys:String>
 
     <!-- Werkzeuge -->
     <sys:String x:Key="Cmd.Tools.Options">_Werkzeugoptionen</sys:String>

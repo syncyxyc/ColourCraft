@@ -200,6 +200,39 @@
   `InfoOption` und `IsEnabled` erweitert. Die Optionsleiste bleibt generisch (Plugins ab M10 können dieselben Typen
   nutzen) und bricht bei vielen Optionen um. Eine eigene Werkzeugoptionen-Palette folgt in M8.
 
+## E-039 – Effekte destruktiv mit Rückgängig, nicht als Ebeneneffekte (18.10.2026)
+- Spezifikation 9 bevorzugt nicht destruktive Effekte, „sofern der Aufwand verhältnismäßig ist“. Nicht destruktiv
+  hieße: Effektstapel je Ebene, Neuberechnung bei jeder Pixeländerung, Cache-Verwaltung und Speicherung im
+  `.orbit`-Format (M7). Entscheidung: Effekte verändern die Ebenenpixel als ein Rückgängig-Schritt (Delta nur des
+  Zielbereichs). Die Effekt-API trennt Berechnung (`Render`) von Übernahme (`Commit`), sodass ein späterer
+  Ebeneneffekt-Stapel dieselben Effekte nutzen kann.
+
+## E-040 – Eigenes Projekt `OrbitStudio.Effects`, ohne SkiaSharp (18.10.2026)
+- Alternativen: SkiaSharp-Bildfilter (schnell, GPU-fähig) oder eigene CPU-Implementierung. SkiaSharp-Filter haben
+  eigene, nicht dokumentierte Rundungs- und Randregeln; exakte Referenztests (Spezifikation 14.1) wären nicht möglich,
+  und die Effekte müssten `Imaging` referenzieren. Entscheidung: eigene CPU-Implementierung auf `PixelBuffer`
+  (abhängig nur von Domain und History), jede Formel an der Klasse dokumentiert und mit von Hand berechneten
+  Referenzwerten getestet. Optimierung nach Messung in M11.
+
+## E-041 – Effektdefinitionen (18.10.2026)
+- Gauß: σ = Radius/2, Kern bis ⌈3σ⌉ (Radius = 2σ ist eine übliche, gut vorhersagbare Größe). Einfacher Weichzeichner
+  exakt in Ganzzahlen. Kontrast: Faktor ((100 + Wert)/100)², damit −100 % Grau und +100 % deutlich (×4) ergeben.
+  Farbton/Sättigung in HSL. Schwarzweiß und Masken nutzen dieselbe Helligkeit (BT.601). Kantenerkennung mit Sobel,
+  normiert auf eine harte 0→255-Kante = 255. Rauschen über einen Hash aus Startwert und Position: reproduzierbar und
+  unabhängig vom bearbeiteten Ausschnitt (wichtig für Auswahl und spätere Kachelung).
+- Rand: Faltungen verlängern den Bildrand (keine dunklen Ränder beim Weichzeichnen). Der Schlagschatten nimmt außerhalb
+  der Ebene Alpha 0 an.
+- Helligkeit/Kontrast und Farbton/Sättigung sind kombinierte Effekte aus den Einzeleffekten (ein Dialog wie in der
+  Menüvorgabe, die Einzeleffekte bleiben für Effektbrowser und Plugins registriert).
+- „Verzerrungen“ ist mit „Verpixeln“ belegt (exakt prüfbar); weitere Verzerrungen sind keine Pflicht nach
+  Spezifikation 9.
+
+## E-042 – Effektausführung im Hintergrund mit Sperre (18.10.2026)
+- Gerechnet wird auf einer Kopie der Ebene (`Task.Run`, `CancellationToken`); währenddessen sind alle Befehle gesperrt
+  (`IsBusy`) und Werkzeugeingaben werden ignoriert, damit die Ebene nicht parallel verändert und das Ergebnis nicht
+  über neuere Änderungen geschrieben wird. Abbruch mit Esc; ein abgebrochener Effekt ändert nichts und legt keinen
+  Historieneintrag an. Vorschauen laufen ebenfalls im Hintergrund, jede Parameteränderung bricht die vorige ab.
+
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.

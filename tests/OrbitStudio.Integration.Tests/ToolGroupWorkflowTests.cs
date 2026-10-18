@@ -240,6 +240,42 @@ public sealed class ToolGroupWorkflowTests : IDisposable
         reopened.Document!.PixelLayers.Single().Pixels.ContentEquals(composite).ShouldBeTrue();
     }
 
+    /// <summary>
+    /// Effekt-Teil des Pflicht-Workflows (Spezifikation 13, Schritte 1–7, 13–14): Dokument, Ebene, zeichnen, Auswahl,
+    /// Effekt anwenden, rückgängig, wiederholen, PNG exportieren und Pixel nach dem Einlesen prüfen.
+    /// </summary>
+    [Fact]
+    public async Task Effect_OnSelection_UndoRedo_ExportReopen()
+    {
+        RecordLayerOp("Neue Ebene", () => LayerOperations.AddLayer(_doc, "Effekt"));
+        var layer = _doc.ActivePixelLayer!;
+        _colors.Primary = new ColorRgba(200, 40, 40);
+        Drag(new RectangleTool(filled: true), 4, 4, 40, 30);
+        Drag(new RectangleSelectTool(), 0, 0, 20, 48);
+        var drawn = layer.Pixels.Clone();
+
+        var effects = Effects.EffectRegistry.CreateDefault();
+        var invert = effects.Get("invert");
+        Effects.EffectEngine.Apply(_doc, _history, invert, Effects.EffectSettings.Defaults(invert)).ShouldNotBeNull();
+
+        layer.Pixels.GetPixel(10, 10).ShouldBe(Bgra32.FromStraight(55, 215, 215, 255));   // in der Auswahl invertiert
+        layer.Pixels.GetPixel(30, 10).ShouldBe(Bgra32.FromStraight(200, 40, 40, 255));    // außerhalb unverändert
+        layer.Pixels.GetPixel(10, 40).ShouldBe(Bgra32.Transparent);                       // transparent bleibt transparent
+        var applied = layer.Pixels.Clone();
+        _history.UndoNameKey.ShouldBe("Effect.invert");
+        _history.Undo();
+        layer.Pixels.ContentEquals(drawn).ShouldBeTrue();
+        _history.Redo();
+        layer.Pixels.ContentEquals(applied).ShouldBeTrue();
+
+        var composite = LayerCompositor.Composite(_doc);
+        var path = Path.Combine(_dir, "effekt.png");
+        (await _files.ExportAsync(composite, path, new EncodeOptions())).Success.ShouldBeTrue();
+        var reopened = await _files.OpenAsync(path, "HG");
+        reopened.Document!.PixelLayers.Single().Pixels.ContentEquals(composite).ShouldBeTrue();
+        composite.GetPixel(10, 10).ShouldBe(Bgra32.FromStraight(55, 215, 215, 255));
+    }
+
     [Fact]
     public void View_ZoomAndHand_DoNotChangePixelsOrHistory()
     {

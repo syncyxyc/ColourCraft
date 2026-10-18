@@ -11,9 +11,15 @@ public sealed record FileFilter(string Description, IReadOnlyList<string> Patter
 /// <summary>Zahlenfeld eines Eingabedialogs (Beschriftung als Textschlüssel, Grenzen inklusive).</summary>
 public sealed record NumberField(string LabelKey, double Value, double Minimum, double Maximum, int Decimals = 0);
 
+/// <summary>Effektdialog: Effekt, Startwerte und verkleinerte Vorschau-Quelle der aktiven Ebene.</summary>
+public sealed record EffectDialogRequest(Effects.IEffect Effect, Effects.EffectSettings Initial, Effects.EffectPreview Preview);
+
 /// <summary>Kapselt alle Dialoge, damit ViewModels ohne Fenster testbar bleiben.</summary>
 public interface IDialogService
 {
+    /// <summary>Effektparameter mit Live-Vorschau. Null = abgebrochen.</summary>
+    Effects.EffectSettings? ShowEffect(EffectDialogRequest request);
+
     /// <summary>Farbwahl. Null = abgebrochen.</summary>
     Domain.Imaging.ColorRgba? ShowColorPicker(Domain.Imaging.ColorRgba initial);
 
