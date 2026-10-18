@@ -12,6 +12,7 @@
 | Ebenenoperationen | `tests/OrbitStudio.Layers.Tests` | aktiv |
 | Historie (Deltas, Schnappschüsse, Grenzen) | `tests/OrbitStudio.History.Tests` | aktiv |
 | Werkzeuge (Zeichnen, Auswahl, Füllung, Transformation, Ansicht) | `tests/OrbitStudio.Tools.Tests` | aktiv |
+| **Segmentberechnung und Werkzeug Strichmuster** | `tests/OrbitStudio.Tools.Tests/DashPatternTests.cs` | aktiv |
 | Integration je Werkzeuggruppe | `tests/OrbitStudio.Integration.Tests/ToolGroupWorkflowTests.cs` | aktiv |
 | Integration Dateien (echte Dateien, atomares Schreiben, Fehler) | `tests/OrbitStudio.Integration.Tests` | aktiv |
 | Architekturtest | `tests/OrbitStudio.Architecture.Tests` | aktiv |
@@ -71,7 +72,46 @@ und Rückweg im selben Zug: 128 (keine Anhäufung). Farbbereich mit Toleranz 10 
 30 (11,8 %) nicht. Erweitern um 2 px: Abstand √2 ausgewählt, √5 nicht. Bildgröße 2 schwarze + 2 weiße Spalten → 1:
 exakt Schwarz/Weiß; Rot neben Transparent verkleinert → (R 128, A 128), also unvermindertes Rot bei halber Deckkraft.
 
+### Strichmuster-Referenzwerte (Auszug)
+
+Linie (0; 12) → (30; 12), Stärke 4, Strich 10, Abstand 5: exakt die Pixel x 0–9 und 15–24 in den Zeilen 10–13 schwarz,
+alle anderen unverändert (auch mit Kantenglättung, weil alle Kanten auf Pixelgrenzen liegen). Strich 4 / Abstand 2 /
+Stärke 2: x mod 6 < 4 in den Zeilen 11–12. Abstand 0: durchgehend ohne Naht. Schwarz 50 % über Weiß: 128.
+Rot mit Alpha 128 über Weiß: (R 255, G 127, B 127). Segmente: 0–100 mit 10/5 → [0,10] [15,25] … [90,100];
+0–95 → letzter [90,95]; 0–30 → kein Strich bei 30; 37 px bei 4/3 → 5 volle Striche + 2 px, für alle Winkel in
+5°-Schritten; 10.000.000 px bei 1/1 → 5.000.000 Striche ohne Speicherliste.
+
 ## Ergebnisse
+
+### 18.10.2026 – M5 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+| Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |
+|---|---|---|---|
+| OrbitStudio.Domain.Tests | 74 | 0 | 0 |
+| OrbitStudio.Configuration.Tests | 19 | 0 | 0 |
+| OrbitStudio.Application.Tests | 24 | 0 | 0 |
+| OrbitStudio.Imaging.Tests | 27 | 0 | 0 |
+| OrbitStudio.Rendering.Tests | 60 | 0 | 0 |
+| OrbitStudio.Layers.Tests | 23 | 0 | 0 |
+| OrbitStudio.History.Tests | 12 | 0 | 0 |
+| OrbitStudio.Tools.Tests | 106 | 0 | 0 |
+| OrbitStudio.Integration.Tests | 21 | 0 | 0 |
+| OrbitStudio.Architecture.Tests | 24 | 0 | 0 |
+| **Summe** | **390** | **0** | **0** |
+
+Neu: 24 Testfälle der Segmentberechnung (`DashLineTests`, inkl. Theorien je Hauptrichtung und ungültige Parameter),
+32 Werkzeugtests (`DashPatternToolTests`), 1 Integrationsablauf (Strichmuster → Rückgängig/Wiederholen → PNG-Export →
+Wiedereinlesen). Beim ersten Lauf schlugen 2 Werkzeugtests fehl: Ein knapp neben dem Mittelpunkt gegriffener
+Kontrollpunkt sprang auf die Mausposition. Das war ein **Fehler im Produktcode** (Bedienung); behoben, indem der
+Greifversatz erhalten bleibt (E-036). Ein weiterer Test erwartete noch 22 statt 23 Werkzeuge (Testanpassung).
+
+UI-Smoke-Test: Debug 135 von 135 bestanden, veröffentlichte EXE (157,7 MB) 135 von 135 bestanden, jeweils Exitcode 0.
+Neu sind 18 Strichmuster-Prüfungen (siehe Abnahme unten). Sichtprüfung `smoke-test-strichmuster.png`: rote Striche
+mit Hilfslinie und beiden Kontrollpunkten bei 200 %, Optionsleiste mit allen 14 Optionen (umgebrochen).
+
+UI-Eingabetest: um die Strichmuster-Abnahme mit echter Maus und Tastatur erweitert (Linie aufziehen, beide
+Kontrollpunkte ziehen, Parameter tippen + Enter, Vorschau-Pixel am Bildschirm, „Anwenden“ klicken, Strg+Z, Strg+Y);
+Skript syntaktisch geprüft, **nicht ausgeführt** (Sitzung aktiv benutzt, der Test bewegt den Mauszeiger).
 
 ### 18.10.2026 – M4 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 
@@ -177,4 +217,42 @@ Nicht geprüft: Darstellung bei Windows-Skalierung 150 %/200 % und Monitorwechse
 
 ## Abnahme Strichmuster-Werkzeug (Abschnitt 1.1)
 
-Nicht ausgeführt – das Werkzeug wird in M5 umgesetzt.
+**Kriterium:** Der Nutzer verschiebt zwei Kontrollpunkte auf der Leinwand, die Vorschau passt sich an, alle Parameter
+wirken, das Ergebnis wird auf die aktive Ebene übernommen, und die Übernahme lässt sich mit Rückgängig zurücknehmen und
+mit Wiederholen wiederherstellen.
+
+**Ausgeführt am 18.10.2026** im echten Hauptfenster (`OrbitStudio.exe --smoke-test`, Abschnitt `CheckDashPattern`),
+mit dem Debug-Build und mit der veröffentlichten Single-File-EXE – beide bestanden. Dokument 200 × 120 weiß, Zoom 200 %.
+Zeigereingaben gehen über den `ToolController` mit den Dokument- **und** den dazu passenden Viewport-Koordinaten der
+aktuellen Ansicht (gleicher Weg wie die Leinwand; die Trefferprüfung der Kontrollpunkte rechnet in Viewport-Pixeln).
+Bedienelemente der Optionsleiste werden im visuellen Baum gesucht und bedient (Textfelder, Schaltflächen).
+
+| Schritt | Ergebnis |
+|---|---|
+| Werkzeug per Befehl (Umschalt+L) wählen; Optionsleiste zeigt 14 Optionen; ohne Linie sind X1–Y2 und „Anwenden“ gesperrt | bestanden |
+| Linie (20; 30) → (100; 30) aufziehen, **Startpunkt** nach (10; 60), **Endpunkt** nach (130; 60) ziehen | bestanden (Punkte exakt) |
+| Felder X1/Y1/X2/Y2 zeigen 10 / 60 / 130 / 60 | bestanden |
+| Anzeige „Länge 120 px · Winkel 0° · Richtung (1; 0) · Mitte (70; 60) · 8 Striche“ | bestanden |
+| Ebene während der Vorschau unverändert, kein Historieneintrag | bestanden |
+| Gerenderte Leinwand: Strichmitte schwarz (#FF000000), Lückenmitte weiß (#FFFFFFFF) → Vorschau sichtbar und an der neuen Position | bestanden |
+| Feld X2 = 150 (Eingabe) → Endpunkt (150; 60) | bestanden |
+| Linienstärke 0 → auf 1 begrenzt, Feld zeigt 1 | bestanden |
+| Hex-Feld #00FF00 übernommen, „kein Hex“ abgewiesen | bestanden |
+| Farbfeld → Farbdialog (geskriptet: Rot) → Farbe Rot | bestanden |
+| Stärke 6, Strich 12, Abstand 8, „Anwenden“ (Schaltfläche): Pixel (15; 57) und (15; 62) rot, (15; 56) weiß, (25; 60) weiß (Lücke), (35; 60) rot, (150; 60) weiß; Überlagerung entfernt | bestanden |
+| Komposit und Bildschirm-Bitmap zeigen das Muster | bestanden |
+| Bearbeiten › Rückgängig → Ebene byteweise wie vorher; Statusleiste „Rückgängig: Strichmuster“ | bestanden |
+| Bearbeiten › Wiederholen → Ebene byteweise wie nach dem Anwenden | bestanden |
+| Neue Linie, Esc → verworfen, Ebene unverändert | bestanden |
+| „Zurücksetzen“ → 4 / 10 / 5 / Schwarz / 100 % (auch im Feld) | bestanden |
+| Werkzeugwechsel mit offener Linie → Linie übernommen | bestanden |
+
+Zusätzlich ohne Oberfläche: Integrationstest `DashPattern_MoveBothControlPoints_Apply_UndoRedo_ExportReopen`
+(bei 200 % Zoom beide Punkte ziehen, Parameter, Anwenden, Rückgängig/Wiederholen, PNG-Export und byteweises
+Wiedereinlesen) und Werkzeugtests für Zoom-unabhängigen Fangradius (400 %), reduzierte Vorschau (50 %), Auswahl- und
+Bildgrenzen, Maske, Pfeiltasten, Umschalt-Einrasten, gesperrte Ebene, „Vorschau = Ergebnis“ (byteweise).
+
+**Nicht ausgeführt:** Dieselbe Abnahme mit echten Windows-Mausereignissen (`build/ui-input-test.ps1`, Schritt 7).
+Das Skript ist vorbereitet; es bewegt den Mauszeiger und darf nur in einer unbenutzten Sitzung laufen.
+Darstellung bei Windows-Skalierung 150 %/200 % nicht am Bildschirm geprüft (Trefferprüfung rechnet mit der
+DPI-Skalierung, siehe E-037).

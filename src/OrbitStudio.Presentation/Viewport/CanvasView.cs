@@ -40,6 +40,8 @@ public sealed class CanvasView : FrameworkElement
     private bool _spaceDown;
     private bool _toolDragging;
     private PointerButton _toolButton;
+    private OverlayRaster? _rasterSource;
+    private System.Windows.Media.Imaging.BitmapSource? _rasterBitmap;
 
     public CanvasView()
     {
@@ -128,6 +130,11 @@ public sealed class CanvasView : FrameworkElement
     private void OnViewChanged(object? sender, EventArgs e)
     {
         UpdateScalingMode();
+        if (ViewModel is { } vm)
+        {
+            Tools?.ViewChanged(vm);
+        }
+
         InvalidateVisual();
     }
 
@@ -278,6 +285,14 @@ public sealed class CanvasView : FrameworkElement
 
     private void DrawOverlay(DrawingContext dc, IReadOnlyList<OverlayShape> shapes, Func<PointD, Point> toDip, double scale)
     {
+        // Vorschau-Ebenen zuerst, damit Hilfslinien und Kontrollpunkte darüber liegen.
+        foreach (var raster in shapes.OfType<OverlayRaster>())
+        {
+            var bitmap = RasterBitmap(raster);
+            var size = new PointD(raster.Pixels.Width / raster.Scale, raster.Pixels.Height / raster.Scale);
+            dc.DrawImage(bitmap, new Rect(toDip(raster.Origin), toDip(raster.Origin + size)));
+        }
+
         var geometry = new GeometryGroup();
         foreach (var shape in shapes)
         {
@@ -315,6 +330,20 @@ public sealed class CanvasView : FrameworkElement
 
         geometry.Freeze();
         DrawTwoTone(dc, geometry);
+    }
+
+    /// <summary>Bitmap der zuletzt gezeichneten Vorschau wiederverwenden, solange sich die Vorschau nicht ändert.</summary>
+    private System.Windows.Media.Imaging.BitmapSource RasterBitmap(OverlayRaster raster)
+    {
+        if (!ReferenceEquals(_rasterSource, raster) || _rasterBitmap is null)
+        {
+            var bitmap = BitmapBridge.Create(raster.Pixels);
+            bitmap.Freeze();
+            _rasterSource = raster;
+            _rasterBitmap = bitmap;
+        }
+
+        return _rasterBitmap;
     }
 
     private void DrawPixelGrid(DrawingContext dc, DocumentViewModel vm, double originX, double originY)
@@ -482,9 +511,17 @@ public sealed class CanvasView : FrameworkElement
         _panLast = null;
         if (_toolDragging)
         {
-            // Mausfang verloren (z. B. Fensterwechsel): laufende Bearbeitung übernehmen statt hängen lassen.
+            // Mausfang verloren (z. B. Fensterwechsel): Das Werkzeug entscheidet, ob es übernimmt (Standard) oder
+            // nur das Ziehen beendet (Strichmuster: Linie bleibt bearbeitbar).
             _toolDragging = false;
-            Tools?.CommitActive();
+            if (ViewModel is { } vm)
+            {
+                Tools?.PointerLost(vm);
+            }
+            else
+            {
+                Tools?.CommitActive();
+            }
         }
 
         Cursor = null;

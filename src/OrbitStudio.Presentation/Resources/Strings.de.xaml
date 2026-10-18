@@ -311,6 +311,7 @@
     <sys:String x:Key="Tool.eraser">Radierer</sys:String>
     <sys:String x:Key="Tool.freehand">Freihandlinie</sys:String>
     <sys:String x:Key="Tool.line">Linie</sys:String>
+    <sys:String x:Key="Tool.dashPattern">Strichmuster</sys:String>
     <sys:String x:Key="Tool.rectangle">Rechteck</sys:String>
     <sys:String x:Key="Tool.rectangleFilled">Gefülltes Rechteck</sys:String>
     <sys:String x:Key="Tool.ellipse">Ellipse</sys:String>
@@ -325,6 +326,7 @@
     <sys:String x:Key="Tool.Hint.selectPolygon">Klicken setzt Eckpunkte; Doppelklick, Enter oder Klick auf den ersten Punkt schließt.</sys:String>
     <sys:String x:Key="Tool.Hint.selection">Umschalt: hinzufügen · Alt: abziehen · Umschalt+Alt: Schnittmenge</sys:String>
     <sys:String x:Key="Tool.Hint.move">Ziehen verschiebt die Auswahl (ohne Auswahl die Ebene). Pfeiltasten: 1 px, mit Umschalt 10 px.</sys:String>
+    <sys:String x:Key="Tool.Hint.dashPattern">Linie aufziehen, dann Endpunkte oder Linie ziehen (Umschalt: 15°). Enter wendet an, Esc bricht ab.</sys:String>
 
     <!-- Werkzeugoptionen -->
     <sys:String x:Key="Opt.Size">Größe</sys:String>
@@ -337,6 +339,22 @@
     <sys:String x:Key="Opt.SampleFrom">Quelle</sys:String>
     <sys:String x:Key="Opt.SelectionMode">Modus</sys:String>
     <sys:String x:Key="Opt.GradientType">Art</sys:String>
+    <sys:String x:Key="Opt.Color.Pick">Farbe wählen …</sys:String>
+    <sys:String x:Key="Opt.Color.Hex">Farbe als Hex-Wert (#RRGGBB oder #RRGGBBAA)</sys:String>
+    <sys:String x:Key="Opt.Dash.Thickness">Linienstärke</sys:String>
+    <sys:String x:Key="Opt.Dash.DashLength">Strichlänge</sys:String>
+    <sys:String x:Key="Opt.Dash.GapLength">Strichabstand</sys:String>
+    <sys:String x:Key="Opt.Dash.Color">Farbe</sys:String>
+    <sys:String x:Key="Opt.Dash.X1">X1</sys:String>
+    <sys:String x:Key="Opt.Dash.Y1">Y1</sys:String>
+    <sys:String x:Key="Opt.Dash.X2">X2</sys:String>
+    <sys:String x:Key="Opt.Dash.Y2">Y2</sys:String>
+    <sys:String x:Key="Opt.Dash.Info">Liniendaten</sys:String>
+    <sys:String x:Key="Opt.Dash.Info.Empty">Noch keine Linie – auf der Leinwand aufziehen.</sys:String>
+    <sys:String x:Key="Opt.Dash.Info.Line">Länge {0:0.##} px · Winkel {1:0.#}° · Richtung ({2:0.###}; {3:0.###}) · Mitte ({4:0.##}; {5:0.##}) · {6:N0} Striche</sys:String>
+    <sys:String x:Key="Opt.Dash.Apply">Anwenden</sys:String>
+    <sys:String x:Key="Opt.Dash.Cancel">Abbrechen</sys:String>
+    <sys:String x:Key="Opt.Dash.Reset">Zurücksetzen</sys:String>
     <sys:String x:Key="Choice.Replace">Ersetzen</sys:String>
     <sys:String x:Key="Choice.Add">Hinzufügen</sys:String>
     <sys:String x:Key="Choice.Subtract">Abziehen</sys:String>

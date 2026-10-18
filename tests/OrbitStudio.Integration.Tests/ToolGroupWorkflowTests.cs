@@ -180,6 +180,66 @@ public sealed class ToolGroupWorkflowTests : IDisposable
         _history.TotalBytes.ShouldBeGreaterThan(0);
     }
 
+    /// <summary>
+    /// Strichmuster (Spezifikation 1.1, Abnahmeablauf ohne Oberfläche): neue Ebene, Linie aufziehen, beide Kontrollpunkte
+    /// verschieben, Parameter ändern, Vorschau prüfen, anwenden, Rückgängig/Wiederholen, PNG exportieren und wieder einlesen.
+    /// </summary>
+    [Fact]
+    public async Task DashPattern_MoveBothControlPoints_Apply_UndoRedo_ExportReopen()
+    {
+        _view.SetZoom(2);
+        RecordLayerOp("Neue Ebene", () => LayerOperations.AddLayer(_doc, "Muster"));
+        var layer = _doc.ActivePixelLayer!;
+        var tool = new DashPatternTool();
+
+        ToolPointerEvent Ev(double x, double y)
+        {
+            var p = new PointD(x, y);
+            return new ToolPointerEvent(p, _view.DocumentToViewport(p), PointerButton.Primary, ToolModifiers.None);
+        }
+
+        void DragPoint(double x0, double y0, double x1, double y1)
+        {
+            tool.PointerDown(_context, Ev(x0, y0));
+            tool.PointerMove(_context, Ev((x0 + x1) / 2, (y0 + y1) / 2));
+            tool.PointerMove(_context, Ev(x1, y1));
+            tool.PointerUp(_context, Ev(x1, y1));
+        }
+
+        DragPoint(10, 10, 40, 10);         // aufziehen
+        DragPoint(10, 10, 2, 20);          // Startpunkt verschieben
+        DragPoint(40, 10, 62, 20);         // Endpunkt verschieben
+        tool.StartPoint.ShouldBe(new PointD(2, 20));
+        tool.EndPoint.ShouldBe(new PointD(62, 20));
+        tool.Thickness.Value = 6;
+        tool.DashLength.Value = 8;
+        tool.GapLength.Value = 4;
+        tool.Color.Value = new ColorRgba(0, 128, 255);
+        tool.Overlay.OfType<OverlayRaster>().ShouldHaveSingleItem();
+        layer.Pixels.GetPixel(5, 20).ShouldBe(Bgra32.Transparent); // Vorschau verändert die Ebene nicht
+
+        tool.ApplyAction.Execute(_context);
+
+        // Striche ab x = 2 mit Periode 12: [2, 10), [14, 22), …; Zeilen 17–22.
+        var blue = Bgra32.FromStraight(0, 128, 255, 255);
+        layer.Pixels.GetPixel(5, 18).ShouldBe(blue);
+        layer.Pixels.GetPixel(12, 18).ShouldBe(Bgra32.Transparent);
+        layer.Pixels.GetPixel(15, 22).ShouldBe(blue);
+        layer.Pixels.GetPixel(15, 23).ShouldBe(Bgra32.Transparent);
+        var composite = LayerCompositor.Composite(_doc);
+
+        _history.UndoNameKey.ShouldBe("Tool.dashPattern");
+        _history.Undo();
+        layer.Pixels.GetPixel(5, 18).ShouldBe(Bgra32.Transparent);
+        _history.Redo();
+        LayerCompositor.Composite(_doc).ContentEquals(composite).ShouldBeTrue();
+
+        var path = Path.Combine(_dir, "muster.png");
+        (await _files.ExportAsync(composite, path, new EncodeOptions())).Success.ShouldBeTrue();
+        var reopened = await _files.OpenAsync(path, "HG");
+        reopened.Document!.PixelLayers.Single().Pixels.ContentEquals(composite).ShouldBeTrue();
+    }
+
     [Fact]
     public void View_ZoomAndHand_DoNotChangePixelsOrHistory()
     {

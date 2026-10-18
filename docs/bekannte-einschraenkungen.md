@@ -1,10 +1,9 @@
 # Bekannte Einschränkungen
 
-Stand: 18.10.2026, nach M4. Jeder Punkt nennt den Meilenstein, in dem er behoben wird.
+Stand: 18.10.2026, nach M5. Jeder Punkt nennt den Meilenstein, in dem er behoben wird.
 
 ## Funktionen, die noch fehlen
 
-- **Strichmuster-Werkzeug:** fehlt. → M5
 - **Werkzeuggruppe „Erweitert“:** Text, Klonen und Retusche fehlen (Hand und Zoom sind umgesetzt). Sie sind
   keinem Meilenstein fest zugeordnet; Entscheidung über Umfang spätestens in M11.
 - **Farbfelder (Palette):** fehlen; Farben werden über Farbdialog oder Pipette gewählt. → M8
@@ -33,6 +32,19 @@ Stand: 18.10.2026, nach M4. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - **Benutzerhandbuch (F1), Lizenzinformationen im Programm:** deaktiviert; Handbuch liegt als
   `docs/user-guide.de.md` vor. → M12
 - **Drucken / Druckvorschau:** nicht geplant innerhalb M0–M12, späterer Ausbau.
+
+## Strichmuster-Werkzeug
+
+- **Vorschau:** zeigt die Musterfarbe normal über dem Gesamtbild. Deckkraft, Mischmodus und Maske der aktiven Ebene
+  sowie darüberliegende Ebenen wirken erst nach dem Anwenden (E-033). Im Modus „Maske bearbeiten“ zeigt die Vorschau
+  ebenfalls die Farbe, nicht die Wirkung auf die Maske. Unter 100 % Zoom wird die Vorschau in reduzierter Auflösung
+  berechnet; das angewendete Ergebnis hat immer volle Auflösung.
+- **Nur gerade Linien** mit flachen Enden; keine Linienzüge, Kurven, runden Enden oder Muster aus mehreren
+  Strichlängen.
+- **Länge und Winkel** werden angezeigt, aber nicht als Eingabefelder angeboten (Eingabe über X1/Y1/X2/Y2).
+- **Optionsleiste:** Das Werkzeug hat 14 Optionen; die Leiste bricht in mehrere Zeilen um und nimmt bei schmalem
+  Fenster viel Höhe ein. Eine andockbare Werkzeugoptionen-Palette folgt. → M8
+- **Werkzeugparameter** (Stärke, Länge, Abstand, Farbe …) werden nicht über einen Neustart gespeichert. → M9
 
 ## Dateiformate
 
@@ -85,5 +97,7 @@ Stand: 18.10.2026, nach M4. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - **DPI:** PerMonitorV2 ist aktiv und die Transformation rechnet mit der DPI-Skalierung (Unit-Tests),
   die Darstellung bei 150 %/200 % und beim Monitorwechsel wurde aber noch nicht am Bildschirm geprüft.
 - **Fensterposition:** wird verworfen, wenn sie nicht mehr auf dem virtuellen Bildschirm liegt.
-- **UI-Eingabetest:** braucht eine unbenutzte Sitzung im Vordergrund; deshalb nicht im Standard-Testlauf. Der in M4
-  ergänzte Schritt (Pinselstrich mit echter Maus + Strg+Z) wurde noch nicht ausgeführt.
+- **UI-Eingabetest:** braucht eine unbenutzte Sitzung im Vordergrund; deshalb nicht im Standard-Testlauf. Die in M4
+  (Pinselstrich + Strg+Z) und M5 (Strichmuster mit echter Maus: Kontrollpunkte ziehen, Werte tippen, Anwenden,
+  Strg+Z/Strg+Y) ergänzten Schritte wurden noch nicht ausgeführt. Die Abnahme des Strichmusters ist über den
+  Smoke-Test im echten Fenster belegt (Eingaben über den Werkzeug-Controller, nicht über Windows-Mausereignisse).

@@ -132,6 +132,28 @@ public partial class MainWindow : Window
     private static bool IsTextInput(IInputElement? element) =>
         element is TextBoxBase or PasswordBox || (element is ComboBox { IsEditable: true });
 
+    /// <summary>
+    /// Enter in einem Optionsfeld übernimmt den Wert sofort (sonst erst beim Verlassen des Feldes). Ungültige Eingaben
+    /// werden verworfen und das Feld zeigt wieder den gültigen Wert.
+    /// </summary>
+    private void OnOptionTextBoxKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box
+            || box.GetBindingExpression(TextBox.TextProperty) is not { } binding)
+        {
+            return;
+        }
+
+        binding.UpdateSource();
+        if (binding.HasError)
+        {
+            binding.UpdateTarget();
+        }
+
+        box.SelectAll();
+        e.Handled = true;
+    }
+
     private void OnPrimaryColorClick(object sender, RoutedEventArgs e) => _viewModel.PickColor(primary: true);
 
     private void OnSecondaryColorClick(object sender, RoutedEventArgs e) => _viewModel.PickColor(primary: false);

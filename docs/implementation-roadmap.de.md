@@ -7,7 +7,7 @@
 | M2 | Dokumentmodell, Import, Darstellung | ✅ abgeschlossen (18.10.2026) |
 | M3 | Ebenen und Komposition | ✅ abgeschlossen (18.10.2026) |
 | M4 | Werkzeuge, Auswahl, Historie | ✅ abgeschlossen (18.10.2026) |
-| M5 | Strichmuster-Werkzeug | offen |
+| M5 | Strichmuster-Werkzeug | ✅ abgeschlossen (18.10.2026) |
 | M6 | Effekte | offen |
 | M7 | Projektformat `.orbit` | offen |
 | M8 | Professionelle Oberfläche | offen |
@@ -136,8 +136,36 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Freies Drehen/Skalieren von Ebenen nur per Dialog, ohne Anfasser und Live-Vorschau.
 - Eingabetest mit echter Maus für das Malen: Skript erweitert, in M4 nicht ausgeführt.
 
-## Nächster Schritt: M5
+## M5 – Strichmuster-Werkzeug (18.10.2026)
 
-Strichmuster-Werkzeug nach Abschnitt 1.1: ziehbare Kontrollpunkte (Überlagerung), Echtzeitvorschau, Winkel/Länge/
-Richtung, synchrone Eingabefelder X1/Y1/X2/Y2, Parameter (Linienstärke, Strichlänge, Strichabstand, Farbe, Deckkraft),
-Segmentberechnung ohne UI mit Randfällen, Anwenden/Abbrechen/Zurücksetzen, Rückgängig; Abnahme dokumentiert.
+Erfüllt (Spezifikation 1.1):
+- Werkzeug „Strichmuster“ (Kategorie Zeichnen, Umschalt+L). Linie aufziehen; Start- und Endpunkt danach als
+  Kontrollpunkte ziehbar, die Linie verschiebt beide; Umschalt rastet 15° ein; Pfeiltasten verschieben.
+- Kontrollpunkte und Hilfslinie sind reine Überlagerungen; die Vorschau ist eine temporäre Raster-Überlagerung
+  (`OverlayRaster`), die Ebene bleibt bis „Anwenden“ unverändert. Vorschau = Ergebnis (byteweise getestet).
+- Trefferprüfung in Bildschirmpixeln → korrekt bei Zoom, Verschiebung und DPI-Skalierung; Koordinaten als `PointD`.
+- Länge, Winkel, Richtung, Mittelpunkt und Strichanzahl werden laufend angezeigt; Felder X1/Y1/X2/Y2 synchron mit der
+  Leinwand (beide Richtungen, Enter übernimmt).
+- Parameter Linienstärke, Strichlänge, Strichabstand (Feld + Schieberegler), Farbe mit Alpha (Farbfeld → Farbdialog,
+  Hex-Feld), Deckkraft, Kantenglättung; Standardwerte und Minima laut Spezifikation, ungültige Eingaben begrenzt bzw.
+  abgewiesen. Periode = Strichlänge + Strichabstand (exakte Pixeltests).
+- Segmentberechnung `DashLine` ohne UI mit allen geforderten Randfällen (identische Punkte, kürzer als ein Strich,
+  Abstand 0, sehr große Werte, alle Winkel); Rasterung nur im Band um die Linie.
+- Anwenden (Schaltfläche/Enter) auf die aktive Ebene bzw. Maske, begrenzt auf Auswahl und Bildgrenzen, als ein
+  Rückgängig-Schritt; Abbrechen (Schaltfläche/Esc) verwirft vollständig; Zurücksetzen stellt die Standardwerte her.
+- Werkzeug-API erweitert: Optionstypen Farbe, Schaltfläche, Anzeige, Freigabezustand; `OverlayRaster`;
+  `PointerLost`, `ViewChanged`. Optionsleiste bricht um.
+- **Abnahmekriterium ausgeführt** (siehe testing.de.md): im echten Fenster (Debug und veröffentlichte EXE) per
+  Smoke-Test sowie als Integrationstest.
+- Tests: 390 Unit-/Integrations-/Architekturtests, 135 Smoke-Prüfungen. Single-File-EXE geprüft.
+
+Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
+- Eingabetest mit echter Windows-Maus für das Strichmuster: Skript erweitert, **nicht ausgeführt** (Sitzung aktiv).
+- Vorschau ohne Ebenen-Deckkraft/-Mischmodus; Optionsleiste mehrzeilig bis zur Options-Palette (M8);
+  Parameter nicht gespeichert (M9).
+
+## Nächster Schritt: M6
+
+Effektsystem (registrierbares Effektmodell mit Parametern, Validierung, Vorschau, Abbruch) und die 14 Effekte aus
+Abschnitt 9 mit Referenzbildern; Effektdialoge mit Schiebereglern, Zahlenfeldern und Live-Vorschau; Menüs Farben und
+Effekte aktivieren.

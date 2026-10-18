@@ -237,6 +237,6 @@ public class ViewToolTests : ToolTestBase
         var tools = ToolSet.CreateDefault();
         tools.Select(t => t.Id).ShouldBeUnique();
         tools.Where(t => t.Shortcut is not null).Select(t => t.Shortcut).ShouldBeUnique();
-        tools.Count.ShouldBe(22);
+        tools.Count.ShouldBe(23);
     }
 }

@@ -152,6 +152,13 @@ public sealed record OverlayCircle(PointD Center, double Radius) : OverlayShape;
 /// <summary>Anfasser mit fester Bildschirmgröße (z. B. Kontrollpunkt).</summary>
 public sealed record OverlayHandle(PointD Center, bool Highlighted) : OverlayShape;
 
+/// <summary>
+/// Temporäre Vorschau-Ebene (vormultipliertes BGRA), wird über dem Bild angezeigt und nie in Pixel übernommen.
+/// Pixel (0, 0) liegt bei <paramref name="Origin"/>; ein Pixel ist 1 / <paramref name="Scale"/> Dokumentpixel groß
+/// (Scale &lt; 1: Vorschau in reduzierter Auflösung).
+/// </summary>
+public sealed record OverlayRaster(PointD Origin, double Scale, PixelBuffer Pixels) : OverlayShape;
+
 // --- Werkzeug ---------------------------------------------------------------------------------
 
 /// <summary>Einheitliche Werkzeug-API (Spezifikation Abschnitt 7).</summary>
@@ -190,6 +197,14 @@ public interface ITool
 
     /// <summary>Mausbewegung ohne gedrückte Taste (z. B. Pinselspitze anzeigen).</summary>
     void Hover(ToolContext context, PointD position);
+
+    /// <summary>
+    /// Ein Ziehen endet ohne <see cref="PointerUp"/> (z. B. Mausfang verloren). Standard: laufende Bearbeitung übernehmen.
+    /// </summary>
+    void PointerLost(ToolContext context);
+
+    /// <summary>Zoom, Verschiebung oder Fenstergröße des Dokuments haben sich geändert (z. B. Vorschau neu berechnen).</summary>
+    void ViewChanged(ToolContext context);
 
     /// <summary>Tastatureingabe. Liefert true, wenn das Werkzeug sie verarbeitet hat.</summary>
     bool Key(ToolContext context, ToolKey key, ToolModifiers modifiers);
@@ -239,6 +254,12 @@ public abstract class ToolBase : ITool
     }
 
     public virtual void Hover(ToolContext context, PointD position)
+    {
+    }
+
+    public virtual void PointerLost(ToolContext context) => Commit(context);
+
+    public virtual void ViewChanged(ToolContext context)
     {
     }
 

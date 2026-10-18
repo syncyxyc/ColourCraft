@@ -154,9 +154,12 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
 ## Werkzeuge (`OrbitStudio.Tools`)
 
 - API `ITool` (Spezifikation 7): ID, Name (Textschlüssel `Tool.<Id>`), Kategorie, Symbol, Tastenkürzel, Optionen
-  (`NumberOption`, `ToggleOption`, `ChoiceOption` – mit Grenzen), Cursor, Zeigereingaben (Dokument- und
-  Viewport-Koordinaten, Taste, Umschalt/Strg/Alt, Klickzahl), Schweben, Tasten (Esc = abbrechen, Enter = übernehmen,
-  Pfeile), `Commit`, `Cancel`, Überlagerungen (`OverlayShape` in Dokumentkoordinaten – nie Teil der Pixel).
+  (`NumberOption` mit Grenzen, optional ohne Schieberegler; `ToggleOption`; `ChoiceOption`; `ColorOption` mit Alpha;
+  `ActionOption` = Schaltfläche; `InfoOption` = berechnete Anzeige; jede Option mit `IsEnabled`), Cursor,
+  Zeigereingaben (Dokument- und Viewport-Koordinaten, Taste, Umschalt/Strg/Alt, Klickzahl), Schweben, Tasten
+  (Esc = abbrechen, Enter = übernehmen, Pfeile), `Commit`, `Cancel`, `PointerLost` (Mausfang verloren; Standard =
+  übernehmen), `ViewChanged` (Zoom/Verschiebung), Überlagerungen (`OverlayShape` in Dokumentkoordinaten – nie Teil
+  der Pixel; `OverlayRaster` = temporäre Vorschau-Ebene, optional in reduzierter Auflösung).
 - `ToolContext`: Dokument, Historie, Farben (Vorder-/Hintergrund, global), Ansicht, Masken-Bearbeitungsmodus;
   Probleme (gesperrte Ebene, Gruppe aktiv, keine Maske) meldet das Werkzeug als `ToolProblem` → Statusleiste.
 - **Malsitzung** (`PaintSession`): Sicherung der Ebene (bzw. Maske) + Abdeckungspuffer (0–1, Maximum statt Summe).
@@ -168,8 +171,22 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
   Kantenglättung, Härte < 100 % → weicher Rand (Smoothstep); Bleistift ohne Glättung; Rechteck/Ellipse über
   signierte Abstände (Kontur innerhalb des Rahmens).
 - Werkzeuge: Auswahl (Rechteck, Ellipse, Lasso, Polygon, Zauberstab, Farbbereich), Transformation (Verschieben,
-  Zuschneiden), Zeichnen (Pinsel, Bleistift, Radierer, Freihand, Linie, Rechteck, gefülltes Rechteck, Ellipse,
-  gefüllte Ellipse), Füllung (Farbeimer, Verlauf, Pipette), Ansicht (Hand, Zoom).
+  Zuschneiden), Zeichnen (Pinsel, Bleistift, Radierer, Freihand, Linie, **Strichmuster**, Rechteck, gefülltes Rechteck,
+  Ellipse, gefüllte Ellipse), Füllung (Farbeimer, Verlauf, Pipette), Ansicht (Hand, Zoom).
+- **Strichmuster** (Spezifikation 1.1, `Tools/Drawing/DashPattern.cs`, `DashPatternTool.cs`):
+  - `DashLine` (ohne UI): Länge, normierte Richtung, Winkel (0° = rechts, gegen den Uhrzeigersinn, 0 ≤ w < 360),
+    Mittelpunkt, Anzahl und Lage der Striche. Strich i = [i · Periode, min(i · Periode + Strichlänge, Länge)],
+    Periode = Strichlänge + Strichabstand; Abstand 0 = ein Segment; identische Punkte = kein Segment. Segmente werden
+    bei Bedarf berechnet (konstanter Speicher auch bei Millionen Strichen).
+  - `DashRasterizer`: flache Enden (Striche exakt Strichlänge lang), Abdeckung aus dem signierten Abstand zum
+    Strich-Rechteck am Zellmittelpunkt, 1 Zelle Kantenglättung. Je Zeile wird nur das Band um die Linie berechnet
+    (Aufwand ∝ Länge × Stärke); der zuständige Strich wird über ⌊t / Periode⌋ gefunden. Raster mit Maßstab
+    (1 = Dokumentpixel, < 1 = reduzierte Vorschau).
+  - `DashPatternTool`: Zustand = Start-/Endpunkt (`PointD`, ±100.000 px) solange eine Bearbeitung läuft. Vorschau =
+    `OverlayRaster` (Farbe · Abdeckung · Deckkraft · Auswahl, gleiche Rechnung wie `PaintSession`), begrenzt auf
+    sichtbaren Ausschnitt ∩ Bild, unter 100 % Zoom im Maßstab des Zooms. Trefferprüfung der Kontrollpunkte in
+    Viewport-Pixeln (8 DIP × DPI-Skalierung) → unabhängig von Zoom und DPI. Anwenden = eine `PaintSession` über das
+    Band der Linie → ein `PixelRegionEntry` („Strichmuster“).
 - Bildweite Transformationen (`DocumentTransforms`): Bildgröße (Verkleinern: Flächenmittel, Vergrößern: bilinear,
   vormultipliert), Leinwandgröße mit Ausrichtung (neue Fläche transparent, Masken sichtbar), Drehen 90/180/270,
   Spiegeln, Zuschneiden; Ebenen spiegeln und frei drehen/skalieren (bilinear, um die Bildmitte).
@@ -180,7 +197,12 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
   ViewModels; leitet Eingaben der `CanvasView` an das Werkzeug weiter (mittlere Maustaste/Leertaste = Verschieben
   der Ansicht, immer vor dem Werkzeug).
 - `CanvasView` zeichnet nach dem Bild die Auswahlkontur (zweifarbig gestrichelt, Kanten aus der Maske, höchstens
-  400.000 Strecken, sonst Rahmen) und die Werkzeug-Überlagerungen.
+  400.000 Strecken, sonst Rahmen) und die Werkzeug-Überlagerungen: erst Vorschau-Ebenen (`OverlayRaster`, Bitmap wird
+  zwischengespeichert, solange sich die Vorschau nicht ändert), darüber Linien und Anfasser. Ansichtsänderungen
+  meldet sie an das Werkzeug (`ViewChanged`), verlorenen Mausfang als `PointerLost`.
+- Options-ViewModels folgen Wert- und Freigabeänderungen der Optionen (z. B. Koordinaten beim Ziehen) und melden sich
+  beim Werkzeugwechsel wieder ab. Enter in einem Optionsfeld übernimmt den Wert sofort; ungültige Eingaben werden
+  begrenzt bzw. verworfen. Schaltflächen (`ActionOption`) laufen im Kontext des zuletzt bearbeiteten Dokuments.
 - Tastenkürzel ohne Strg (Werkzeuge, X, D) kommen ebenfalls aus der Registry; das Hauptfenster wertet sie aus,
   solange kein Textfeld den Fokus hat.
 

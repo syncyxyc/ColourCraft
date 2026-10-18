@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using OrbitStudio.Application.Documents;
 using OrbitStudio.Domain.Imaging;
 using OrbitStudio.Presentation.Localization;
+using OrbitStudio.Presentation.Services;
 using OrbitStudio.Presentation.ViewModels;
 using OrbitStudio.Tools;
 
@@ -17,11 +18,13 @@ namespace OrbitStudio.Presentation.Tooling;
 public sealed partial class ToolController : ObservableObject
 {
     private readonly HistoryService _histories;
+    private readonly IDialogService _dialogs;
     private DocumentViewModel? _operationDocument;
 
-    public ToolController(HistoryService histories)
+    public ToolController(HistoryService histories, IDialogService dialogs)
     {
         _histories = histories;
+        _dialogs = dialogs;
         Tools = ToolSet.CreateDefault();
         Items = Tools.Select(t => new ToolItemViewModel(t, this)).ToList();
         ActiveTool = Tools.First(t => t.Id == "brush");
@@ -66,6 +69,7 @@ public sealed partial class ToolController : ObservableObject
         "crop" => Loc.Get("Tool.Hint.crop"),
         "selectPolygon" => Loc.Get("Tool.Hint.selectPolygon") + " · " + Loc.Get("Tool.Hint.selection"),
         "move" => Loc.Get("Tool.Hint.move"),
+        "dashPattern" => Loc.Get("Tool.Hint.dashPattern"),
         _ when ActiveTool.Category == ToolCategory.Selection => Loc.Get("Tool.Hint.selection"),
         _ => null,
     };
@@ -133,6 +137,31 @@ public sealed partial class ToolController : ObservableObject
 
     public void Hover(DocumentViewModel document, PointD position) => ActiveTool.Hover(ContextFor(document), position);
 
+    /// <summary>Ziehen endete ohne Loslassen (Mausfang verloren).</summary>
+    public void PointerLost(DocumentViewModel document)
+    {
+        if (_operationDocument == document && ActiveTool.IsActiveOperation)
+        {
+            ActiveTool.PointerLost(ContextFor(document));
+        }
+    }
+
+    /// <summary>Zoom oder Verschiebung eines Dokuments haben sich geändert.</summary>
+    public void ViewChanged(DocumentViewModel document) => ActiveTool.ViewChanged(ContextFor(document));
+
+    /// <summary>Schaltfläche der Optionsleiste ausführen (im Kontext des zuletzt bearbeiteten Dokuments).</summary>
+    public void ExecuteAction(ActionOption action) =>
+        action.Execute(_operationDocument is { } document ? ContextFor(document) : null);
+
+    /// <summary>Farbwahl für eine Farboption über den Farbdialog.</summary>
+    public void PickColor(ColorOption option)
+    {
+        if (_dialogs.ShowColorPicker(option.Value) is { } chosen)
+        {
+            option.Value = chosen;
+        }
+    }
+
     public bool Key(DocumentViewModel document, ToolKey key, ToolModifiers modifiers)
     {
         _operationDocument = document;
@@ -170,6 +199,11 @@ public sealed partial class ToolController : ObservableObject
 
     private void RebuildOptions()
     {
+        foreach (var old in Options.OfType<IDisposable>())
+        {
+            old.Dispose();
+        }
+
         Options.Clear();
         foreach (var option in ActiveTool.Options)
         {
@@ -178,6 +212,9 @@ public sealed partial class ToolController : ObservableObject
                 NumberOption n => new NumberOptionViewModel(n),
                 ToggleOption t => new ToggleOptionViewModel(t),
                 ChoiceOption c => new ChoiceOptionViewModel(c),
+                ColorOption c => new ColorOptionViewModel(c, this),
+                ActionOption a => new ActionOptionViewModel(a, this),
+                InfoOption i => new InfoOptionViewModel(i),
                 _ => throw new NotSupportedException(option.GetType().Name),
             });
         }
@@ -216,10 +253,40 @@ public sealed class ToolItemViewModel(ITool tool, ToolController controller) : O
     public void Refresh() => OnPropertyChanged(nameof(IsActive));
 }
 
-public sealed class NumberOptionViewModel(NumberOption option) : ObservableObject
+/// <summary>
+/// Gemeinsame Basis der Options-ViewModels: folgt Wert- und Freigabeänderungen der Option (auch wenn das Werkzeug sie
+/// selbst ändert, z. B. Koordinaten beim Ziehen) und meldet sich beim Neuaufbau der Optionsleiste wieder ab.
+/// </summary>
+public abstract class OptionViewModel : ObservableObject, IDisposable
 {
-    public string Label => Loc.Get(option.LabelKey);
+    private readonly ToolOption _option;
 
+    protected OptionViewModel(ToolOption option)
+    {
+        _option = option;
+        option.Changed += OnOptionChanged;
+        option.EnabledChanged += OnEnabledChanged;
+    }
+
+    public string Label => Loc.Get(_option.LabelKey);
+
+    public bool IsEnabled => _option.IsEnabled;
+
+    public void Dispose()
+    {
+        _option.Changed -= OnOptionChanged;
+        _option.EnabledChanged -= OnEnabledChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Wert der Option hat sich geändert: alle abhängigen Eigenschaften neu melden.</summary>
+    protected virtual void OnOptionChanged(object? sender, EventArgs e) => OnPropertyChanged(string.Empty);
+
+    private void OnEnabledChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(IsEnabled));
+}
+
+public sealed class NumberOptionViewModel(NumberOption option) : OptionViewModel(option)
+{
     public string Unit => Loc.Get(option.UnitKey);
 
     public double Minimum => option.Minimum;
@@ -228,6 +295,9 @@ public sealed class NumberOptionViewModel(NumberOption option) : ObservableObjec
 
     public double Step => option.Step;
 
+    public bool ShowSlider => option.ShowSlider;
+
+    /// <summary>Ungültige Eingaben werden auf den gültigen Bereich begrenzt; das Feld zeigt danach den echten Wert.</summary>
     public double Value
     {
         get => option.Value;
@@ -239,10 +309,8 @@ public sealed class NumberOptionViewModel(NumberOption option) : ObservableObjec
     }
 }
 
-public sealed class ToggleOptionViewModel(ToggleOption option) : ObservableObject
+public sealed class ToggleOptionViewModel(ToggleOption option) : OptionViewModel(option)
 {
-    public string Label => Loc.Get(option.LabelKey);
-
     public bool Value
     {
         get => option.Value;
@@ -254,10 +322,8 @@ public sealed class ToggleOptionViewModel(ToggleOption option) : ObservableObjec
     }
 }
 
-public sealed class ChoiceOptionViewModel(ChoiceOption option) : ObservableObject
+public sealed class ChoiceOptionViewModel(ChoiceOption option) : OptionViewModel(option)
 {
-    public string Label => Loc.Get(option.LabelKey);
-
     public IReadOnlyList<string> Choices { get; } = option.ChoiceKeys.Select(Loc.Get).ToList();
 
     public int Index
@@ -269,4 +335,55 @@ public sealed class ChoiceOptionViewModel(ChoiceOption option) : ObservableObjec
             OnPropertyChanged();
         }
     }
+}
+
+/// <summary>Farbe mit Alpha: Farbfeld (öffnet den Farbdialog) und Hex-Feld (#RRGGBB oder #RRGGBBAA).</summary>
+public sealed class ColorOptionViewModel : OptionViewModel
+{
+    private readonly ColorOption _option;
+
+    public ColorOptionViewModel(ColorOption option, ToolController controller)
+        : base(option)
+    {
+        _option = option;
+        PickCommand = new RelayCommand(() => controller.PickColor(option));
+    }
+
+    public ICommand PickCommand { get; }
+
+    public System.Windows.Media.Color Color =>
+        System.Windows.Media.Color.FromArgb(_option.Value.A, _option.Value.R, _option.Value.G, _option.Value.B);
+
+    /// <summary>Ungültige Hex-Eingaben werden abgewiesen; das Feld zeigt danach wieder die gültige Farbe.</summary>
+    public string Hex
+    {
+        get => _option.Value.ToHex();
+        set
+        {
+            if (ColorRgba.TryParseHex(value, out var color))
+            {
+                _option.Value = color;
+            }
+
+            OnPropertyChanged();
+        }
+    }
+}
+
+/// <summary>Schaltfläche der Optionsleiste.</summary>
+public sealed class ActionOptionViewModel : OptionViewModel
+{
+    public ActionOptionViewModel(ActionOption option, ToolController controller)
+        : base(option)
+    {
+        Command = new RelayCommand(() => controller.ExecuteAction(option));
+    }
+
+    public ICommand Command { get; }
+}
+
+/// <summary>Nur-Lese-Anzeige (z. B. Länge und Winkel der Strichmusterlinie).</summary>
+public sealed class InfoOptionViewModel(InfoOption option) : OptionViewModel(option)
+{
+    public string Text => Loc.Format(option.TextKey, [.. option.Arguments]);
 }

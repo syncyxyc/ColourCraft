@@ -16,6 +16,7 @@ using OrbitStudio.Imaging.Codecs;
 using OrbitStudio.Presentation.Commands;
 using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Services;
+using OrbitStudio.Presentation.Tooling;
 using OrbitStudio.Presentation.ViewModels;
 using OrbitStudio.Presentation.Viewport;
 using OrbitStudio.Presentation.Views;
@@ -81,6 +82,7 @@ internal static class SmokeTest
             await CheckFilesAndViewAsync(context, shotBase);
             await CheckLayersAsync(context, shotBase);
             CheckTools(context, shotBase);
+            CheckDashPattern(context, shotBase);
             CheckFullScreen(context);
         }
         catch (Exception ex)
@@ -456,8 +458,8 @@ internal static class SmokeTest
         var layer = doc.Document.PixelLayers.Single();
         var canvas = FindDescendant<CanvasView>(c.Window)!;
 
-        c.Check("Werkzeugleiste mit 22 Werkzeugen sichtbar",
-            FindDescendant<System.Windows.Controls.ItemsControl>(c.Window, "ToolPalette") is { Items.Count: 22, IsVisible: true });
+        c.Check("Werkzeugleiste mit 23 Werkzeugen sichtbar",
+            FindDescendant<System.Windows.Controls.ItemsControl>(c.Window, "ToolPalette") is { Items.Count: 23, IsVisible: true });
         c.Check("Leinwand ist mit dem Werkzeug-Controller verbunden", canvas.Tools == tools);
         var palette = FindDescendant<System.Windows.Controls.ItemsControl>(c.Window, "ToolPalette")!;
         var lastTool = (FrameworkElement)palette.ItemContainerGenerator.ContainerFromIndex(palette.Items.Count - 1);
@@ -614,6 +616,175 @@ internal static class SmokeTest
 
         c.Dialogs.ConfirmAnswer = true;
         c.Execute(CommandIds.FileCloseAll);
+    }
+
+    // --- M5: Strichmuster-Werkzeug (Abnahme nach Spezifikation 1.1) -------------------------------
+
+    private static void CheckDashPattern(Context c, string shotBase)
+    {
+        var vm = c.Vm;
+        var tools = vm.Tools;
+        var doc = vm.CreateDocument(new NewDocumentRequest("Strichmuster", 200, 120, DocumentBackground.White));
+        Flush(c.Window);
+        var layer = doc.Document.PixelLayers.Single();
+        var canvas = FindDescendant<CanvasView>(c.Window)!;
+        doc.View.SetZoom(2);
+        Flush(c.Window);
+
+        c.Execute(CommandIds.ToolPrefix + "dashPattern");
+        var tool = (OrbitStudio.Tools.Drawing.DashPatternTool)tools.ActiveTool;
+        var optionsBar = FindDescendant<System.Windows.Controls.ItemsControl>(c.Window, "ToolOptions")!;
+        c.Check("Strichmuster: Werkzeug per Befehl gewählt, 14 Optionen in der Optionsleiste",
+            tool.Id == "dashPattern" && tools.Options.Count == 14 && optionsBar.Items.Count == 14);
+
+        System.Windows.Controls.TextBox Field(string label) =>
+            FindAll<System.Windows.Controls.TextBox>(optionsBar)
+                .First(t => System.Windows.Automation.AutomationProperties.GetName(t) == label);
+        System.Windows.Controls.Button Button(string labelKey) =>
+            FindAll<System.Windows.Controls.Button>(optionsBar).First(b => (b.Content as string) == Loc.Get(labelKey));
+        void Enter(System.Windows.Controls.TextBox box, string text)
+        {
+            box.Text = text;
+            box.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)!.UpdateSource();
+            Flush(c.Window);
+        }
+
+        c.Check("Ohne Linie: Koordinatenfelder und Anwenden deaktiviert, Zurücksetzen aktiv",
+            !Field("X1").IsEnabled && !Button("Opt.Dash.Apply").IsEnabled && Button("Opt.Dash.Reset").IsEnabled);
+
+        // Zeigerereignisse wie von der Leinwand: Dokument- und dazu passende Viewport-Koordinaten bei 200 % Zoom.
+        void Drag(double x0, double y0, double x1, double y1)
+        {
+            var a = new PointD(x0, y0);
+            var b = new PointD(x1, y1);
+            tools.PointerDown(doc, a, doc.View.DocumentToViewport(a), OrbitStudio.Tools.PointerButton.Primary,
+                OrbitStudio.Tools.ToolModifiers.None, 1);
+            for (var i = 1; i <= 6; i++)
+            {
+                var p = new PointD(x0 + (x1 - x0) * i / 6, y0 + (y1 - y0) * i / 6);
+                tools.PointerMove(doc, p, doc.View.DocumentToViewport(p), OrbitStudio.Tools.PointerButton.Primary,
+                    OrbitStudio.Tools.ToolModifiers.None);
+            }
+
+            tools.PointerUp(doc, b, doc.View.DocumentToViewport(b), OrbitStudio.Tools.PointerButton.Primary,
+                OrbitStudio.Tools.ToolModifiers.None);
+            Flush(c.Window);
+        }
+
+        var original = layer.Pixels.Clone();
+        Drag(20, 30, 100, 30);
+        Drag(20, 30, 10, 60);   // Startpunkt ziehen
+        Drag(100, 30, 130, 60); // Endpunkt ziehen
+        c.Check("Beide Kontrollpunkte auf der Leinwand verschoben",
+            tool.StartPoint == new PointD(10, 60) && tool.EndPoint == new PointD(130, 60));
+        c.Check("Eingabefelder synchron mit der Leinwand",
+            Field("X1").Text == "10" && Field("Y1").Text == "60" && Field("X2").Text == "130" && Field("Y2").Text == "60"
+            && Field("X2").IsEnabled && Button("Opt.Dash.Apply").IsEnabled);
+        var info = optionsBar.Items.OfType<InfoOptionViewModel>().Single().Text;
+        c.Check($"Länge, Winkel, Richtung, Mitte angezeigt ({info})",
+            info.Contains("120 px", StringComparison.Ordinal) && info.Contains("Winkel 0°", StringComparison.Ordinal)
+            && info.Contains("(70; 60)", StringComparison.Ordinal));
+        c.Check("Vorschau verändert die Ebene nicht (Overlay)", layer.Pixels.ContentEquals(original)
+                                                                && !c.CanExecute(CommandIds.EditUndo));
+
+        // Gerenderte Leinwand: Vorschau ist sichtbar (Strichmitte dunkel, Lücke hell), die Ebene bleibt weiß.
+        Color Rendered(double x, double y)
+        {
+            var dpi = VisualTreeHelper.GetDpi(canvas);
+            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(canvas.ActualWidth * dpi.DpiScaleX),
+                (int)Math.Ceiling(canvas.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+            bitmap.Render(canvas);
+            var dip = doc.View.DocumentToDip(new PointD(x, y));
+            var pixel = new byte[4];
+            bitmap.CopyPixels(new Int32Rect((int)(dip.X * dpi.DpiScaleX), (int)(dip.Y * dpi.DpiScaleY), 1, 1), pixel, 4, 0);
+            return Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]);
+        }
+
+        // Linie y = 60 ab x = 10: Strich 10–20, Lücke 20–25. Messpunkte 1,5 px neben der Mittellinie (dort liegt die Hilfslinie).
+        var dashShown = Rendered(15, 61.5);
+        var gapShown = Rendered(22.5, 61.5);
+        c.Check($"Vorschau auf der Leinwand sichtbar (Strich {dashShown}, Lücke {gapShown})",
+            dashShown.R < 40 && gapShown.R > 215);
+
+        // Parameter über die Optionsleiste: Zahlenfeld, Begrenzung, Hex-Feld, Farbdialog
+        Enter(Field("X2"), "150");
+        c.Check("Zahlenfeld X2 bewegt den Endpunkt", tool.EndPoint == new PointD(150, 60));
+        var thickness = Field(Loc.Get("Opt.Dash.Thickness"));
+        Enter(thickness, "0");
+        c.Check($"Ungültige Linienstärke 0 wird auf 1 begrenzt (Feld zeigt {thickness.Text})",
+            tool.Thickness.Value == 1 && thickness.Text == "1");
+        tool.Thickness.Value = 6;
+        tool.DashLength.Value = 12;
+        tool.GapLength.Value = 8;
+        var hex = Field(Loc.Get("Opt.Color.Hex"));
+        Enter(hex, "#00FF00");
+        Enter(hex, "kein Hex");
+        c.Check($"Hex-Feld setzt Farbe, ungültige Eingabe abgewiesen (Feld zeigt {hex.Text})",
+            tool.Color.Value == new ColorRgba(0, 255, 0) && hex.Text == "#00FF00");
+        c.Dialogs.ColorAnswers.Enqueue(new ColorRgba(255, 0, 0, 255));
+        FindAll<System.Windows.Controls.Button>(optionsBar)
+            .First(b => System.Windows.Automation.AutomationProperties.GetName(b) == Loc.Get("Opt.Color.Pick"))
+            .Command.Execute(null);
+        Flush(c.Window);
+        c.Check("Farbfeld öffnet den Farbdialog und übernimmt die Farbe", tool.Color.Value == new ColorRgba(255, 0, 0));
+        SaveScreenshot(c.Window, shotBase + "-strichmuster.png");
+
+        // Anwenden über die Schaltfläche, dann Rückgängig/Wiederholen über die Menübefehle
+        Button("Opt.Dash.Apply").Command.Execute(null);
+        Flush(c.Window);
+        var red = Bgra32.FromStraight(255, 0, 0, 255);
+        // Linie (10; 60) → (150; 60), Stärke 6 (Zeilen 57–62), Striche 12 / Lücken 8: [10, 22), [30, 42) …
+        var applied = layer.Pixels.Clone();
+        c.Check("Anwenden überträgt das Muster exakt auf die aktive Ebene",
+            layer.Pixels.GetPixel(15, 57) == red && layer.Pixels.GetPixel(15, 62) == red
+            && layer.Pixels.GetPixel(15, 56) == Bgra32.White && layer.Pixels.GetPixel(25, 60) == Bgra32.White
+            && layer.Pixels.GetPixel(35, 60) == red && layer.Pixels.GetPixel(150, 60) == Bgra32.White
+            && !tool.IsActiveOperation && tool.Overlay.Count == 0);
+        c.Check("Komposit und Bitmap zeigen das Muster", doc.Composite.GetPixel(15, 60) == red
+                                                         && BitmapMatches(doc.Bitmap, doc.Composite));
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Rückgängig nimmt die Übernahme exakt zurück",
+            layer.Pixels.ContentEquals(original) && vm.StatusMessage.Contains(Loc.Get("Tool.dashPattern"), StringComparison.Ordinal));
+        c.Execute(CommandIds.EditRedo);
+        c.Check("Wiederholen stellt das Muster exakt wieder her", layer.Pixels.ContentEquals(applied));
+
+        // Abbrechen (Esc) und Zurücksetzen
+        Drag(20, 100, 180, 100);
+        tools.Key(doc, OrbitStudio.Tools.ToolKey.Escape, OrbitStudio.Tools.ToolModifiers.None);
+        Flush(c.Window);
+        c.Check("Abbrechen verwirft die Bearbeitung vollständig",
+            !tool.IsActiveOperation && layer.Pixels.ContentEquals(applied) && tool.Overlay.Count == 0);
+        Button("Opt.Dash.Reset").Command.Execute(null);
+        Flush(c.Window);
+        c.Check("Zurücksetzen stellt die Standardwerte her",
+            tool.Thickness.Value == 4 && tool.DashLength.Value == 10 && tool.GapLength.Value == 5
+            && tool.Color.Value == ColorRgba.Black && tool.Opacity.Value == 100
+            && Field(Loc.Get("Opt.Dash.Thickness")).Text == "4");
+
+        // Werkzeugwechsel übernimmt eine laufende Linie (wie bei allen Werkzeugen) – nichts geht still verloren.
+        Drag(20, 100, 60, 100);
+        c.Execute(CommandIds.ToolPrefix + "brush");
+        c.Check("Werkzeugwechsel übernimmt die laufende Linie", layer.Pixels.GetPixel(25, 100) == Bgra32.Black);
+
+        c.Dialogs.ConfirmAnswer = true;
+        c.Execute(CommandIds.FileCloseAll);
+    }
+
+    private static IEnumerable<T> FindAll<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in FindAll<T>(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     // --- M1: Vollbild -----------------------------------------------------------------------------

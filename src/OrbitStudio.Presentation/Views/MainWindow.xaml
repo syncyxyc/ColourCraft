@@ -93,12 +93,20 @@
                            VerticalAlignment="Center" Margin="0,0,16,0" />
                 <TextBlock DockPanel.Dock="Right" Text="{Binding Tools.ActiveToolHint}" Opacity="0.7"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="16,0,0,0" />
-                <ItemsControl x:Name="ToolOptions" ItemsSource="{Binding Tools.Options}" VerticalAlignment="Center">
+                <ItemsControl x:Name="ToolOptions" ItemsSource="{Binding Tools.Options}" VerticalAlignment="Center"
+                              Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" />
+                            <!-- Umbrechen, wenn ein Werkzeug viele Optionen hat (z. B. Strichmuster). -->
+                            <WrapPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+                            <Setter Property="Margin" Value="0,2" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
                     <ItemsControl.Resources>
                         <DataTemplate DataType="{x:Type tooling:NumberOptionViewModel}">
                             <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
@@ -106,8 +114,9 @@
                                 <Slider Width="110" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
                                         SmallChange="{Binding Step}" LargeChange="10" IsSnapToTickEnabled="True"
                                         TickFrequency="{Binding Step}" VerticalAlignment="Center"
+                                        Visibility="{Binding ShowSlider, Converter={StaticResource BoolToVisible}}"
                                         Value="{Binding Value, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" />
-                                <TextBox Width="44" Margin="6,0,2,0" VerticalAlignment="Center"
+                                <TextBox Width="52" Margin="6,0,2,0" VerticalAlignment="Center" KeyDown="OnOptionTextBoxKeyDown"
                                          Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
                                          AutomationProperties.Name="{Binding Label}" />
                                 <TextBlock Text="{Binding Unit}" VerticalAlignment="Center" />
@@ -123,6 +132,35 @@
                                 <ComboBox ItemsSource="{Binding Choices}" SelectedIndex="{Binding Index, Mode=TwoWay}"
                                           MinWidth="110" AutomationProperties.Name="{Binding Label}" />
                             </StackPanel>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type tooling:ColorOptionViewModel}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <Button Width="24" Height="20" Padding="0" Command="{Binding PickCommand}"
+                                        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                                        ToolTip="{StaticResource Opt.Color.Pick}"
+                                        AutomationProperties.Name="{StaticResource Opt.Color.Pick}">
+                                    <Border Background="{DynamicResource Brush.Checkerboard}">
+                                        <Border>
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding Color}" />
+                                            </Border.Background>
+                                        </Border>
+                                    </Border>
+                                </Button>
+                                <TextBox Width="78" Margin="6,0,0,0" VerticalAlignment="Center" KeyDown="OnOptionTextBoxKeyDown"
+                                         Text="{Binding Hex, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="{StaticResource Opt.Color.Hex}"
+                                         AutomationProperties.Name="{StaticResource Opt.Color.Hex}" />
+                            </StackPanel>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type tooling:InfoOptionViewModel}">
+                            <TextBlock Text="{Binding Text}" VerticalAlignment="Center" Margin="0,0,16,0" Opacity="0.85"
+                                       AutomationProperties.Name="{Binding Label}" />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type tooling:ActionOptionViewModel}">
+                            <Button Content="{Binding Label}" Command="{Binding Command}" Padding="10,1" Margin="0,0,6,0"
+                                    VerticalAlignment="Center" AutomationProperties.Name="{Binding Label}" />
                         </DataTemplate>
                     </ItemsControl.Resources>
                 </ItemsControl>

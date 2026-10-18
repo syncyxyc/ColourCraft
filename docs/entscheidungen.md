@@ -158,6 +158,48 @@
 - Interpolation und Auftrag vormultipliziert, damit transparente Farben keine dunklen Säume erzeugen; dieselbe Regel
   gilt für das Resampling (Bildgröße, Drehen).
 
+## E-033 – Strichmuster-Vorschau als Raster-Überlagerung (18.10.2026)
+- Spezifikation 1.1 verlangt eine Vorschau in einem temporären Overlay-Layer, das Original bleibt unverändert.
+  Alternativen: (a) Vorschau direkt in die Ebene mit Sicherung (wie die Formwerkzeuge, E-027) – widerspricht der
+  Vorgabe; (b) Vektorvorschau mit WPF-Stiften – sieht anders aus als das Ergebnis (andere Kantenglättung, Enden).
+  Entscheidung: `OverlayRaster` mit exakt derselben Abdeckungs- und Rundungsrechnung wie beim Anwenden (Test:
+  Vorschau = Ergebnis auf leerer Ebene, byteweise). Begrenzung auf den sichtbaren Ausschnitt und unter 100 % Zoom
+  reduzierte Auflösung (Spezifikation 6), damit auch bei großen Bildern höchstens etwa Fenstergröße berechnet wird.
+- Folge: Die Vorschau zeigt die Musterfarbe „normal“ über dem Gesamtbild; Deckkraft, Mischmodus und Maske der Ebene
+  wirken erst nach dem Anwenden (bekannte-einschraenkungen.md).
+
+## E-034 – Strichmuster: flache Enden, Abstand 0 = ein Segment (18.10.2026)
+- Runde oder überstehende Enden würden jeden Strich um die Linienstärke verlängern und die verbindliche Regel
+  „10 px Strich, 5 px Lücke“ verletzen. Daher flache Enden: Ein Strich ist exakt Strichlänge lang (Tests mit exakten
+  Pixeln). Bei Abstand 0 entsteht ein einziges Segment statt aneinanderstoßender Striche, weil sich an den Nahtstellen
+  sonst zwei halb deckende Kanten zu einer sichtbaren Naht addieren könnten.
+- Identische Punkte ergeben kein Segment (es gibt keine Richtung); Anwenden ändert dann nichts und legt keinen
+  Historieneintrag an.
+
+## E-035 – Strichmuster: eigener Farbparameter, Standard Schwarz (18.10.2026)
+- Spezifikation 1.1 legt Farbe inkl. Alpha mit Farbwähler, Hex-Feld und Standard Schwarz fest. Das Werkzeug nutzt
+  deshalb eine eigene `ColorOption` statt der Vordergrundfarbe; die rechte Maustaste hat keine eigene Farbe.
+
+## E-036 – Strichmuster: Lebenszyklus der Bearbeitung (18.10.2026)
+- Die Bearbeitung bleibt nach dem Loslassen offen (Kontrollpunkte, Felder) und endet nur durch Anwenden oder
+  Abbrechen. Wie bei allen Werkzeugen übernimmt `CommitActive` (Werkzeug-/Dokumentwechsel, Rückgängig, Schließen)
+  die laufende Linie – keine stillen Datenverluste. Rückgängig direkt danach entfernt sie wieder (und Wiederholen
+  stellt sie her). Ein Klick neben Linie und Punkte übernimmt und beginnt eine neue Linie (gängige Bedienung).
+- Verlorener Mausfang beendet nur das Ziehen (`ITool.PointerLost`); bei den übrigen Werkzeugen bleibt das bisherige
+  Verhalten (übernehmen) als Standard der Basisklasse erhalten.
+- Gegriffene Kontrollpunkte behalten ihren Versatz zum Mauszeiger und springen nicht (gefunden durch einen Test).
+
+## E-037 – Strichmuster: Koordinatenbereich und Trefferradius (18.10.2026)
+- Punkte dürfen außerhalb des Bildes liegen (Linien, die über den Rand laufen); Grenze ±100.000 px, damit
+  Eingaben endlich bleiben und die Segmentzahl beherrschbar ist. Werte werden als `double` in `PointD` gespeichert.
+- Fangradius 8 geräteunabhängige Pixel am Bildschirm (× DPI-Skalierung, gemessen in Viewport-Pixeln): Punkte sind bei
+  jedem Zoom und jeder Windows-Skalierung gleich gut greifbar. Liegen beide Punkte übereinander, gewinnt der Endpunkt.
+
+## E-038 – Optionsleiste: Schaltflächen, Farbfelder, Anzeigen als Werkzeugoptionen (18.10.2026)
+- Statt einer Sonderoberfläche für das Strichmuster wurde die Options-API um `ColorOption`, `ActionOption`,
+  `InfoOption` und `IsEnabled` erweitert. Die Optionsleiste bleibt generisch (Plugins ab M10 können dieselben Typen
+  nutzen) und bricht bei vielen Optionen um. Eine eigene Werkzeugoptionen-Palette folgt in M8.
+
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.

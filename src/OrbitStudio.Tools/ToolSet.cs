@@ -28,6 +28,7 @@ public static class ToolSet
         new EraserTool(),
         new FreehandTool(),
         new LineTool(),
+        new DashPatternTool(),
         new RectangleTool(filled: false),
         new RectangleTool(filled: true),
         new EllipseTool(filled: false),

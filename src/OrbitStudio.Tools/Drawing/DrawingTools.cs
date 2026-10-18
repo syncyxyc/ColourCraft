@@ -6,28 +6,33 @@ namespace OrbitStudio.Tools.Drawing;
 /// <summary>Gemeinsame Startprüfung für Werkzeuge, die Pixel (oder die Maske) der aktiven Ebene verändern.</summary>
 public static class PaintTarget
 {
-    public static PaintSession? Start(ToolContext context, PaintMode mode, ColorRgba color, double opacity)
+    public static PaintSession? Start(ToolContext context, PaintMode mode, ColorRgba color, double opacity) =>
+        CanPaint(context) ? new PaintSession(context.Document, context.Document.ActivePixelLayer!, mode, color, opacity,
+            context.EditMask) : null;
+
+    /// <summary>Prüft, ob die aktive Ebene (bzw. ihre Maske) bemalt werden darf; meldet sonst den Grund.</summary>
+    public static bool CanPaint(ToolContext context)
     {
         var layer = context.Document.ActivePixelLayer;
         if (layer is null)
         {
             context.Report(ToolProblem.NoPixelLayer);
-            return null;
+            return false;
         }
 
         if (layer.IsEffectivelyLocked)
         {
             context.Report(ToolProblem.LayerLocked);
-            return null;
+            return false;
         }
 
         if (context.EditMask && layer.Mask is null)
         {
             context.Report(ToolProblem.NoMask);
-            return null;
+            return false;
         }
 
-        return new PaintSession(context.Document, layer, mode, color, opacity, context.EditMask);
+        return true;
     }
 
     /// <summary>Umschließendes Pixelrechteck zweier Punkte, um <paramref name="margin"/> erweitert.</summary>

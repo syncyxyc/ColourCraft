@@ -27,8 +27,11 @@ public static class NativeInput {
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     public const uint WHEEL = 0x0800, MIDDLEDOWN = 0x0020, MIDDLEUP = 0x0040;
+    [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
 }
 '@
+# Alle Koordinaten (Fenster, Maus, UI Automation, Bildschirmfoto) in echten Bildschirmpixeln, auch bei 125–200 % Skalierung.
+[NativeInput]::SetProcessDPIAware() | Out-Null
 
 $results = Join-Path $Artifacts 'testresults'
 New-Item -ItemType Directory -Force $results | Out-Null
@@ -178,6 +181,110 @@ try {
     Start-Sleep -Milliseconds 300
     $status = Get-StatusMessage
     Check "Pinselstrich mit echter Maus und Strg+Z ($status)" ($status -like 'Rückgängig: Pinsel*')
+
+    # 7) Abnahme Strichmuster (Spezifikation 1.1): Linie aufziehen, beide Kontrollpunkte mit echter Maus ziehen,
+    #    Parameter per Tastatur eingeben, Vorschau auf dem Bildschirm prüfen, „Anwenden" klicken, Strg+Z, Strg+Y.
+    function Find-Named([string]$name, $controlType) {
+        $byName = New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::NameProperty), $name
+        $byType = New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::ControlTypeProperty), $controlType
+        return $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.AndCondition $byName, $byType))
+    }
+    function Get-Field([string]$name) {
+        $edit = Find-Named $name ([System.Windows.Automation.ControlType]::Edit)
+        if ($null -eq $edit) { return $null }
+        $text = $edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value
+        return [double]::Parse($text.Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
+    }
+    function Move-Drag([int]$x0, [int]$y0, [int]$x1, [int]$y1) {
+        Assert-Foreground 'Ziehen (Strichmuster)'
+        [NativeInput]::SetCursorPos($x0, $y0) | Out-Null
+        Start-Sleep -Milliseconds 80
+        [NativeInput]::mouse_event([NativeInput]::LEFTDOWN, 0, 0, 0, [UIntPtr]::Zero)
+        for ($step = 1; $step -le 12; $step++) {
+            [NativeInput]::SetCursorPos([int]($x0 + ($x1 - $x0) * $step / 12), [int]($y0 + ($y1 - $y0) * $step / 12)) | Out-Null
+            Start-Sleep -Milliseconds 25
+        }
+        [NativeInput]::mouse_event([NativeInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 300
+    }
+    function Click-Element($element) {
+        $r = $element.Current.BoundingRectangle
+        Assert-Foreground ('Klick ' + $element.Current.Name)
+        [NativeInput]::SetCursorPos([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)) | Out-Null
+        Start-Sleep -Milliseconds 60
+        [NativeInput]::mouse_event([NativeInput]::LEFTDOWN, 0, 0, 0, [UIntPtr]::Zero)
+        [NativeInput]::mouse_event([NativeInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 250
+    }
+    function Set-Field([string]$name, [double]$value) {
+        Click-Element (Find-Named $name ([System.Windows.Automation.ControlType]::Edit))
+        Assert-Foreground ('Eingabe ' + $name)
+        [System.Windows.Forms.SendKeys]::SendWait('^a')
+        [System.Windows.Forms.SendKeys]::SendWait($value.ToString([Globalization.CultureInfo]::InvariantCulture))
+        [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+        Start-Sleep -Milliseconds 250
+    }
+    function Get-ScreenColor([int]$x, [int]$y) {
+        $pixel = New-Object System.Drawing.Bitmap 1, 1
+        $gp = [System.Drawing.Graphics]::FromImage($pixel)
+        $gp.CopyFromScreen($x, $y, 0, 0, $pixel.Size)
+        $gp.Dispose()
+        $color = $pixel.GetPixel(0, 0); $pixel.Dispose()
+        return $color
+    }
+    function Test-Dark($color) { return ($color.R + $color.G + $color.B) -lt 150 }
+
+    Assert-Foreground 'Umschalt+L'
+    [System.Windows.Forms.SendKeys]::SendWait('+l')
+    Start-Sleep -Milliseconds 300
+    $ax = $cx - 200; $ay = $cy - 60; $bx = $cx + 100
+    Move-Drag $ax $ay $bx $ay
+    $p1 = @((Get-Field 'X1'), (Get-Field 'Y1')); $p2 = @((Get-Field 'X2'), (Get-Field 'Y2'))
+    $created = ($null -ne $p1[0]) -and ($p2[0] -gt $p1[0]) -and ([math]::Abs($p2[1] - $p1[1]) -lt 0.01)
+    Check "Strichmuster: Linie mit echter Maus aufgezogen ($($p1 -join '; ') → $($p2 -join '; '))" $created
+    if (-not $created) { throw 'Strichmuster-Linie wurde nicht angelegt.' }
+    $scale = 300 / ($p2[0] - $p1[0]) # Bildschirmpixel je Dokumentpixel
+
+    Move-Drag $ax $ay $ax ($ay + 120)               # Kontrollpunkt 1
+    $q1 = @((Get-Field 'X1'), (Get-Field 'Y1'))
+    Check "Kontrollpunkt 1 gezogen (Y1 $($p1[1]) → $($q1[1]), erwartet $([math]::Round($p1[1] + 120 / $scale, 2)))" (
+        ([math]::Abs($q1[0] - $p1[0]) -lt 0.5) -and ([math]::Abs($q1[1] - ($p1[1] + 120 / $scale)) -lt 0.5) -and ((Get-Field 'X2') -eq $p2[0]))
+    Move-Drag $bx $ay ($bx + 40) ($ay + 120)        # Kontrollpunkt 2
+    $q2 = @((Get-Field 'X2'), (Get-Field 'Y2'))
+    Check "Kontrollpunkt 2 gezogen (X2 $($p2[0]) → $($q2[0]), Y2 $($p2[1]) → $($q2[1]))" (
+        ([math]::Abs($q2[0] - ($p2[0] + 40 / $scale)) -lt 0.5) -and ([math]::Abs($q2[1] - ($p2[1] + 120 / $scale)) -lt 0.5) -and ((Get-Field 'Y1') -eq $q1[1]))
+
+    # Parameter per Tastatur (Feld anklicken, Wert tippen, Enter) – gut sichtbar: 16 / 60 / 40 Bildschirmpixel
+    $thick = [math]::Ceiling(16 / $scale); $dash = [math]::Ceiling(60 / $scale); $gap = [math]::Ceiling(40 / $scale)
+    Set-Field 'Linienstärke' $thick
+    Set-Field 'Strichlänge' $dash
+    Set-Field 'Strichabstand' $gap
+    Check "Parameter per Tastatur übernommen ($thick / $dash / $gap px)" (
+        ((Get-Field 'Linienstärke') -eq $thick) -and ((Get-Field 'Strichlänge') -eq $dash) -and ((Get-Field 'Strichabstand') -eq $gap))
+
+    # Vorschau am Bildschirm: Mitte des ersten Strichs dunkel, Mitte der ersten Lücke hell (4 px neben der Hilfslinie)
+    $lineY = $ay + 120 + 4
+    $dashX = [int]($ax + $dash / 2 * $scale); $gapX = [int]($ax + ($dash + $gap / 2) * $scale)
+    $previewDash = Get-ScreenColor $dashX $lineY; $previewGap = Get-ScreenColor $gapX $lineY
+    Check "Vorschau folgt den Kontrollpunkten (Strich $previewDash, Lücke $previewGap)" ((Test-Dark $previewDash) -and -not (Test-Dark $previewGap))
+
+    Click-Element (Find-Named 'Anwenden' ([System.Windows.Automation.ControlType]::Button))
+    $x1Field = Find-Named 'X1' ([System.Windows.Automation.ControlType]::Edit)
+    $appliedDash = Get-ScreenColor $dashX $lineY
+    Check "„Anwenden“ übernimmt das Muster (Felder danach gesperrt, Strich $appliedDash)" ((-not $x1Field.Current.IsEnabled) -and (Test-Dark $appliedDash))
+    Assert-Foreground 'Strg+Z (Strichmuster)'
+    [System.Windows.Forms.SendKeys]::SendWait('^z')
+    Start-Sleep -Milliseconds 300
+    $status = Get-StatusMessage
+    $undoneDash = Get-ScreenColor $dashX $lineY
+    Check "Strg+Z nimmt das Muster zurück ($status, Strich $undoneDash)" (($status -like 'Rückgängig: Strichmuster*') -and -not (Test-Dark $undoneDash))
+    Assert-Foreground 'Strg+Y (Strichmuster)'
+    [System.Windows.Forms.SendKeys]::SendWait('^y')
+    Start-Sleep -Milliseconds 300
+    $redoneDash = Get-ScreenColor $dashX $lineY
+    $redoStatus = $null
+    foreach ($t in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) { if ($t.Current.Name -like 'Wiederholt:*') { $redoStatus = $t.Current.Name } }
+    Check "Strg+Y stellt das Muster wieder her ($redoStatus, Strich $redoneDash)" (($redoStatus -like 'Wiederholt: Strichmuster*') -and (Test-Dark $redoneDash))
 
     # Bildschirmfoto des Fensters
     [NativeInput]::GetWindowRect($hwnd, [ref]$rect) | Out-Null

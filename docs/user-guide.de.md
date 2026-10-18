@@ -47,6 +47,7 @@ der Vordergrundfarbe, rechte mit der Hintergrundfarbe. **Esc** bricht eine laufe
 | Bleistift | P | harte, nicht geglättete Pixel |
 | Radierer | E | macht Pixel transparent |
 | Freihandlinie / Linie | F / L | Linie: Umschalt rastet in 15°-Schritten ein |
+| Strichmuster | Umschalt+L | gestrichelte Linie mit ziehbaren Endpunkten, siehe unten |
 | Rechteck / gefülltes Rechteck | R / Umschalt+R | Umschalt beim Ziehen: Quadrat |
 | Ellipse / gefüllte Ellipse | O / Umschalt+O | Umschalt beim Ziehen: Kreis |
 | Farbeimer | G | Toleranz, zusammenhängend oder ganzes Bild |
@@ -58,6 +59,43 @@ der Vordergrundfarbe, rechte mit der Hintergrundfarbe. **Esc** bricht eine laufe
 `#FF880080`). **X** tauscht die Farben, **D** setzt Schwarz/Weiß.
 
 Gesperrte Ebenen und Gruppen werden nicht bemalt; die Statusleiste zeigt dann einen Hinweis.
+
+### Strichmuster
+
+Zeichnet eine gestrichelte Linie, die sich vor dem Übernehmen beliebig nachbearbeiten lässt.
+
+1. **Linie aufziehen:** Maustaste am Startpunkt drücken und zum Endpunkt ziehen. Die Linie erscheint als Vorschau
+   über dem Bild; die Ebene selbst bleibt unverändert, bis Sie „Anwenden“ wählen.
+2. **Nachbearbeiten:**
+   - Die beiden **Kontrollpunkte** (kleine Quadrate) lassen sich mit der Maus ziehen; die Linie selbst verschiebt
+     beide Punkte gemeinsam. **Umschalt** beim Ziehen rastet den Winkel in 15°-Schritten ein.
+   - **Pfeiltasten** verschieben die Linie um 1 px, mit Umschalt um 10 px.
+   - Die Felder **X1, Y1, X2, Y2** zeigen die Punkte in Bildpixeln und lassen sich direkt bearbeiten (Enter übernimmt).
+     Punkte dürfen außerhalb des Bildes liegen; gezeichnet wird nur innerhalb.
+   - Daneben stehen **Länge, Winkel** (0° = nach rechts, 90° = nach oben), **Richtung** (Einheitsvektor in
+     Bildkoordinaten), **Mitte** und die Anzahl der Striche.
+3. **Parameter** (Optionsleiste, jeweils Feld und Schieberegler):
+
+   | Parameter | Standard | Bereich |
+   |---|---|---|
+   | Linienstärke | 4 px | 1–500 px |
+   | Strichlänge | 10 px | 1–5.000 px |
+   | Strichabstand | 5 px | 0–5.000 px (0 = durchgezogene Linie) |
+   | Farbe | Schwarz | Farbfeld (öffnet den Farbdialog) oder Hex-Feld `#RRGGBB` / `#RRGGBBAA` |
+   | Deckkraft | 100 % | 0–100 % |
+   | Kantenglättung | an | |
+
+   Ein Muster wiederholt sich alle *Strichlänge + Strichabstand* Pixel: Bei 10 px und 5 px entstehen 10 px lange
+   Striche mit 5 px Lücke. Der letzte Strich wird am Endpunkt gekürzt. Ungültige Eingaben werden auf den gültigen
+   Bereich begrenzt bzw. (Hex) verworfen.
+4. **Anwenden** (Schaltfläche oder **Enter**) überträgt das Muster auf die aktive Ebene – begrenzt auf eine aktive
+   Auswahl und die Bildgrenzen. Das ist ein Schritt für Rückgängig (Strg+Z) und Wiederholen (Strg+Y).
+   **Abbrechen** (Schaltfläche oder **Esc**) verwirft die Linie, **Zurücksetzen** stellt die Standardparameter wieder
+   her (die Punkte bleiben).
+
+Ein Klick neben Linie und Kontrollpunkte übernimmt die aktuelle Linie und beginnt eine neue. Auch ein Werkzeug- oder
+Dokumentwechsel und Rückgängig übernehmen eine laufende Linie zuerst (wie bei allen Werkzeugen) – es geht nichts
+unbemerkt verloren. Im Modus „Maske bearbeiten“ wirkt das Muster auf die Maske.
 
 ## Auswahl
 
