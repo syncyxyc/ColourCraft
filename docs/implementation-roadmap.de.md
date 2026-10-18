@@ -5,7 +5,7 @@
 | M0 | Bestandsaufnahme | ✅ abgeschlossen (18.10.2026) |
 | M1 | Grundgerüst | ✅ abgeschlossen (18.10.2026) |
 | M2 | Dokumentmodell, Import, Darstellung | ✅ abgeschlossen (18.10.2026) |
-| M3 | Ebenen und Komposition | offen |
+| M3 | Ebenen und Komposition | ✅ abgeschlossen (18.10.2026) |
 | M4 | Werkzeuge, Auswahl, Historie | offen |
 | M5 | Strichmuster-Werkzeug | offen |
 | M6 | Effekte | offen |
@@ -83,8 +83,34 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - TIFF wird nicht unterstützt (SkiaSharp kann es nicht).
 - DPI-Darstellung bei 150 %/200 % nur per Unit-Test geprüft, nicht manuell am Bildschirm.
 
-## Nächster Schritt: M3
+## M3 – Ebenen und Komposition (18.10.2026)
 
-Ebenenmodell (Ebene, Gruppe, Sichtbarkeit, Deckkraft, Mischmodi, Sperren, Masken-Basis), CPU-Komposition
-in `OrbitStudio.Rendering` mit Referenztests (exakte Werte je Mischmodus), Ebenenbefehle im Menü,
-Importieren als Ebene, Anzeige des Kompositums mit Dirty-Rectangles.
+Erfüllt:
+- Ebenenmodell in der Domäne: Pixelebenen, Gruppen (verschachtelt), Masken (8 Bit, abschaltbar), Sichtbarkeit,
+  Deckkraft, Mischmodus, Sperre; Dokument mit Ebenenbaum und aktiver Ebene.
+- CPU-Komposition nach W3C-Formeln mit 9 Mischmodi (Pflicht: Normal, Multiplizieren, Negativ, Addieren,
+  Bildschirm; zusätzlich Differenz, Abdunkeln, Aufhellen, Überlagern), isolierte Gruppen, Masken,
+  Dirty-Rectangle-Neuzusammensetzung. **Referenztests mit exakten Bytewerten** je Mischmodus.
+- Neues Projekt `OrbitStudio.Layers`: alle Ebenenoperationen mit Vorbedingungen und Fehlerklassen.
+- Menü „Ebenen“ vollständig aktiv (bis auf „Auswahl aus Ebenentransparenz“ und „Ebene transformieren“ → M4),
+  Tastenkürzel (Strg+Umschalt+N, Strg+J, F2, Strg+Umschalt+Pfeil hoch/runter, Strg+G, Strg+Umschalt+G, Strg+E, Strg+Umschalt+F).
+- Einfaches Ebenen-Panel rechts: Liste mit Einrückung, Sichtbarkeit, Sperre, Maskenanzeige, Deckkraft-Regler,
+  Mischmodus-Auswahl, Schaltflächen; Doppelklick öffnet „Ebeneneigenschaften“.
+- Datei › Importieren (Strg+Umschalt+O): Bilder als Ebenen, Meldung bei Beschnitt.
+- Export setzt sichtbare Ebenen zusammen und warnt vorher bei mehreren Ebenen (Spezifikation 11.1).
+- Rückfragen vor nicht umkehrbaren Ebenenänderungen (Löschen, Zusammenführen, Reduzieren, Maske anwenden),
+  solange es kein Rückgängig gibt.
+- Tests: 260 Unit-/Integrations-/Architekturtests, 79 Smoke-Prüfungen (inkl. Ebenenbefehle über die Registry mit
+  geskripteten Dialogen). Single-File-EXE geprüft.
+
+Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
+- Rückgängig/Wiederholen für Ebenenoperationen → M4.
+- Auswahl aus Ebenentransparenz, Ebenen transformieren → M4.
+- Ebenen-Panel andockbar, Vorschaubilder, Ziehen zum Umsortieren, Verschieben in/aus Gruppen → M8.
+- Maske bemalen → M4 (Werkzeuge).
+
+## Nächster Schritt: M4
+
+Historie (Undo/Redo, Command-Pattern mit Deltas), Werkzeug-API `ITool`, Zeichenwerkzeuge (Pinsel, Bleistift,
+Radierer, Linie, Rechteck, Ellipse), Auswahlwerkzeuge und Auswahlmasken, Transformation, Farbwahl;
+Ebenenoperationen werden rückgängig machbar. Je Werkzeuggruppe mindestens ein Integrationstest.

@@ -18,6 +18,7 @@ public class DependencyRuleTests
         { "OrbitStudio.Diagnostics", [] },
         { "OrbitStudio.Imaging", ["OrbitStudio.Domain"] },
         { "OrbitStudio.Rendering", ["OrbitStudio.Domain"] },
+        { "OrbitStudio.Layers", ["OrbitStudio.Domain", "OrbitStudio.Rendering"] },
         { "OrbitStudio.Application", ["OrbitStudio.Domain", "OrbitStudio.Configuration", "OrbitStudio.Imaging"] },
     };
 
@@ -48,6 +49,7 @@ public class DependencyRuleTests
     [InlineData("OrbitStudio.Diagnostics")]
     [InlineData("OrbitStudio.Imaging")]
     [InlineData("OrbitStudio.Rendering")]
+    [InlineData("OrbitStudio.Layers")]
     [InlineData("OrbitStudio.Application")]
     public void CoreProject_HasNoUiDependency(string assemblyName)
     {

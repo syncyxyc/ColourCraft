@@ -5,6 +5,7 @@ using OrbitStudio.Application.Files;
 using OrbitStudio.Imaging.Codecs;
 using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Services;
+using OrbitStudio.Rendering;
 
 namespace OrbitStudio.Presentation.ViewModels;
 
@@ -35,7 +36,7 @@ public sealed partial class MainViewModel
                     continue;
                 }
 
-                var result = await _files.OpenAsync(path);
+                var result = await _files.OpenAsync(path, Loc.Get("Layer.Background"));
                 if (result.Success)
                 {
                     _workspace.Add(result.Document!);
@@ -65,7 +66,10 @@ public sealed partial class MainViewModel
         return opened;
     }
 
-    /// <summary>Exportiert das aktive Dokument ohne Dialog (für Tests und spätere Automatisierung).</summary>
+    /// <summary>
+    /// Exportiert das aktive Dokument ohne Dialog (für Tests und spätere Automatisierung).
+    /// Alle sichtbaren Ebenen werden zu einem Bild zusammengesetzt; die Ebenen im Dokument bleiben unverändert.
+    /// </summary>
     public async Task<ExportResult?> ExportActiveAsync(string path)
     {
         if (ActiveDocument is not { } vm)
@@ -77,7 +81,8 @@ public sealed partial class MainViewModel
         try
         {
             var options = new EncodeOptions(_settings.Global.JpegQuality, vm.Document.ResolutionDpi);
-            var result = await _files.ExportAsync(vm.Document.Pixels, path, options);
+            var composite = LayerCompositor.Composite(vm.Document);
+            var result = await _files.ExportAsync(composite, path, options, isSnapshot: true);
             if (result.Success)
             {
                 _settings.AddRecentFile(path);
@@ -92,14 +97,18 @@ public sealed partial class MainViewModel
         }
     }
 
-    private async Task OpenWithDialogAsync()
+    private List<FileFilter> ImageOpenFilters()
     {
         var readers = _files.Codecs.Readers.Select(c => c.Format).ToList();
         var allPatterns = readers.SelectMany(f => f.Extensions).Select(e => "*" + e).ToList();
         var filters = new List<FileFilter> { new(Loc.Get("Format.AllImages"), allPatterns) };
         filters.AddRange(readers.Select(ToFilter));
+        return filters;
+    }
 
-        var paths = _dialogs.ShowOpenFiles(Loc.Get("Dlg.Open.Title"), filters);
+    private async Task OpenWithDialogAsync()
+    {
+        var paths = _dialogs.ShowOpenFiles(Loc.Get("Dlg.Open.Title"), ImageOpenFilters());
         if (paths is { Count: > 0 })
         {
             await OpenFilesAsync(paths);
@@ -134,7 +143,15 @@ public sealed partial class MainViewModel
             path += format.DefaultExtension;
         }
 
-        if (format.CanWrite && !format.SupportsAlpha && ImageFileService.HasTransparency(vm.Document.Pixels)
+        // Spezifikation 11.1: Export ist kein Projektspeichern – bei mehreren Ebenen ausdrücklich warnen.
+        var layerCount = vm.Document.LayerCount;
+        if (format.CanWrite && layerCount > 1 && !_dialogs.Confirm(Loc.Get("Msg.Export.Merge.Title"),
+                Loc.Format("Msg.Export.Merge.Body", layerCount, Loc.Get("Format." + format.Id))))
+        {
+            return;
+        }
+
+        if (format.CanWrite && !format.SupportsAlpha && ImageFileService.HasTransparency(vm.Composite)
             && !_dialogs.Confirm(Loc.Get("Msg.Export.AlphaLost.Title"),
                 Loc.Format("Msg.Export.AlphaLost.Body", Loc.Get("Format." + format.Id))))
         {

@@ -8,7 +8,7 @@ public class DocumentWorkspaceTests
 {
     private readonly DocumentWorkspace _workspace = new(NullLogger<DocumentWorkspace>.Instance);
 
-    private static ImageDocument Doc(string name) => ImageDocument.Create(name, 10, 10);
+    private static ImageDocument Doc(string name) => ImageDocument.Create(name, 10, 10, "HG");
 
     [Fact]
     public void Add_MakesDocumentActive()

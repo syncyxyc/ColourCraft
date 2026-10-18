@@ -21,6 +21,7 @@
 
     <SolidColorBrush x:Key="Brush.Window.Background" Color="{StaticResource Color.Window.Background}" />
     <SolidColorBrush x:Key="Brush.Menu.Background" Color="{StaticResource Color.Menu.Background}" />
+    <SolidColorBrush x:Key="Brush.Panel.Background" Color="{StaticResource Color.Window.Background}" />
     <SolidColorBrush x:Key="Brush.StatusBar.Background" Color="{StaticResource Color.StatusBar.Background}" />
     <SolidColorBrush x:Key="Brush.Workspace.Background" Color="{StaticResource Color.Workspace.Background}" />
     <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />

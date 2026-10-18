@@ -35,7 +35,7 @@ public partial class App : System.Windows.Application
             : AppPaths.CreateDefault();
 
         _fileLogger = new FileLoggerProvider(paths.LogDirectory);
-        _services = ConfigureServices(paths, _fileLogger);
+        _services = ConfigureServices(paths, _fileLogger, useSmokeDialogs: smokeResultFile is not null);
         _logger = _services.GetRequiredService<ILogger<App>>();
         _logger.LogInformation("{Product} {Version} startet.", AppInfo.ProductName, AppInfo.Version);
 
@@ -90,7 +90,7 @@ public partial class App : System.Windows.Application
         base.OnExit(e);
     }
 
-    private static ServiceProvider ConfigureServices(AppPaths paths, FileLoggerProvider fileLogger)
+    private static ServiceProvider ConfigureServices(AppPaths paths, FileLoggerProvider fileLogger, bool useSmokeDialogs)
     {
         var services = new ServiceCollection();
         services.AddLogging(builder =>
@@ -107,7 +107,15 @@ public partial class App : System.Windows.Application
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<ShellService>();
         services.AddSingleton<IShellService>(sp => sp.GetRequiredService<ShellService>());
-        services.AddSingleton<IDialogService, WpfDialogService>();
+        if (useSmokeDialogs)
+        {
+            services.AddSingleton<SmokeDialogService>();
+            services.AddSingleton<IDialogService>(sp => sp.GetRequiredService<SmokeDialogService>());
+        }
+        else
+        {
+            services.AddSingleton<IDialogService, WpfDialogService>();
+        }
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });

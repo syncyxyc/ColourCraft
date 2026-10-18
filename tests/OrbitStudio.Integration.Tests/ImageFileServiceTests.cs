@@ -40,11 +40,11 @@ public sealed class ImageFileServiceTests : IDisposable
         var pixels = Pattern();
 
         var export = await _service.ExportAsync(pixels, PathOf(fileName), new EncodeOptions());
-        var open = await _service.OpenAsync(PathOf(fileName));
+        var open = await _service.OpenAsync(PathOf(fileName), "HG");
 
         export.Success.ShouldBeTrue();
         open.Success.ShouldBeTrue();
-        open.Document!.Pixels.ContentEquals(pixels).ShouldBeTrue();
+        open.Document!.PixelLayers.Single().Pixels.ContentEquals(pixels).ShouldBeTrue();
         open.Document.Name.ShouldBe(fileName);
         open.Document.SourcePath.ShouldBe(PathOf(fileName));
         open.Document.IsDirty.ShouldBeFalse();
@@ -57,9 +57,9 @@ public sealed class ImageFileServiceTests : IDisposable
         pixels.Fill(Bgra32.FromStraight(90, 150, 210, 255));
 
         (await _service.ExportAsync(pixels, PathOf("bild.jpg"), new EncodeOptions(95))).Success.ShouldBeTrue();
-        var open = await _service.OpenAsync(PathOf("bild.jpg"));
+        var open = await _service.OpenAsync(PathOf("bild.jpg"), "HG");
 
-        var p = open.Document!.Pixels.GetPixel(32, 32);
+        var p = open.Document!.PixelLayers.Single().Pixels.GetPixel(32, 32);
         Math.Abs(p.R - 90).ShouldBeLessThanOrEqualTo(3);
         Math.Abs(p.G - 150).ShouldBeLessThanOrEqualTo(3);
         Math.Abs(p.B - 210).ShouldBeLessThanOrEqualTo(3);
@@ -75,7 +75,7 @@ public sealed class ImageFileServiceTests : IDisposable
         pixels.Fill(Bgra32.Black); // Änderung nach dem Start des Exports
         (await task).Success.ShouldBeTrue();
 
-        (await _service.OpenAsync(PathOf("snap.png"))).Document!.Pixels.ContentEquals(expected).ShouldBeTrue();
+        (await _service.OpenAsync(PathOf("snap.png"), "HG")).Document!.PixelLayers.Single().Pixels.ContentEquals(expected).ShouldBeTrue();
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class ImageFileServiceTests : IDisposable
 
         (await _service.ExportAsync(Pattern(), PathOf("ziel.png"), new EncodeOptions())).Success.ShouldBeTrue();
 
-        (await _service.OpenAsync(PathOf("ziel.png"))).Success.ShouldBeTrue();
+        (await _service.OpenAsync(PathOf("ziel.png"), "HG")).Success.ShouldBeTrue();
         Directory.GetFiles(_dir).ShouldBe([PathOf("ziel.png")]);
     }
 
@@ -127,14 +127,14 @@ public sealed class ImageFileServiceTests : IDisposable
     [Fact]
     public async Task Open_MissingFile_ReportsNotFound()
     {
-        (await _service.OpenAsync(PathOf("gibtsnicht.png"))).Error.ShouldBe(FileError.NotFound);
+        (await _service.OpenAsync(PathOf("gibtsnicht.png"), "HG")).Error.ShouldBe(FileError.NotFound);
     }
 
     [Fact]
     public async Task Open_CorruptFile_ReportsCorrupt()
     {
         await File.WriteAllBytesAsync(PathOf("kaputt.png"), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        (await _service.OpenAsync(PathOf("kaputt.png"))).Error.ShouldBe(FileError.Corrupt);
+        (await _service.OpenAsync(PathOf("kaputt.png"), "HG")).Error.ShouldBe(FileError.Corrupt);
     }
 
     [Fact]
@@ -144,17 +144,17 @@ public sealed class ImageFileServiceTests : IDisposable
         (await _service.ExportAsync(Pattern(), PathOf("echt.png"), new EncodeOptions())).Success.ShouldBeTrue();
         File.Move(PathOf("echt.png"), PathOf("falsch.jpg"));
 
-        var open = await _service.OpenAsync(PathOf("falsch.jpg"));
+        var open = await _service.OpenAsync(PathOf("falsch.jpg"), "HG");
 
         open.Success.ShouldBeTrue();
-        open.Document!.Pixels.ContentEquals(Pattern()).ShouldBeTrue();
+        open.Document!.PixelLayers.Single().Pixels.ContentEquals(Pattern()).ShouldBeTrue();
     }
 
     [Fact]
     public async Task Open_UnsupportedExtension_ReportsUnknownFormat()
     {
         await File.WriteAllTextAsync(PathOf("text.txt"), "hallo");
-        (await _service.OpenAsync(PathOf("text.txt"))).Error.ShouldBe(FileError.UnknownFormat);
+        (await _service.OpenAsync(PathOf("text.txt"), "HG")).Error.ShouldBe(FileError.UnknownFormat);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class ImageFileServiceTests : IDisposable
         (await _service.ExportAsync(Pattern(), PathOf("gesperrt.png"), new EncodeOptions())).Success.ShouldBeTrue();
         await using var lockStream = new FileStream(PathOf("gesperrt.png"), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
-        (await _service.OpenAsync(PathOf("gesperrt.png"))).Error.ShouldBe(FileError.IoError);
+        (await _service.OpenAsync(PathOf("gesperrt.png"), "HG")).Error.ShouldBe(FileError.IoError);
     }
 
     [Fact]

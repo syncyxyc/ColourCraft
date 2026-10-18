@@ -93,6 +93,36 @@
   Vordergrund war. Seitdem prüft der Test vor jeder Eingabe das Vordergrundfenster und bricht sonst ab.
   Er ist optional (`-WithInput`), da er eine unbenutzte Sitzung braucht.
 
+## E-020 – „Negativ“ = Negation (18.10.2026)
+- Die Spezifikation nennt „Negativ“ neben „Bildschirm“. Da „Negativ multiplizieren“ (Photoshop-Begriff für
+  Bildschirm) ausscheidet, wird „Negativ“ als Negation umgesetzt: B = 1 − |1 − Cb − Cs|. Zusätzlich gibt es
+  Differenz, Abdunkeln, Aufhellen und Überlagern (gleicher Aufwand, gleiche Referenztests).
+
+## E-021 – Ebenen in Dokumentgröße (18.10.2026)
+- Alternativen: Ebenen mit eigener Größe/Position (spart Speicher bei kleinen Inhalten, macht aber jede
+  Operation komplexer). Entscheidung: alle Pixelebenen haben die Dokumentgröße; „Position“ einer Ebene ist ihr
+  Platz im Stapel. Verschieben von Inhalten erfolgt in M4 als Pixeloperation. Speicherbedarf: 4 Byte/Pixel je Ebene.
+
+## E-022 – Isolierte Gruppen, W3C-Formeln, Rechnen in double (18.10.2026)
+- Gruppen werden isoliert zusammengesetzt (wie in gängigen Editoren, kein „Durchreichen“). Die Komposition folgt
+  W3C Compositing Level 1 und rechnet in `double`; so sind Referenzwerte exakt vorhersagbar und Zusammenführen
+  ergibt byteweise dasselbe wie die Anzeige. Optimierungen (Ganzzahl/SIMD/GPU) erst nach Messungen in M11 und nur,
+  wenn die Referenztests weiter bestehen.
+
+## E-023 – Fest angeordnetes Ebenen-Panel schon in M3 (18.10.2026)
+- Ohne Panel ließe sich die aktive Ebene nicht sinnvoll wählen. Ein einfaches Panel rechts (Liste, Sichtbarkeit,
+  Sperre, Deckkraft, Mischmodus, Schaltflächen) ist daher Teil von M3. Andocken, Vorschaubilder und Ziehen
+  zum Umsortieren folgen mit dem Panel-System in M8.
+
+## E-024 – Rückfragen vor nicht umkehrbaren Ebenenänderungen (18.10.2026)
+- Bis Rückgängig/Wiederholen (M4) existiert, fragen Löschen, Zusammenführen, Reduzieren und Maske anwenden nach.
+  Die Rückfragen werden in M4 überprüft und entfallen, wo Rückgängig sie überflüssig macht.
+
+## E-025 – Geskripteter Dialogdienst im Smoke-Test (18.10.2026)
+- Damit der Smoke-Test Befehle mit Rückfragen und Dateidialogen über die echte Befehlskette ausführen kann,
+  ersetzt `SmokeDialogService` im Testmodus den WPF-Dialogdienst: vorbereitete Antworten, automatisch bestätigte
+  Rückfragen, Protokoll aller Meldungen. Der normale Programmstart verwendet ausschließlich echte Dialoge.
+
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.

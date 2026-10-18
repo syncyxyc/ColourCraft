@@ -59,6 +59,14 @@ public static class CommandIds
     public const string LayerBlendMode = "layer.blendMode";
     public const string LayerAddMask = "layer.addMask";
     public const string LayerMerge = "layer.merge";
+    public const string LayerLock = "layer.lock";
+    public const string LayerMaskEnabled = "layer.maskEnabled";
+    public const string LayerMaskInvert = "layer.maskInvert";
+    public const string LayerMaskApply = "layer.maskApply";
+    public const string LayerMaskDelete = "layer.maskDelete";
+    public const string LayerFlatten = "layer.flatten";
+    public const string LayerSelectionFromAlpha = "layer.selectionFromAlpha";
+    public const string LayerTransform = "layer.transform";
 
     public const string AdjustBrightnessContrast = "adjust.brightnessContrast";
     public const string AdjustHueSaturation = "adjust.hueSaturation";

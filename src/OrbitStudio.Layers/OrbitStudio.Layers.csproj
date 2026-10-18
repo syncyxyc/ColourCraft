@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ebenenoperationen (Neu, Duplizieren, Gruppen, Masken, Zusammenführen, Import). Ohne UI. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Rendering\OrbitStudio.Rendering.csproj" />
+  </ItemGroup>
+</Project>

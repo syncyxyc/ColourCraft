@@ -1,6 +1,6 @@
 # Benutzerhandbuch – ORBIT Studio
 
-Stand: Meilenstein M2. Dieses Handbuch beschreibt nur Funktionen, die bereits umgesetzt sind.
+Stand: Meilenstein M3. Dieses Handbuch beschreibt nur Funktionen, die bereits umgesetzt sind.
 Ausgegraute Menüeinträge nennen im Tooltip den Meilenstein, in dem sie folgen.
 
 ## Bilder anlegen und öffnen
@@ -29,10 +29,49 @@ Fotos mit EXIF-Ausrichtung erscheinen richtig gedreht. Farbprofile werden nach s
 Zoom und Ausschnitt merkt sich jedes Dokument einzeln. Die Statusleiste zeigt Bildgröße,
 Pixelposition unter dem Mauszeiger und Zoom. Zoomen verändert niemals das Bild.
 
+## Ebenen
+
+Rechts steht das Ebenen-Panel. Die oberste Zeile ist die oberste Ebene. Ein Klick wählt die **aktive Ebene**,
+auf die sich alle Befehle im Menü **Ebenen** beziehen.
+
+| In der Zeile | Bedeutung |
+|---|---|
+| Kästchen links | Sichtbarkeit ein/aus |
+| Name (fett = Gruppe), darunter Deckkraft und Mischmodus | Doppelklick öffnet die Ebeneneigenschaften |
+| „M“ | Ebene hat eine Maske (blass = deaktiviert) |
+| 🔒-Kästchen | Sperre: nicht löschen, verschieben, zusammenführen |
+
+Unter der Liste: **Deckkraft** (Regler) und **Mischmodus** der aktiven Ebene, darunter Schaltflächen für
+Neue Ebene, Duplizieren, Nach oben, Nach unten und Löschen.
+
+| Befehl (Menü Ebenen) | Kürzel |
+|---|---|
+| Neue Ebene | Strg+Umschalt+N |
+| Duplizieren | Strg+J |
+| Umbenennen / Eigenschaften | F2 |
+| Nach oben / Nach unten | Strg+Umschalt+Pfeil hoch / Strg+Umschalt+Pfeil runter |
+| Gruppe erstellen / auflösen | Strg+G / Strg+Umschalt+G |
+| Mit darunterliegender Ebene zusammenführen | Strg+E |
+| Bild auf eine Ebene reduzieren | Strg+Umschalt+F |
+
+**Mischmodi:** Normal, Multiplizieren, Bildschirm, Addieren, Negativ, Differenz, Abdunkeln, Aufhellen, Überlagern.
+
+**Gruppen** fassen Ebenen zusammen; Sichtbarkeit, Deckkraft und Mischmodus der Gruppe wirken auf ihren ganzen Inhalt.
+
+**Masken:** Ebenen › Maske hinzufügen legt eine weiße Maske an (alles sichtbar). Maske umkehren, aktiv/inaktiv
+schalten, anwenden (in die Pixel einrechnen) oder löschen. Masken bemalen ist ab Meilenstein M4 möglich.
+
+**Importieren** (Datei › Importieren, Strg+Umschalt+O) fügt Bilddateien als neue Ebenen ein (oben links ausgerichtet;
+zu große Bilder werden beschnitten).
+
+Noch gibt es kein Rückgängig. Löschen, Zusammenführen, Reduzieren und „Maske anwenden“ fragen deshalb nach.
+Ebenen bleiben erst mit dem Projektformat `.orbit` (Meilenstein M7) über das Schließen hinaus erhalten.
+
 ## Exportieren
 
 **Datei › Exportieren** (Strg+Umschalt+E): Format über die Dateiendung bzw. den Dateityp wählen –
-PNG, JPEG, BMP oder WebP.
+PNG, JPEG, BMP oder WebP. Alle sichtbaren Ebenen werden zu einem Bild zusammengesetzt; bei mehreren Ebenen
+erscheint vorher ein Hinweis. Die Ebenen im Dokument bleiben dabei erhalten.
 
 - PNG und BMP sind verlustfrei und behalten Transparenz.
 - JPEG kann keine Transparenz speichern: transparente Bereiche werden weiß gefüllt (mit Rückfrage).
@@ -49,6 +88,7 @@ Tab-Schaltfläche ✕, **Datei › Schließen** (Strg+W) oder **Alle schließen*
 |---|---|
 | Neu | Strg+N |
 | Öffnen | Strg+O |
+| Importieren als Ebene | Strg+Umschalt+O |
 | Exportieren | Strg+Umschalt+E |
 | Schließen / Alle schließen | Strg+W / Strg+Umschalt+W |
 | Vergrößern / Verkleinern | Strg++ / Strg+- |

@@ -1,5 +1,6 @@
 using OrbitStudio.Domain.Documents;
 using OrbitStudio.Domain.Imaging;
+using OrbitStudio.Domain.Layers;
 
 namespace OrbitStudio.Domain.Tests;
 
@@ -247,15 +248,52 @@ public class ImageDocumentPixelTests
     [Fact]
     public void Create_White_FillsWhite_Transparent_StaysTransparent()
     {
-        ImageDocument.Create("W", 4, 4).Pixels.GetPixel(3, 3).ShouldBe(Bgra32.White);
-        ImageDocument.Create("T", 4, 4, background: DocumentBackground.Transparent).Pixels.GetPixel(3, 3)
-            .ShouldBe(Bgra32.Transparent);
+        ImageDocument.Create("W", 4, 4, "HG").PixelLayers.Single().Pixels.GetPixel(3, 3).ShouldBe(Bgra32.White);
+        ImageDocument.Create("T", 4, 4, "HG", background: DocumentBackground.Transparent).PixelLayers.Single().Pixels
+            .GetPixel(3, 3).ShouldBe(Bgra32.Transparent);
+    }
+
+    [Fact]
+    public void Create_HasOneActiveBackgroundLayer()
+    {
+        var doc = ImageDocument.Create("A", 10, 10, "Hintergrund");
+
+        doc.LayerCount.ShouldBe(1);
+        doc.ActiveLayer.ShouldNotBeNull();
+        doc.ActiveLayer!.Name.ShouldBe("Hintergrund");
+        doc.ActivePixelLayer.ShouldBeSameAs(doc.Root.Children[0]);
+        doc.Root.Children[0].Parent.ShouldBeSameAs(doc.Root);
+    }
+
+    [Fact]
+    public void ActiveLayer_MustBelongToDocument()
+    {
+        var doc = ImageDocument.Create("A", 10, 10, "HG");
+        var foreign = new PixelLayer("X", PixelBuffer.Create(10, 10));
+
+        Should.Throw<InvalidOperationException>(() => doc.ActiveLayer = foreign);
+    }
+
+    [Fact]
+    public void CommitLayerChange_RaisesEvent_MarksDirty_AndClearsRemovedActiveLayer()
+    {
+        var doc = ImageDocument.Create("A", 10, 10, "HG");
+        var layer = doc.ActiveLayer!;
+        var raised = 0;
+        doc.LayersChanged += (_, _) => raised++;
+
+        doc.Root.Remove(layer);
+        doc.CommitLayerChange();
+
+        raised.ShouldBe(1);
+        doc.IsDirty.ShouldBeTrue();
+        doc.ActiveLayer.ShouldBeNull();
     }
 
     [Fact]
     public void CommitPixelChange_RaisesClippedRegionAndMarksDirty()
     {
-        var doc = ImageDocument.Create("A", 10, 10);
+        var doc = ImageDocument.Create("A", 10, 10, "HG");
         IntRect? reported = null;
         doc.PixelsChanged += (_, r) => reported = r;
 
@@ -268,7 +306,7 @@ public class ImageDocumentPixelTests
     [Fact]
     public void CommitPixelChange_OutsideImage_DoesNothing()
     {
-        var doc = ImageDocument.Create("A", 10, 10);
+        var doc = ImageDocument.Create("A", 10, 10, "HG");
         var raised = false;
         doc.PixelsChanged += (_, _) => raised = true;
 
@@ -282,9 +320,9 @@ public class ImageDocumentPixelTests
     public void FromPixels_KeepsSourcePathAndBuffer()
     {
         var pixels = PixelBuffer.Create(5, 6);
-        var doc = ImageDocument.FromPixels("foto.png", pixels, @"C:\foto.png");
+        var doc = ImageDocument.FromPixels("foto.png", pixels, "HG", @"C:\foto.png");
 
-        doc.Pixels.ShouldBeSameAs(pixels);
+        doc.PixelLayers.Single().Pixels.ShouldBeSameAs(pixels);
         doc.Width.ShouldBe(5);
         doc.Height.ShouldBe(6);
         doc.SourcePath.ShouldBe(@"C:\foto.png");

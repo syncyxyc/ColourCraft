@@ -33,6 +33,10 @@ public static class GestureDisplay
             "OemMinus" => "-",
             "Delete" => "Entf",
             "D0" => "0",
+            "Up" => "Pfeil hoch",
+            "Down" => "Pfeil runter",
+            "PageUp" => "Bild auf",
+            "PageDown" => "Bild ab",
             _ => p,
         });
         return string.Join('+', parts);

@@ -22,7 +22,7 @@ public class ImageDocumentTests
     [Fact]
     public void Create_WithValidSize_SetsProperties()
     {
-        var doc = ImageDocument.Create("Test", 800, 600, 300, DocumentBackground.Transparent);
+        var doc = ImageDocument.Create("Test", 800, 600, "HG", 300, DocumentBackground.Transparent);
 
         doc.Name.ShouldBe("Test");
         doc.Width.ShouldBe(800);
@@ -39,7 +39,7 @@ public class ImageDocumentTests
     [Fact]
     public void Create_WithInvalidSize_ThrowsWithReason()
     {
-        var ex = Should.Throw<DocumentValidationException>(() => ImageDocument.Create("X", 0, 10));
+        var ex = Should.Throw<DocumentValidationException>(() => ImageDocument.Create("X", 0, 10, "HG"));
         ex.Reason.ShouldBe(SizeValidationResult.NonPositive);
     }
 
@@ -50,7 +50,7 @@ public class ImageDocumentTests
     [InlineData(20_000.0)]
     public void Create_WithInvalidResolution_Throws(double dpi)
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => ImageDocument.Create("X", 10, 10, dpi));
+        Should.Throw<ArgumentOutOfRangeException>(() => ImageDocument.Create("X", 10, 10, "HG", dpi));
     }
 
     [Theory]
@@ -58,14 +58,14 @@ public class ImageDocumentTests
     [InlineData("   ")]
     public void Create_WithEmptyName_Throws(string name)
     {
-        Should.Throw<ArgumentException>(() => ImageDocument.Create(name, 10, 10));
+        Should.Throw<ArgumentException>(() => ImageDocument.Create(name, 10, 10, "HG"));
     }
 
     [Fact]
     public void Documents_HaveIndependentIdentity()
     {
-        var a = ImageDocument.Create("A", 10, 10);
-        var b = ImageDocument.Create("A", 10, 10);
+        var a = ImageDocument.Create("A", 10, 10, "HG");
+        var b = ImageDocument.Create("A", 10, 10, "HG");
 
         a.Id.ShouldNotBe(b.Id);
         a.MarkDirty();
@@ -75,7 +75,7 @@ public class ImageDocumentTests
     [Fact]
     public void MarkDirty_And_MarkSaved_UpdateStateAndRaiseEvent()
     {
-        var doc = ImageDocument.Create("A", 10, 10);
+        var doc = ImageDocument.Create("A", 10, 10, "HG");
         var events = 0;
         doc.StateChanged += (_, _) => events++;
 
@@ -93,7 +93,7 @@ public class ImageDocumentTests
     [Fact]
     public void Rename_RejectsEmptyName()
     {
-        var doc = ImageDocument.Create("A", 10, 10);
+        var doc = ImageDocument.Create("A", 10, 10, "HG");
         Should.Throw<ArgumentException>(() => doc.Name = " ");
         doc.Name.ShouldBe("A");
     }

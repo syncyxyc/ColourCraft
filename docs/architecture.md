@@ -1,13 +1,14 @@
 # Architektur – ORBIT Studio
 
-Stand: 18.10.2026, Meilenstein M2
+Stand: 18.10.2026, Meilenstein M3
 
 ## Schichten und Projekte
 
 ```
 OrbitStudio.App            WPF-Startprojekt: Kompositionswurzel (DI), Theme-Ressourcen, Manifest, Smoke-Test
-  └─ OrbitStudio.Presentation   ViewModels, Views, Dialoge, Menüaufbau, Leinwand (CanvasView), Sprachressourcen
-       ├─ OrbitStudio.Rendering    Ansichtstransformation (Zoom, Verschiebung, DPI); ab M3 Ebenenkomposition
+  └─ OrbitStudio.Presentation   ViewModels, Views, Dialoge, Menüaufbau, Leinwand, Ebenen-Panel, Sprachressourcen
+       ├─ OrbitStudio.Layers       Ebenenoperationen (Neu, Duplizieren, Gruppen, Masken, Zusammenführen, Import)
+       │    └─ OrbitStudio.Rendering  Ebenenkomposition (CPU, Mischmodi), Ansichtstransformation
        └─ OrbitStudio.Application  Arbeitsbereich, Command-Registry, Einstellungen, Datei-Dienst (Öffnen/Export)
             ├─ OrbitStudio.Imaging       Codec-Vertrag, Codec-Registry, PNG/JPEG/WebP/GIF (SkiaSharp), BMP
             │    └─ OrbitStudio.Domain   Dokument, Pixelpuffer, Farbe, Geometrie (ohne WPF, ohne Fremdbibliotheken)
@@ -15,7 +16,7 @@ OrbitStudio.App            WPF-Startprojekt: Kompositionswurzel (DI), Theme-Ress
   └─ OrbitStudio.Diagnostics    Datei-Logger (Microsoft.Extensions.Logging), keine Telemetrie
 ```
 
-Weitere Projekte der Spezifikation (Tools, Layers, Effects, History, Storage, Themes, Docking, Plugin.*)
+Weitere Projekte der Spezifikation (Tools, Effects, History, Storage, Themes, Docking, Plugin.*)
 werden in dem Meilenstein angelegt, in dem sie Code erhalten ([entscheidungen.md](entscheidungen.md), E-003).
 
 | Projekt | Zielframework | Darf referenzieren |
@@ -25,8 +26,9 @@ werden in dem Meilenstein angelegt, in dem sie Code erhalten ([entscheidungen.md
 | Diagnostics | net10.0 | Microsoft.Extensions.Logging.Abstractions |
 | Imaging | net10.0 | Domain, SkiaSharp |
 | Rendering | net10.0 | Domain |
+| Layers | net10.0 | Domain, Rendering |
 | Application | net10.0 | Domain, Configuration, Imaging, Logging.Abstractions |
-| Presentation | net10.0-windows | Application, Rendering, CommunityToolkit.Mvvm |
+| Presentation | net10.0-windows | Application, Rendering, Layers, CommunityToolkit.Mvvm |
 | App | net10.0-windows | alle, DI, Logging |
 
 ## Abhängigkeitsregeln
@@ -55,6 +57,65 @@ Verbindlich nach Spezifikation Abschnitt 3.1. Automatisch geprüft durch
 - Fließkomma-Positionen als `PointD` (double) in Dokumentkoordinaten.
 - Grenzen (`DocumentLimits`): Kantenlänge 1…65.535, höchstens 16.384² ≈ 268 MP (1 GiB je Puffer).
   Wird **vor** jeder Speicherreservierung geprüft.
+
+## Ebenenmodell (`OrbitStudio.Domain.Layers`)
+
+- `ImageDocument.Root` ist eine unsichtbare Wurzelgruppe. Kinder sind **von unten nach oben** geordnet
+  (Index 0 = unterste Ebene). Das Panel zeigt sie umgekehrt (oberste zuerst, Gruppe über ihren Kindern).
+- `LayerNode` (gemeinsam): ID, Name, Sichtbarkeit, Deckkraft 0–1, Mischmodus, Sperre, Elterngruppe.
+  Sichtbarkeit und Sperre wirken auf alle Kinder einer Gruppe (`IsEffectivelyVisible/Locked`).
+- `PixelLayer`: Pixelpuffer **in Dokumentgröße** und optional `LayerMask` (8 Bit, 255 = sichtbar, abschaltbar).
+- `LayerGroup`: Kinderliste; Zyklen und Mehrfach-Eltern werden abgewiesen.
+- `ImageDocument.ActiveLayer`: Ziel der Ebenenbefehle (Ebene oder Gruppe).
+- Änderungen meldet das Dokument über `LayersChanged` (Struktur/Eigenschaften) und `PixelsChanged(IntRect)`.
+- Sperre bedeutet: nicht löschen, nicht verschieben, nicht zusammenführen, keine Maske anwenden, (ab M4) nicht bemalen.
+  Sichtbarkeit, Deckkraft und Mischmodus bleiben änderbar.
+
+## Ebenenoperationen (`OrbitStudio.Layers.LayerOperations`)
+
+Neu (über der aktiven Ebene), Importieren als Ebene (oben links, beschnitten), Duplizieren (tiefe Kopie, nie gesperrt),
+Löschen (mindestens eine Pixelebene bleibt), Umbenennen, Nach oben/unten (innerhalb der Gruppe), Sichtbarkeit,
+Deckkraft, Mischmodus, Sperre, Gruppe erstellen/auflösen, Maske hinzufügen/aktivieren/umkehren/anwenden/löschen,
+Mit darunterliegender Ebene zusammenführen, Auf eine Ebene reduzieren. Vorbedingungen werden geprüft;
+Ablehnungen als `LayerOperationException(LayerOperationError)` – die Oberfläche zeigt eine deutsche Meldung.
+Ab M4 werden die Operationen als rückgängig machbare Historieneinträge gekapselt.
+
+- **Zusammenführen:** Die obere Ebene wird mit Deckkraft, Maske und Mischmodus auf die Pixel der unteren gemischt
+  (`LayerCompositor.BlendInto`). Eine Maske der unteren Ebene wird vorher eingerechnet. Ist die untere Ebene deckend
+  und „Normal“, bleibt das Aussehen exakt gleich (Test). Bei transparenter unterer Ebene und anderen Mischmodi kann es
+  abweichen, weil die obere Ebene im Gesamtbild auch mit tieferen Ebenen gemischt wird.
+- **Gruppe auflösen:** Deckkraft und Mischmodus der Gruppe entfallen (Rückfrage, falls nicht neutral).
+
+## Komposition (`OrbitStudio.Rendering.LayerCompositor`)
+
+CPU-Referenzpfad, zeilenweise (große Bereiche parallel über Zeilen), in `double` mit vormultipliertem Alpha nach
+W3C „Compositing and Blending Level 1“, Source-over:
+
+```
+co = cs·(1 − αb) + cb·(1 − αs) + αs·αb·B(Cb, Cs)       αo = αs + αb − αs·αb
+cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
+```
+
+| Mischmodus | B(Cb, Cs) | Name in der Oberfläche |
+|---|---|---|
+| Normal | Cs | Normal |
+| Multiply | Cb·Cs | Multiplizieren |
+| Screen | Cb + Cs − Cb·Cs | Bildschirm |
+| Add | min(1, Cb + Cs) | Addieren |
+| Negation | 1 − \|1 − Cb − Cs\| | Negativ |
+| Difference | \|Cb − Cs\| | Differenz |
+| Darken | min(Cb, Cs) | Abdunkeln |
+| Lighten | max(Cb, Cs) | Aufhellen |
+| Overlay | Cb ≤ 0,5: 2·Cs·Cb, sonst 1 − 2·(1 − Cs)·(1 − Cb) | Überlagern |
+
+- Ist der Hintergrund leer (αb = 0), reduziert sich jeder Modus auf Normal.
+- Gruppen werden **isoliert** zusammengesetzt (eigener transparenter Puffer) und dann mit Gruppendeckkraft und
+  -mischmodus eingefügt.
+- Ergebnis: je Kanal ×255, kaufmännisch gerundet, auf 0–255 begrenzt, Farbe ≤ Alpha (Invariante).
+- Eine einzelne Ebene „Normal, 100 %“ wird byteweise exakt wiedergegeben (Referenztest).
+- Darstellung: `DocumentViewModel` hält das Komposit als Cache; `PixelsChanged(Bereich)` setzt nur diesen Bereich
+  neu zusammen und überträgt ihn in die Bitmap; `LayersChanged` setzt das ganze Bild neu zusammen.
+- Export setzt das Bild frisch zusammen (sichtbare Ebenen) und warnt vorher, wenn mehr als eine Ebene existiert.
 
 ## Koordinatensysteme und Ansicht (`OrbitStudio.Rendering.ViewTransform`)
 
@@ -100,8 +161,9 @@ Verbindlich nach Spezifikation Abschnitt 3.1. Automatisch geprüft durch
   Export aus einer Kopie des Puffers, Schreiben in `.<name>.<guid>.tmp` im Zielordner und danach
   Ersetzen der Zieldatei – ein Abbruch zerstört nie eine vorhandene Datei. Fehler werden als `FileError`
   zurückgegeben und in der Oberfläche als deutsche Meldung angezeigt.
-- „Öffnen“ legt je Bilddatei ein neues Dokument an (`SourcePath` = Bilddatei). „Importieren“ (als Ebene)
-  folgt mit dem Ebenenmodell in M3; „Speichern“ als `.orbit`-Projekt in M7.
+- „Öffnen“ legt je Bilddatei ein neues Dokument mit einer Ebene an (`SourcePath` = Bilddatei).
+  „Importieren“ liest nur die Pixel (`LoadPixelsAsync`) und fügt sie als Ebene ein. „Speichern“ als
+  `.orbit`-Projekt folgt in M7.
 
 ## Datenfluss (Auszug)
 
@@ -116,8 +178,8 @@ Verbindlich nach Spezifikation Abschnitt 3.1. Automatisch geprüft durch
 
 ## Zustandstrennung
 
-- Pro Dokument (`ImageDocument`, `DocumentViewModel`): Pixel, Name, Speicherzustand, Ansicht
-  (Zoom, Verschiebung, Cursor). Ab M3/M4 zusätzlich Ebenen, Auswahl, Historie.
+- Pro Dokument (`ImageDocument`, `DocumentViewModel`): Ebenenbaum, aktive Ebene, Name, Speicherzustand,
+  Ansicht (Zoom, Verschiebung, Cursor), Komposit-Cache. Ab M4 zusätzlich Auswahl und Historie.
 - Global (`SettingsService`): `settings.json` (Sprache, zuletzt verwendet, Vorgaben, JPEG-Qualität) und
   `workspace.json` (Fenster, Pixelraster). Getrennte Dateien, je mit `schemaVersion`.
 

@@ -37,7 +37,13 @@ public sealed partial class MainViewModel : ObservableObject
         _files = files;
         _logger = logger;
 
-        _workspace.DocumentAdded += (_, doc) => Documents.Add(new DocumentViewModel(doc));
+        _workspace.DocumentAdded += (_, doc) =>
+        {
+            Documents.Add(new DocumentViewModel(doc));
+            // Ebenenbefehle hängen von der aktiven Ebene ab.
+            doc.ActiveLayerChanged += (_, _) => _registry.NotifyStateChanged();
+            doc.LayersChanged += (_, _) => _registry.NotifyStateChanged();
+        };
         _workspace.DocumentClosed += (_, doc) =>
         {
             var vm = Documents.FirstOrDefault(d => d.Document == doc);
@@ -134,7 +140,8 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Legt ein neues Dokument an. Wird vom Befehl „Neu" nach dem Dialog aufgerufen.</summary>
     public DocumentViewModel CreateDocument(NewDocumentRequest request)
     {
-        var document = ImageDocument.Create(request.Name, request.Width, request.Height, background: request.Background);
+        var document = ImageDocument.Create(request.Name, request.Width, request.Height, Loc.Get("Layer.Background"),
+            background: request.Background);
         _workspace.Add(document);
         _settings.UpdateGlobal(_settings.Global with
         {
@@ -240,7 +247,8 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(FileSave, "Cmd.File.Save", "M7", "Ctrl+S");
         Plan(FileSaveAs, "Cmd.File.SaveAs", "M7", "Ctrl+Shift+S");
         Plan(FileSaveCopy, "Cmd.File.SaveCopy", "M7");
-        Plan(FileImport, "Cmd.File.Import", "M3");
+        Add(AppCommand.Create(FileImport, "Cmd.File.Import", () => RunAsync(ImportWithDialogAsync), HasDocAndIdle,
+            "Ctrl+Shift+O"));
         Add(AppCommand.Create(FileExport, "Cmd.File.Export", () => RunAsync(ExportWithDialogAsync), HasDocAndIdle,
             "Ctrl+Shift+E"));
         Add(AppCommand.Create(FileDocumentInfo, "Cmd.File.DocumentInfo", ShowDocumentInfo, HasDoc));
@@ -282,20 +290,8 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(ImageCrop, "Cmd.Image.Crop", "M4");
         Add(AppCommand.Create(ImageInfo, "Cmd.Image.Info", ShowDocumentInfo, HasDoc));
 
-        // Ebenen
-        Plan(LayerNew, "Cmd.Layer.New", "M3", "Ctrl+Shift+N");
-        Plan(LayerDuplicate, "Cmd.Layer.Duplicate", "M3", "Ctrl+J");
-        Plan(LayerDelete, "Cmd.Layer.Delete", "M3");
-        Plan(LayerRename, "Cmd.Layer.Rename", "M3");
-        Plan(LayerMoveUp, "Cmd.Layer.MoveUp", "M3");
-        Plan(LayerMoveDown, "Cmd.Layer.MoveDown", "M3");
-        Plan(LayerGroupCreate, "Cmd.Layer.GroupCreate", "M3", "Ctrl+G");
-        Plan(LayerGroupDissolve, "Cmd.Layer.GroupDissolve", "M3", "Ctrl+Shift+G");
-        Plan(LayerVisibility, "Cmd.Layer.Visibility", "M3");
-        Plan(LayerOpacity, "Cmd.Layer.Opacity", "M3");
-        Plan(LayerBlendMode, "Cmd.Layer.BlendMode", "M3");
-        Plan(LayerAddMask, "Cmd.Layer.AddMask", "M3");
-        Plan(LayerMerge, "Cmd.Layer.Merge", "M3", "Ctrl+E");
+        // Ebenen (MainViewModel.Layers.cs)
+        RegisterLayerCommands();
 
         // Farben
         Plan(AdjustBrightnessContrast, "Cmd.Adjust.BrightnessContrast", "M6");

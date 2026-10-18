@@ -8,12 +8,12 @@
 | Unit-Tests Konfiguration | `tests/OrbitStudio.Configuration.Tests` | aktiv |
 | Unit-Tests Anwendung (Arbeitsbereich, Befehle) | `tests/OrbitStudio.Application.Tests` | aktiv |
 | Codec-Tests (Referenzbytes, Rundreisen, beschädigte/übergroße Dateien) | `tests/OrbitStudio.Imaging.Tests` | aktiv |
-| Ansichtstransformation (Zoom, Verschiebung, DPI, Scrollen) | `tests/OrbitStudio.Rendering.Tests` | aktiv |
+| Ansichtstransformation und **Rendering-Referenztests** (Komposition, Mischmodi, Masken, Gruppen) | `tests/OrbitStudio.Rendering.Tests` | aktiv |
+| Ebenenoperationen | `tests/OrbitStudio.Layers.Tests` | aktiv |
 | Integration Dateien (echte Dateien, atomares Schreiben, Fehler) | `tests/OrbitStudio.Integration.Tests` | aktiv |
 | Architekturtest | `tests/OrbitStudio.Architecture.Tests` | aktiv |
 | UI-Smoke-Test | `OrbitStudio.exe --smoke-test <Datei>` (über `build/test.ps1`) | aktiv |
 | UI-Eingabetest (echte Maus/Tastatur) | `build/ui-input-test.ps1` bzw. `test.ps1 -WithInput` | optional, braucht ungenutzte Sitzung |
-| Rendering-Referenztests Komposition/Mischmodi | folgt in M3 | nicht ausgeführt |
 | Integrationstest Pflicht-Workflow (Abschnitt 13) | folgt in M7 | nicht ausgeführt |
 | Performance (BenchmarkDotNet) | folgt in M11 | nicht gemessen |
 
@@ -31,6 +31,8 @@ Ergebnisse: `artifacts/testresults/*.trx`, `smoke-test.txt`, `smoke-test.png`, `
 | WebP (einfarbig, Qualität 95) | ±6 je Kanal | verlustbehaftet |
 | JPEG/WebP-Export im Smoke-Test (Verlauf mit harten Kanten) | mittlere Abweichung ≤ 3 | an Farbkanten weichen einzelne Pixel stark ab (Farbunterabtastung) |
 | Ansichtstransformation | 1e-9 (Rundreise 1e-6) | Fließkomma |
+| Komposition (Rendering-Referenztests) | **exakt** (byteweise) | Rechenweg festgelegt (double, kaufmännische Rundung); Erwartungswerte von Hand berechnet |
+| Maske anwenden / Zusammenführen | exakt bzw. Aussehen byteweise gleich | gleiche Rechenvorschrift wie die Komposition |
 
 ### UI-Smoke-Test
 
@@ -49,7 +51,43 @@ Startet `OrbitStudio.exe --data-dir <Temp> <Testbild>` und sendet echte Eingaben
 werden per UI Automation aus der Oberfläche gelesen. **Sicherheitsregel:** Vor jeder Eingabe wird geprüft,
 dass ORBIT Studio das Vordergrundfenster ist; sonst bricht der Test ab, ohne Eingaben zu senden.
 
+### Rendering-Referenzwerte (Auszug)
+
+Grau 128 (oben, deckend) über Grau 200 (unten, deckend): Normal 128, Multiplizieren 100 (200·128/255 = 100,39),
+Bildschirm 228, Addieren 255, Negativ 182, Differenz 72, Abdunkeln 128, Aufhellen 200, Überlagern 200
+(255 − 2·127·55/255 = 200,22). Über Grau 100: Überlagern 100, Negativ 228, Differenz 28.
+Grau 128 mit 40 % über Weiß: 204 (128·0,4 + 255·0,6 = 204,2). Multiplizieren über halbtransparentem
+Hintergrund (gerade 200, α 128): 114. Gruppe (50 %) mit Multiplizieren-Inhalt über transparent: (64, 64, 64, 128).
+Weitere Fälle siehe `tests/OrbitStudio.Rendering.Tests/LayerCompositorTests.cs`.
+
 ## Ergebnisse
+
+### 18.10.2026 – M3 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+| Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |
+|---|---|---|---|
+| OrbitStudio.Domain.Tests | 74 | 0 | 0 |
+| OrbitStudio.Configuration.Tests | 19 | 0 | 0 |
+| OrbitStudio.Application.Tests | 24 | 0 | 0 |
+| OrbitStudio.Imaging.Tests | 27 | 0 | 0 |
+| OrbitStudio.Rendering.Tests | 60 | 0 | 0 |
+| OrbitStudio.Layers.Tests | 23 | 0 | 0 |
+| OrbitStudio.Integration.Tests | 15 | 0 | 0 |
+| OrbitStudio.Architecture.Tests | 18 | 0 | 0 |
+| **Summe** | **260** | **0** | **0** |
+
+Beim ersten Lauf schlugen 2 Tests fehl – beides Fehler in den Tests selbst (eine Ebene wurde zweimal in einen
+Stapel eingefügt; fehlendes `using`), nicht im Produktcode. Nach Korrektur: alle bestanden.
+
+UI-Smoke-Test (Debug und veröffentlichte EXE, 156,9 MB): je 79 von 79 bestanden, Exitcode 0.
+Neu in M3: Neu/Öffnen/Importieren/Exportieren laufen über die echten Registry-Befehle mit geskripteten Dialogen
+(`SmokeDialogService`); Ebenen anlegen, Mischmodi und Deckkraft über das Panel mit exakten Pixelwerten,
+Sichtbarkeit, Masken, Eigenschaftsdialog, Duplizieren, Verschieben, Löschen mit Rückfrage, Sperre, Gruppen,
+Zusammenführen und Reduzieren mit unverändertem Aussehen, Import mit Beschnittmeldung, Export-Warnung bei
+mehreren Ebenen, Panel-Markierung = aktive Ebene, Rückfrage bei ungespeicherten Änderungen.
+
+UI-Eingabetest: in M3 nicht erneut ausgeführt (Sitzung wurde aktiv benutzt). Die Leinwand-Eingabe ist
+gegenüber M2 unverändert.
 
 ### 18.10.2026 – M2 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 

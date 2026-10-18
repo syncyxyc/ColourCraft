@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OrbitStudio.Application\OrbitStudio.Application.csproj" />
     <ProjectReference Include="..\OrbitStudio.Rendering\OrbitStudio.Rendering.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Layers\OrbitStudio.Layers.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

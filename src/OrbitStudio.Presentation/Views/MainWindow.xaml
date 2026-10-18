@@ -77,6 +77,13 @@
             </StatusBarItem>
         </StatusBar>
 
+        <!-- Ebenen-Panel (fest rechts; andockbar ab M8) -->
+        <Border DockPanel.Dock="Right" Width="270" BorderThickness="1,0,0,0"
+                BorderBrush="{DynamicResource Brush.Border}"
+                Visibility="{Binding HasDocuments, Converter={StaticResource BoolToVisible}}">
+            <views:LayersPanel x:Name="LayersPanel" DataContext="{Binding ActiveDocument}" />
+        </Border>
+
         <!-- Arbeitsfläche mit Dokument-Tabs -->
         <Grid Background="{DynamicResource Brush.Workspace.Background}">
             <TextBlock Text="{StaticResource Workspace.Empty}"

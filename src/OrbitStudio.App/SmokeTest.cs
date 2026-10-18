@@ -7,25 +7,28 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OrbitStudio.Application.Commands;
 using OrbitStudio.Application.Documents;
-using OrbitStudio.Application.Files;
 using OrbitStudio.Application.Settings;
 using OrbitStudio.Configuration;
 using OrbitStudio.Domain.Documents;
 using OrbitStudio.Domain.Imaging;
+using OrbitStudio.Domain.Layers;
 using OrbitStudio.Imaging.Codecs;
 using OrbitStudio.Presentation.Commands;
+using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Services;
 using OrbitStudio.Presentation.ViewModels;
 using OrbitStudio.Presentation.Viewport;
 using OrbitStudio.Presentation.Views;
+using OrbitStudio.Rendering;
 
 namespace OrbitStudio.App;
 
 /// <summary>
 /// Automatisierter UI-Starttest: <c>OrbitStudio.exe --smoke-test &lt;Ergebnisdatei&gt;</c>.
 /// Startet das echte Hauptfenster mit isolierten Einstellungen und Testdateien in %TEMP%, bedient es über
-/// Befehle und ViewModels und prüft visuellen Baum, Pixel und Dateien. Exitcode 0 = bestanden, 1 = fehlgeschlagen.
-/// Bildschirmfotos: &lt;Ergebnisdatei&gt;.png (Übersicht) und &lt;Ergebnisdatei&gt;-zoom.png (Pixelraster).
+/// Befehle der Registry und ViewModels und prüft visuellen Baum, Pixel und Dateien. Dialoge beantwortet
+/// <see cref="SmokeDialogService"/>. Exitcode 0 = bestanden, 1 = fehlgeschlagen.
+/// Bildschirmfotos: &lt;Ergebnisdatei&gt;.png, -zoom.png (Pixelraster), -ebenen.png (Ebenen-Panel).
 /// </summary>
 internal static class SmokeTest
 {
@@ -63,6 +66,7 @@ internal static class SmokeTest
         var failed = false;
         var tempDir = Path.Combine(Path.GetTempPath(), "OrbitStudio-smoke-files-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
+        var shotBase = Path.Combine(Path.GetDirectoryName(resultFile)!, Path.GetFileNameWithoutExtension(resultFile));
 
         void Check(string name, bool condition)
         {
@@ -72,161 +76,11 @@ internal static class SmokeTest
 
         try
         {
-            var vm = window.ViewModel;
-            var registry = services.GetRequiredService<CommandRegistry>();
-            var workspace = services.GetRequiredService<DocumentWorkspace>();
-            var settings = services.GetRequiredService<SettingsService>();
-            var codecs = services.GetRequiredService<ImageCodecRegistry>();
-
-            // --- M1: Grundgerüst ---------------------------------------------------------------
-            Check("Fenster sichtbar", window.IsVisible && window.ActualWidth > 0);
-            Check("10 Hauptmenüs aus der Registry", vm.Menus.Count == 10 && vm.Menus.All(m => m.Items.Count > 0));
-            Check("Keine Tastenkürzel-Konflikte", registry.FindGestureConflicts().Count == 0);
-            Check("Tastenkürzel gebunden", window.InputBindings.Count >= 10);
-            Check("Ohne Dokument: Schließen und Zoom deaktiviert",
-                !registry.Get(CommandIds.FileClose).CanExecute() && !registry.Get(CommandIds.ViewZoomIn).CanExecute());
-            Check("Geplante Befehle deaktiviert", !registry.Get(CommandIds.EditUndo).CanExecute());
-
-            var first = vm.CreateDocument(new NewDocumentRequest("Smoke A", 320, 240, DocumentBackground.White));
-            var second = vm.CreateDocument(new NewDocumentRequest("Smoke B", 200, 100, DocumentBackground.Transparent));
-            Flush(window);
-
-            Check("Zwei Tabs offen", vm.Documents.Count == 2 && workspace.Documents.Count == 2);
-            Check("Neues Dokument ist aktiv", vm.ActiveDocument == second && workspace.ActiveDocument == second.Document);
-            Check("Leinwand gerendert", FindCanvas(window) is { ActualWidth: > 0, ViewModel: var cvm } && cvm == second);
-            Check("Kleines Bild startet mit 100 %", Math.Abs(second.View.Zoom - 1.0) < 1e-9);
-            Check("Neues weißes Dokument hat weiße Pixel", first.Document.Pixels.GetPixel(10, 10) == Bgra32.White);
-            Check("Neues transparentes Dokument hat transparente Pixel",
-                second.Document.Pixels.GetPixel(10, 10) == Bgra32.Transparent);
-            Check("Mit Dokument: Schließen aktiv", registry.Get(CommandIds.FileClose).CanExecute());
-
-            vm.ActiveDocument = first;
-            Flush(window);
-            Check("Tabwechsel aktualisiert Arbeitsbereich", workspace.ActiveDocument == first.Document);
-            Check("Leinwand zeigt nach Tabwechsel Dokument A", FindCanvas(window)?.ViewModel == first);
-            Check("Fenstertitel zeigt aktives Dokument", window.Title.StartsWith("Smoke A", StringComparison.Ordinal));
-            Check("Statusleiste zeigt Größe",
-                window.FindName("SizeStatus") is System.Windows.Controls.TextBlock status
-                && status.Text.Contains("320", StringComparison.Ordinal));
-
-            // --- M2: Zoom je Dokument getrennt ---------------------------------------------------
-            registry.Get(CommandIds.ViewZoomIn).Execute();
-            Flush(window);
-            var zoomA = first.View.Zoom;
-            vm.ActiveDocument = second;
-            Flush(window);
-            Check("Zoom gilt nur für ein Dokument", zoomA > 1.0 && Math.Abs(second.View.Zoom - 1.0) < 1e-9);
-            vm.ActiveDocument = first;
-            Flush(window);
-            Check("Zoom bleibt beim Tabwechsel erhalten", Math.Abs(first.View.Zoom - zoomA) < 1e-9);
-
-            registry.Get(CommandIds.FileCloseAll).Execute();
-            Flush(window);
-            Check("Alle schließen", vm.Documents.Count == 0 && workspace.ActiveDocument is null);
-
-            // --- M2: Bild öffnen ---------------------------------------------------------------
-            var reference = CreateReferenceImage(640, 400);
-            var pngPath = Path.Combine(tempDir, "referenz.png");
-            await using (var stream = File.Create(pngPath))
-            {
-                codecs.FindById("png")!.Encode(reference, stream, new EncodeOptions());
-            }
-
-            var opened = await vm.OpenFilesAsync([pngPath], showErrors: false);
-            Flush(window);
-            var image = vm.ActiveDocument;
-            Check("PNG geöffnet", opened == 1 && image is not null && image.Document.SourcePath == pngPath);
-            Check("Geöffnete Pixel entsprechen der Datei", image?.Document.Pixels.ContentEquals(reference) == true);
-            Check("Datei in „Zuletzt verwendet“", settings.Global.RecentFiles.FirstOrDefault() == pngPath);
-            Check("Gleiche Datei erneut öffnen erzeugt keinen zweiten Tab",
-                await vm.OpenFilesAsync([pngPath], showErrors: false) == 1 && vm.Documents.Count == 1);
-            Check("Bitmap entspricht Pixelpuffer", image is not null && BitmapMatches(image.Bitmap, image.Document.Pixels));
-
-            // --- M2: Zoom und Verschieben verändern keine Pixel ------------------------------------
-            var before = image!.Document.Pixels.Clone();
-            var canvas = FindCanvas(window)!;
-            registry.Get(CommandIds.ViewActualSize).Execute();
-            Flush(window);
-            Check("100 %", Math.Abs(image.View.Zoom - 1.0) < 1e-9 && image.ZoomText.Contains("100", StringComparison.Ordinal));
-            // Stufen ab 100 %: 150, 200, 300, 400, 500, 600, 800 → sieben Schritte.
-            for (var i = 0; i < 7; i++)
-            {
-                registry.Get(CommandIds.ViewZoomIn).Execute();
-            }
-
-            Flush(window);
-            Check("Vergrößern über Stufen bis 800 %", Math.Abs(image.View.Zoom - 8.0) < 1e-9);
-            var offsetBefore = (image.View.OffsetX, image.View.OffsetY);
-            image.View.PanBy(-150, -90);
-            Flush(window);
-            Check("Verschieben ändert die Ansicht",
-                image.View.OffsetX != offsetBefore.OffsetX && image.View.OffsetY != offsetBefore.OffsetY);
-            Check("Pixelraster ab 800 % aktiv", canvas.ShowPixelGrid);
-            SaveScreenshot(window, Path.Combine(Path.GetDirectoryName(resultFile)!,
-                Path.GetFileNameWithoutExtension(resultFile) + "-zoom.png"));
-
-            registry.Get(CommandIds.ViewPixelGrid).Execute();
-            Flush(window);
-            Check("Pixelraster abschaltbar (Einstellung)", !settings.Workspace.ShowPixelGrid && !canvas.ShowPixelGrid);
-            registry.Get(CommandIds.ViewPixelGrid).Execute();
-
-            registry.Get(CommandIds.ViewFitToWindow).Execute();
-            Flush(window);
-            var visible = image.View.VisibleDocumentRect();
-            Check("Bild anpassen zeigt das ganze Bild", visible == image.Document.Pixels.Bounds);
-            registry.Get(CommandIds.ViewZoomOut).Execute();
-            Flush(window);
-            Check("Zoom und Verschieben verändern keine Pixel", image.Document.Pixels.ContentEquals(before));
-            registry.Get(CommandIds.ViewFitToWindow).Execute();
-            Flush(window);
-            SaveScreenshot(window, Path.ChangeExtension(resultFile, ".png"));
-
-            // --- M2: Exportieren und wieder einlesen ------------------------------------------------
-            foreach (var (extension, exact) in new[] { (".png", true), (".bmp", true), (".webp", false), (".jpg", false) })
-            {
-                var target = Path.Combine(tempDir, "export" + extension);
-                var export = await vm.ExportActiveAsync(target);
-                var reread = codecs.FindByPath(target)!.Decode(File.OpenRead(target)).Pixels;
-                var sameSize = reread.Width == reference.Width && reread.Height == reference.Height;
-                if (exact)
-                {
-                    Check($"Export {extension} und erneutes Einlesen (exakt)",
-                        export?.Success == true && sameSize && reread.ContentEquals(reference));
-                }
-                else
-                {
-                    // Verlustbehaftet: an harten Farbkanten weichen einzelne Pixel stark ab, daher mittlere Abweichung.
-                    var mean = sameSize ? MeanChannelDifference(reread, reference) : double.MaxValue;
-                    Check($"Export {extension} und erneutes Einlesen (mittlere Abweichung {mean:0.00} ≤ 3)",
-                        export?.Success == true && sameSize && mean <= 3);
-                }
-            }
-
-            // --- M2: Fehlerfälle ----------------------------------------------------------------
-            var corrupt = Path.Combine(tempDir, "kaputt.png");
-            await File.WriteAllBytesAsync(corrupt, [0x89, 0x50, 0x4E, 0x47, 1, 2, 3, 4, 5]);
-            var countBefore = vm.Documents.Count;
-            Check("Beschädigte Datei wird abgewiesen",
-                await vm.OpenFilesAsync([corrupt], showErrors: false) == 0 && vm.Documents.Count == countBefore);
-            var missing = Path.Combine(tempDir, "fehlt.png");
-            settings.AddRecentFile(missing);
-            await vm.OpenFilesAsync([missing], showErrors: false);
-            Check("Fehlende Datei wird aus „Zuletzt verwendet“ entfernt", !settings.Global.RecentFiles.Contains(missing));
-            Check("Nach Dateivorgängen nicht mehr beschäftigt", !vm.IsBusy && registry.Get(CommandIds.FileOpen).CanExecute());
-            Check("Statusleiste zeigt danach keinen Wartehinweis",
-                !vm.StatusMessage.Equals(OrbitStudio.Presentation.Localization.Loc.Get("Status.Busy"), StringComparison.Ordinal));
-
-            registry.Get(CommandIds.FileCloseAll).Execute();
-            Flush(window);
-
-            // --- M1: Vollbild ---------------------------------------------------------------------
-            var shell = services.GetRequiredService<ShellService>();
-            registry.Get(CommandIds.ViewFullScreen).Execute();
-            Flush(window);
-            Check("Vollbild an", shell.IsFullScreen && window.WindowStyle == WindowStyle.None);
-            registry.Get(CommandIds.ViewFullScreen).Execute();
-            Flush(window);
-            Check("Vollbild aus", !shell.IsFullScreen && window.WindowStyle != WindowStyle.None);
+            var context = new Context(window, services, tempDir, Check);
+            CheckBasics(context);
+            await CheckFilesAndViewAsync(context, shotBase);
+            await CheckLayersAsync(context, shotBase);
+            CheckFullScreen(context);
         }
         catch (Exception ex)
         {
@@ -251,6 +105,373 @@ internal static class SmokeTest
 
         // Shutdown schließt auch das Hauptfenster; ein vorheriges Close würde den Exitcode auf 0 setzen.
         System.Windows.Application.Current.Shutdown(failed ? 1 : 0);
+    }
+
+    private sealed class Context(MainWindow window, IServiceProvider services, string tempDir, Action<string, bool> check)
+    {
+        public MainWindow Window { get; } = window;
+
+        public MainViewModel Vm => Window.ViewModel;
+
+        public CommandRegistry Registry { get; } = services.GetRequiredService<CommandRegistry>();
+
+        public DocumentWorkspace Workspace { get; } = services.GetRequiredService<DocumentWorkspace>();
+
+        public SettingsService Settings { get; } = services.GetRequiredService<SettingsService>();
+
+        public ImageCodecRegistry Codecs { get; } = services.GetRequiredService<ImageCodecRegistry>();
+
+        public SmokeDialogService Dialogs { get; } = services.GetRequiredService<SmokeDialogService>();
+
+        public ShellService Shell { get; } = services.GetRequiredService<ShellService>();
+
+        public string TempDir { get; } = tempDir;
+
+        public void Check(string name, bool condition) => check(name, condition);
+
+        public void Execute(string commandId)
+        {
+            Registry.Get(commandId).Execute();
+            Flush(Window);
+        }
+
+        public bool CanExecute(string commandId) => Registry.Get(commandId).CanExecute();
+    }
+
+    // --- M1: Grundgerüst ------------------------------------------------------------------------
+
+    private static void CheckBasics(Context c)
+    {
+        var vm = c.Vm;
+        c.Check("Fenster sichtbar", c.Window.IsVisible && c.Window.ActualWidth > 0);
+        c.Check("10 Hauptmenüs aus der Registry", vm.Menus.Count == 10 && vm.Menus.All(m => m.Items.Count > 0));
+        c.Check("Keine Tastenkürzel-Konflikte", c.Registry.FindGestureConflicts().Count == 0);
+        c.Check("Tastenkürzel gebunden", c.Window.InputBindings.Count >= 10);
+        c.Check("Ohne Dokument: Schließen, Zoom und Ebenenbefehle deaktiviert",
+            !c.CanExecute(CommandIds.FileClose) && !c.CanExecute(CommandIds.ViewZoomIn)
+            && !c.CanExecute(CommandIds.LayerNew));
+        c.Check("Geplante Befehle deaktiviert", !c.CanExecute(CommandIds.EditUndo));
+
+        // Neu über den echten Befehl (Dialog liefert die Eingaben)
+        c.Dialogs.NewDocumentAnswers.Enqueue(new NewDocumentRequest("Smoke A", 320, 240, DocumentBackground.White));
+        c.Execute(CommandIds.FileNew);
+        var first = vm.ActiveDocument!;
+        var second = vm.CreateDocument(new NewDocumentRequest("Smoke B", 200, 100, DocumentBackground.Transparent));
+        Flush(c.Window);
+
+        c.Check("Datei › Neu über Befehl", first.Document.Name == "Smoke A");
+        c.Check("Zwei Tabs offen", vm.Documents.Count == 2 && c.Workspace.Documents.Count == 2);
+        c.Check("Neues Dokument ist aktiv", vm.ActiveDocument == second && c.Workspace.ActiveDocument == second.Document);
+        c.Check("Leinwand gerendert", FindDescendant<CanvasView>(c.Window) is { ActualWidth: > 0, ViewModel: var cvm } && cvm == second);
+        c.Check("Kleines Bild startet mit 100 %", Math.Abs(second.View.Zoom - 1.0) < 1e-9);
+        c.Check("Neues weißes Dokument: eine Ebene „Hintergrund“, weiße Pixel",
+            first.Document.LayerCount == 1 && first.Document.ActiveLayer?.Name == Loc.Get("Layer.Background")
+            && first.Composite.GetPixel(10, 10) == Bgra32.White);
+        c.Check("Neues transparentes Dokument hat transparente Pixel", second.Composite.GetPixel(10, 10) == Bgra32.Transparent);
+
+        vm.ActiveDocument = first;
+        Flush(c.Window);
+        c.Check("Tabwechsel aktualisiert Arbeitsbereich", c.Workspace.ActiveDocument == first.Document);
+        c.Check("Leinwand zeigt nach Tabwechsel Dokument A", FindDescendant<CanvasView>(c.Window)?.ViewModel == first);
+        c.Check("Fenstertitel zeigt aktives Dokument", c.Window.Title.StartsWith("Smoke A", StringComparison.Ordinal));
+        c.Check("Statusleiste zeigt Größe",
+            c.Window.FindName("SizeStatus") is System.Windows.Controls.TextBlock status
+            && status.Text.Contains("320", StringComparison.Ordinal));
+
+        c.Execute(CommandIds.ViewZoomIn);
+        var zoomA = first.View.Zoom;
+        vm.ActiveDocument = second;
+        Flush(c.Window);
+        c.Check("Zoom gilt nur für ein Dokument", zoomA > 1.0 && Math.Abs(second.View.Zoom - 1.0) < 1e-9);
+        vm.ActiveDocument = first;
+        Flush(c.Window);
+        c.Check("Zoom bleibt beim Tabwechsel erhalten", Math.Abs(first.View.Zoom - zoomA) < 1e-9);
+
+        c.Execute(CommandIds.FileCloseAll);
+        c.Check("Alle schließen", vm.Documents.Count == 0 && c.Workspace.ActiveDocument is null);
+    }
+
+    // --- M2: Dateien und Ansicht -----------------------------------------------------------------
+
+    private static async Task CheckFilesAndViewAsync(Context c, string shotBase)
+    {
+        var vm = c.Vm;
+        var reference = CreateReferenceImage(640, 400);
+        var pngPath = Path.Combine(c.TempDir, "referenz.png");
+        await using (var stream = File.Create(pngPath))
+        {
+            c.Codecs.FindById("png")!.Encode(reference, stream, new EncodeOptions());
+        }
+
+        c.Dialogs.OpenFilesAnswers.Enqueue([pngPath]);
+        c.Execute(CommandIds.FileOpen);
+        await WaitUntilAsync(() => vm.Documents.Count == 1 && !vm.IsBusy);
+        Flush(c.Window);
+        var image = vm.ActiveDocument;
+        c.Check("Datei › Öffnen über Befehl", image is not null && image.Document.SourcePath == pngPath);
+        c.Check("Geöffnete Pixel entsprechen der Datei", image?.Composite.ContentEquals(reference) == true);
+        c.Check("Datei in „Zuletzt verwendet“", c.Settings.Global.RecentFiles.FirstOrDefault() == pngPath);
+        c.Check("Gleiche Datei erneut öffnen erzeugt keinen zweiten Tab",
+            await vm.OpenFilesAsync([pngPath], showErrors: false) == 1 && vm.Documents.Count == 1);
+        c.Check("Bitmap entspricht Komposit", image is not null && BitmapMatches(image.Bitmap, image.Composite));
+
+        var before = image!.Composite.Clone();
+        var canvas = FindDescendant<CanvasView>(c.Window)!;
+        c.Execute(CommandIds.ViewActualSize);
+        c.Check("100 %", Math.Abs(image.View.Zoom - 1.0) < 1e-9 && image.ZoomText.Contains("100", StringComparison.Ordinal));
+        for (var i = 0; i < 7; i++) // 150, 200, 300, 400, 500, 600, 800 %
+        {
+            c.Registry.Get(CommandIds.ViewZoomIn).Execute();
+        }
+
+        Flush(c.Window);
+        c.Check("Vergrößern über Stufen bis 800 %", Math.Abs(image.View.Zoom - 8.0) < 1e-9);
+        var offsetBefore = (image.View.OffsetX, image.View.OffsetY);
+        image.View.PanBy(-150, -90);
+        Flush(c.Window);
+        c.Check("Verschieben ändert die Ansicht",
+            image.View.OffsetX != offsetBefore.OffsetX && image.View.OffsetY != offsetBefore.OffsetY);
+        c.Check("Pixelraster ab 800 % aktiv", canvas.ShowPixelGrid);
+        SaveScreenshot(c.Window, shotBase + "-zoom.png");
+
+        c.Execute(CommandIds.ViewPixelGrid);
+        c.Check("Pixelraster abschaltbar (Einstellung)", !c.Settings.Workspace.ShowPixelGrid && !canvas.ShowPixelGrid);
+        c.Execute(CommandIds.ViewPixelGrid);
+
+        c.Execute(CommandIds.ViewFitToWindow);
+        c.Check("Bild anpassen zeigt das ganze Bild", image.View.VisibleDocumentRect() == image.Document.Bounds);
+        c.Execute(CommandIds.ViewZoomOut);
+        c.Check("Zoom und Verschieben verändern keine Pixel",
+            image.Composite.ContentEquals(before) && image.Document.PixelLayers.Single().Pixels.ContentEquals(before));
+        c.Execute(CommandIds.ViewFitToWindow);
+        SaveScreenshot(c.Window, shotBase + ".png");
+
+        foreach (var (extension, exact) in new[] { (".png", true), (".bmp", true), (".webp", false), (".jpg", false) })
+        {
+            var target = Path.Combine(c.TempDir, "export" + extension);
+            var export = await vm.ExportActiveAsync(target);
+            var reread = Decode(c, target);
+            var sameSize = reread.Width == reference.Width && reread.Height == reference.Height;
+            if (exact)
+            {
+                c.Check($"Export {extension} und erneutes Einlesen (exakt)",
+                    export?.Success == true && sameSize && reread.ContentEquals(reference));
+            }
+            else
+            {
+                // Verlustbehaftet: an harten Farbkanten weichen einzelne Pixel stark ab, daher mittlere Abweichung.
+                var mean = sameSize ? MeanChannelDifference(reread, reference) : double.MaxValue;
+                c.Check($"Export {extension} und erneutes Einlesen (mittlere Abweichung {mean:0.00} ≤ 3)",
+                    export?.Success == true && sameSize && mean <= 3);
+            }
+        }
+
+        var corrupt = Path.Combine(c.TempDir, "kaputt.png");
+        await File.WriteAllBytesAsync(corrupt, [0x89, 0x50, 0x4E, 0x47, 1, 2, 3, 4, 5]);
+        var countBefore = vm.Documents.Count;
+        c.Dialogs.Messages.Clear();
+        c.Check("Beschädigte Datei wird mit deutscher Meldung abgewiesen",
+            await vm.OpenFilesAsync([corrupt]) == 0 && vm.Documents.Count == countBefore
+            && c.Dialogs.Messages.Any(m => m.Kind == "error" && m.Message.Contains("beschädigt", StringComparison.Ordinal)));
+        var missing = Path.Combine(c.TempDir, "fehlt.png");
+        c.Settings.AddRecentFile(missing);
+        await vm.OpenFilesAsync([missing], showErrors: false);
+        c.Check("Fehlende Datei wird aus „Zuletzt verwendet“ entfernt", !c.Settings.Global.RecentFiles.Contains(missing));
+        c.Check("Nach Dateivorgängen nicht mehr beschäftigt", !vm.IsBusy && c.CanExecute(CommandIds.FileOpen));
+        c.Check("Statusleiste zeigt danach keinen Wartehinweis",
+            !vm.StatusMessage.Equals(Loc.Get("Status.Busy"), StringComparison.Ordinal));
+
+        c.Execute(CommandIds.FileCloseAll);
+    }
+
+    // --- M3: Ebenen ----------------------------------------------------------------------------
+
+    private static async Task CheckLayersAsync(Context c, string shotBase)
+    {
+        var vm = c.Vm;
+        var doc = vm.CreateDocument(new NewDocumentRequest("Ebenen", 64, 48, DocumentBackground.White));
+        Flush(c.Window);
+        var panel = FindDescendant<LayersPanel>(c.Window);
+        c.Check("Ebenen-Panel sichtbar mit einer Ebene", panel is { IsVisible: true } && doc.Layers.Count == 1);
+
+        // Neue Ebene über den Menübefehl, grau gefüllt (vormultipliert, deckend)
+        c.Execute(CommandIds.LayerNew);
+        var gray = (PixelLayer)doc.Document.ActiveLayer!;
+        c.Check("Neue Ebene ist aktiv, oben in der Liste, transparent",
+            doc.Document.LayerCount == 2 && doc.Layers[0].Node == gray && doc.SelectedLayer?.Node == gray
+            && gray.Pixels.GetPixel(0, 0) == Bgra32.Transparent);
+        gray.Pixels.Fill(new IntRect(0, 0, 32, 48), new Bgra32(128, 128, 128, 255));
+        doc.Document.CommitPixelChange(new IntRect(0, 0, 32, 48));
+        Flush(c.Window);
+        c.Check("Komposit: graue Ebene links, Hintergrund rechts",
+            doc.Composite.GetPixel(10, 10) == new Bgra32(128, 128, 128, 255) && doc.Composite.GetPixel(40, 10) == Bgra32.White);
+        c.Check("Bitmap entspricht Komposit nach Pixeländerung", BitmapMatches(doc.Bitmap, doc.Composite));
+
+        // Mischmodi über das Panel (exakte Referenzwerte, Grau 128 über Weiß 255)
+        foreach (var (mode, expected) in new[]
+                 {
+                     (BlendMode.Multiply, (byte)128), (BlendMode.Screen, (byte)255), (BlendMode.Difference, (byte)127),
+                     (BlendMode.Darken, (byte)128), (BlendMode.Lighten, (byte)255), (BlendMode.Normal, (byte)128),
+                 })
+        {
+            doc.SelectedBlendMode = doc.BlendModes.First(o => o.Mode == mode);
+            Flush(c.Window);
+            c.Check($"Mischmodus {mode} über Panel: Kanal {expected}", doc.Composite.GetPixel(10, 10).R == expected);
+        }
+
+        // Deckkraft 40 % über Panel: 128·0,4 + 255·0,6 = 204,2 → 204
+        doc.SelectedOpacityPercent = 40;
+        Flush(c.Window);
+        c.Check("Deckkraft 40 % über Panel ergibt 204", doc.Composite.GetPixel(10, 10).R == 204 && gray.Opacity == 0.4);
+
+        c.Execute(CommandIds.LayerVisibility);
+        c.Check("Ebene ausblenden zeigt Hintergrund", doc.Composite.GetPixel(10, 10) == Bgra32.White && !gray.IsVisible);
+        c.Execute(CommandIds.LayerVisibility);
+        c.Check("Ebene einblenden", doc.Composite.GetPixel(10, 10).R == 204);
+
+        // Masken
+        c.Execute(CommandIds.LayerAddMask);
+        c.Check("Maske hinzugefügt (alles sichtbar, Aussehen unverändert)",
+            gray.Mask is not null && doc.Composite.GetPixel(10, 10).R == 204 && doc.Layers[0].HasMask);
+        c.Execute(CommandIds.LayerMaskInvert);
+        c.Check("Maske umkehren verbirgt die Ebene", doc.Composite.GetPixel(10, 10) == Bgra32.White);
+        c.Execute(CommandIds.LayerMaskEnabled);
+        c.Check("Maske deaktivieren zeigt die Ebene wieder",
+            doc.Composite.GetPixel(10, 10).R == 204 && gray.Mask is { IsEnabled: false });
+        c.Execute(CommandIds.LayerMaskDelete);
+        c.Check("Maske löschen", gray.Mask is null && !doc.Layers[0].HasMask);
+
+        // Eigenschaften-Dialog (F2) mit vorbereiteter Eingabe
+        c.Dialogs.LayerPropertiesAnswers.Enqueue(p => p with { Name = "Grau", OpacityPercent = 100 });
+        c.Execute(CommandIds.LayerRename);
+        c.Check("Ebeneneigenschaften: Name und Deckkraft übernommen",
+            gray.Name == "Grau" && gray.Opacity == 1.0 && doc.Layers[0].Name == "Grau");
+
+        // Duplizieren, Reihenfolge, Löschen (Rückfrage wird bestätigt)
+        c.Execute(CommandIds.LayerDuplicate);
+        var copy = doc.Document.ActiveLayer!;
+        c.Check("Duplizieren legt Kopie darüber an", doc.Document.LayerCount == 3 && doc.Document.Root.Children[2] == copy
+                                                      && copy.Name == Loc.Format("Layer.CopyName", "Grau"));
+        c.Check("Oberste Ebene kann nicht nach oben", !c.CanExecute(CommandIds.LayerMoveUp) && c.CanExecute(CommandIds.LayerMoveDown));
+        c.Execute(CommandIds.LayerMoveDown);
+        c.Check("Nach unten verschiebt in der Liste", doc.Document.Root.Children[1] == copy && doc.Layers[1].Node == copy);
+        c.Dialogs.Messages.Clear();
+        c.Execute(CommandIds.LayerDelete);
+        c.Check("Löschen mit Rückfrage", doc.Document.LayerCount == 2 && !doc.Document.Contains(copy)
+                                          && c.Dialogs.Messages.Any(m => m.Kind == "confirm"));
+
+        // Sperre
+        doc.Document.ActiveLayer = gray;
+        c.Execute(CommandIds.LayerLock);
+        c.Check("Gesperrte Ebene: Löschen und Verschieben deaktiviert",
+            gray.IsLocked && !c.CanExecute(CommandIds.LayerDelete) && !c.CanExecute(CommandIds.LayerMoveDown));
+        c.Execute(CommandIds.LayerLock);
+
+        // Gruppen
+        c.Execute(CommandIds.LayerGroupCreate);
+        var group = doc.Document.ActiveLayer as LayerGroup;
+        c.Check("Gruppe erstellen", group is not null && gray.Parent == group && doc.Layers.Count == 3
+                                     && doc.Layers[0].Node == group && doc.Layers[1].Node == gray && doc.Layers[1].Indent.Left > 0);
+        c.Check("Gruppe ändert das Aussehen nicht", doc.Composite.GetPixel(10, 10).R == 128);
+        doc.SelectedOpacityPercent = 40;
+        Flush(c.Window);
+        c.Check("Gruppendeckkraft wirkt auf Inhalt", doc.Composite.GetPixel(10, 10).R == 204);
+        doc.SelectedOpacityPercent = 100;
+        c.Execute(CommandIds.LayerGroupDissolve);
+        c.Check("Gruppe auflösen", gray.Parent == doc.Document.Root && doc.Document.LayerCount == 2);
+
+        // Zusammenführen erhält das Aussehen (untere Ebene deckend und normal)
+        doc.Document.ActiveLayer = gray;
+        doc.SelectedOpacityPercent = 40;
+        Flush(c.Window);
+        var beforeMerge = doc.Composite.Clone();
+        c.Execute(CommandIds.LayerMerge);
+        c.Check("Zusammenführen: eine Ebene, gleiches Aussehen",
+            doc.Document.LayerCount == 1 && doc.Composite.ContentEquals(beforeMerge));
+
+        // Importieren als Ebene (kleiner und größer als das Dokument)
+        var small = Path.Combine(c.TempDir, "gruen.png");
+        var large = Path.Combine(c.TempDir, "gross.png");
+        WriteSolidPng(c, small, 20, 10, Bgra32.FromStraight(0, 200, 0, 255));
+        WriteSolidPng(c, large, 200, 200, Bgra32.FromStraight(0, 0, 200, 255));
+        c.Dialogs.Messages.Clear();
+        c.Dialogs.OpenFilesAnswers.Enqueue([small, large]);
+        c.Execute(CommandIds.FileImport);
+        await WaitUntilAsync(() => doc.Document.LayerCount == 3 && !vm.IsBusy);
+        Flush(c.Window);
+        c.Check("Import als Ebenen über Befehl (Name = Dateiname)",
+            doc.Document.LayerCount == 3 && doc.Layers.Any(l => l.Name == "gruen") && doc.Layers[0].Name == "gross");
+        c.Check("Großes Bild wird beschnitten und gemeldet",
+            c.Dialogs.Messages.Any(m => m.Kind == "info" && m.Message.Contains("gross.png", StringComparison.Ordinal)));
+        var list = (System.Windows.Controls.ListBox)panel!.FindName("LayerList");
+        var selectedContainers = Enumerable.Range(0, list.Items.Count)
+            .Select(i => list.ItemContainerGenerator.ContainerFromIndex(i) as System.Windows.Controls.ListBoxItem)
+            .Where(item => item?.IsSelected == true)
+            .Select(item => ((LayerItemViewModel)item!.DataContext).Name)
+            .ToList();
+        c.Check($"Panel markiert genau die aktive Ebene (markiert: {string.Join(", ", selectedContainers)})",
+            selectedContainers.Count == 1 && selectedContainers[0] == doc.Document.ActiveLayer?.Name
+            && list.SelectedItems.Count == 1);
+        SaveScreenshot(c.Window, shotBase + "-ebenen.png");
+
+        // Export mit mehreren Ebenen: Warnung + zusammengesetztes Ergebnis
+        var exportPath = Path.Combine(c.TempDir, "ebenen.png");
+        c.Dialogs.Messages.Clear();
+        c.Dialogs.SaveFileAnswers.Enqueue((exportPath, 0));
+        c.Execute(CommandIds.FileExport);
+        await WaitUntilAsync(() => File.Exists(exportPath) && !vm.IsBusy);
+        c.Check("Export warnt vor dem Zusammenführen der Ebenen",
+            c.Dialogs.Messages.Any(m => m.Title == Loc.Get("Msg.Export.Merge.Title")));
+        c.Check("Exportiertes PNG = Komposit, Ebenen bleiben erhalten",
+            Decode(c, exportPath).ContentEquals(doc.Composite) && doc.Document.LayerCount == 3);
+
+        // Reduzieren
+        var beforeFlatten = doc.Composite.Clone();
+        c.Execute(CommandIds.LayerFlatten);
+        c.Check("Auf eine Ebene reduzieren erhält das Aussehen",
+            doc.Document.LayerCount == 1 && doc.Composite.ContentEquals(beforeFlatten));
+        c.Check("Letzte Ebene kann nicht gelöscht werden", !c.CanExecute(CommandIds.LayerDelete));
+        c.Check("Ebenenänderungen markieren das Dokument als geändert", doc.IsDirty && doc.Title.EndsWith('*'));
+
+        c.Dialogs.ConfirmAnswer = true; // ungespeicherte Änderungen verwerfen
+        c.Execute(CommandIds.FileCloseAll);
+        c.Check("Schließen mit ungespeicherten Änderungen fragt nach",
+            vm.Documents.Count == 0 && c.Dialogs.Messages.Any(m => m.Title == "discard"));
+    }
+
+    // --- M1: Vollbild -----------------------------------------------------------------------------
+
+    private static void CheckFullScreen(Context c)
+    {
+        c.Execute(CommandIds.ViewFullScreen);
+        c.Check("Vollbild an", c.Shell.IsFullScreen && c.Window.WindowStyle == WindowStyle.None);
+        c.Execute(CommandIds.ViewFullScreen);
+        c.Check("Vollbild aus", !c.Shell.IsFullScreen && c.Window.WindowStyle != WindowStyle.None);
+    }
+
+    // --- Hilfsfunktionen ---------------------------------------------------------------------------
+
+    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 15000)
+    {
+        var start = Environment.TickCount64;
+        while (!condition() && Environment.TickCount64 - start < timeoutMs)
+        {
+            await Task.Delay(25);
+        }
+    }
+
+    private static PixelBuffer Decode(Context c, string path)
+    {
+        using var stream = File.OpenRead(path);
+        return c.Codecs.FindByPath(path)!.Decode(stream).Pixels;
+    }
+
+    private static void WriteSolidPng(Context c, string path, int width, int height, Bgra32 color)
+    {
+        var buffer = PixelBuffer.Create(width, height);
+        buffer.Fill(color);
+        using var stream = File.Create(path);
+        c.Codecs.FindById("png")!.Encode(buffer, stream, new EncodeOptions());
     }
 
     /// <summary>Deckendes Testbild mit Farbverlauf und Farbfeldern (exakt verlustfrei prüfbar).</summary>
@@ -323,8 +544,6 @@ internal static class SmokeTest
         using var stream = File.Create(path);
         encoder.Save(stream);
     }
-
-    private static CanvasView? FindCanvas(DependencyObject root) => FindDescendant<CanvasView>(root);
 
     private static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject
     {

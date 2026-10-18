@@ -27,6 +27,11 @@ public sealed record OpenImageResult(ImageDocument? Document, FileError Error, s
     public bool Success => Error == FileError.None && Document is not null;
 }
 
+public sealed record LoadPixelsResult(PixelBuffer? Pixels, double? ResolutionDpi, FileError Error)
+{
+    public bool Success => Error == FileError.None && Pixels is not null;
+}
+
 public sealed record ExportResult(FileError Error, string Path)
 {
     public bool Success => Error == FileError.None;
@@ -41,13 +46,30 @@ public sealed class ImageFileService(ImageCodecRegistry codecs, ILogger<ImageFil
 {
     public ImageCodecRegistry Codecs => codecs;
 
-    public async Task<OpenImageResult> OpenAsync(string path, CancellationToken cancellationToken = default)
+    /// <summary>Öffnet eine Bilddatei als neues Dokument mit einer Ebene.</summary>
+    /// <param name="layerName">Name der Ebene (sprachabhängig, kommt aus der Oberfläche).</param>
+    public async Task<OpenImageResult> OpenAsync(string path, string layerName,
+        CancellationToken cancellationToken = default)
+    {
+        var loaded = await LoadPixelsAsync(path, cancellationToken).ConfigureAwait(true);
+        if (!loaded.Success)
+        {
+            return new OpenImageResult(null, loaded.Error, path);
+        }
+
+        var dpi = loaded.ResolutionDpi is { } d && DocumentLimits.IsValidResolution(d) ? d : ImageDocument.DefaultResolutionDpi;
+        var document = ImageDocument.FromPixels(Path.GetFileName(path), loaded.Pixels!, layerName, path, dpi);
+        return new OpenImageResult(document, FileError.None, path);
+    }
+
+    /// <summary>Liest nur die Pixel einer Bilddatei (z. B. für „Importieren als Ebene").</summary>
+    public async Task<LoadPixelsResult> LoadPixelsAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var codec = codecs.FindByPath(path);
         if (codec is null || !codec.Format.CanRead)
         {
-            return new OpenImageResult(null, FileError.UnknownFormat, path);
+            return new LoadPixelsResult(null, null, FileError.UnknownFormat);
         }
 
         try
@@ -69,25 +91,23 @@ public sealed class ImageFileService(ImageCodecRegistry codecs, ILogger<ImageFil
                 return codec.Decode(stream, cancellationToken);
             }, cancellationToken).ConfigureAwait(true);
 
-            var dpi = decoded.ResolutionDpi is { } d && DocumentLimits.IsValidResolution(d) ? d : ImageDocument.DefaultResolutionDpi;
-            var document = ImageDocument.FromPixels(Path.GetFileName(path), decoded.Pixels, path, dpi);
-            logger.LogInformation("Bild geöffnet: Format {Format}, {Width}x{Height}", codec.Format.Id, document.Width,
-                document.Height);
-            return new OpenImageResult(document, FileError.None, path);
+            logger.LogInformation("Bild gelesen: Format {Format}, {Width}x{Height}", codec.Format.Id,
+                decoded.Pixels.Width, decoded.Pixels.Height);
+            return new LoadPixelsResult(decoded.Pixels, decoded.ResolutionDpi, FileError.None);
         }
         catch (Exception ex) when (Classify(ex) is { } error)
         {
-            logger.LogWarning(ex, "Öffnen fehlgeschlagen ({Error}): {File}", error, Path.GetFileName(path));
-            return new OpenImageResult(null, error, path);
+            logger.LogWarning(ex, "Lesen fehlgeschlagen ({Error}): {File}", error, Path.GetFileName(path));
+            return new LoadPixelsResult(null, null, error);
         }
     }
 
     /// <summary>
-    /// Exportiert die Pixel in das Format, das zur Dateiendung passt. Der Puffer wird vorab kopiert,
-    /// damit spätere Bearbeitungen den laufenden Export nicht beeinflussen.
+    /// Exportiert die Pixel in das Format, das zur Dateiendung passt. Ohne <paramref name="isSnapshot"/> wird der
+    /// Puffer vorab kopiert, damit spätere Bearbeitungen den laufenden Export nicht beeinflussen.
     /// </summary>
     public async Task<ExportResult> ExportAsync(PixelBuffer pixels, string path, EncodeOptions options,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool isSnapshot = false)
     {
         ArgumentNullException.ThrowIfNull(pixels);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -102,7 +122,7 @@ public sealed class ImageFileService(ImageCodecRegistry codecs, ILogger<ImageFil
             return new ExportResult(FileError.FormatNotWritable, path);
         }
 
-        var snapshot = pixels.Clone();
+        var snapshot = isSnapshot ? pixels : pixels.Clone();
         var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
         var tempPath = Path.Combine(directory, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
         try

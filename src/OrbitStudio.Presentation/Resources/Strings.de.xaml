@@ -86,7 +86,87 @@
     <sys:String x:Key="Cmd.Layer.Opacity">_Deckkraft …</sys:String>
     <sys:String x:Key="Cmd.Layer.BlendMode">_Mischmodus …</sys:String>
     <sys:String x:Key="Cmd.Layer.AddMask">Mas_ke hinzufügen</sys:String>
-    <sys:String x:Key="Cmd.Layer.Merge">_Zusammenführen</sys:String>
+    <sys:String x:Key="Cmd.Layer.Merge">Mit darunterliegender Ebene _zusammenführen</sys:String>
+    <sys:String x:Key="Cmd.Layer.Lock">Ebene _sperren</sys:String>
+    <sys:String x:Key="Cmd.Layer.MaskEnabled">Maske _aktiv</sys:String>
+    <sys:String x:Key="Cmd.Layer.MaskInvert">Maske u_mkehren</sys:String>
+    <sys:String x:Key="Cmd.Layer.MaskApply">Maske an_wenden</sys:String>
+    <sys:String x:Key="Cmd.Layer.MaskDelete">Maske _löschen</sys:String>
+    <sys:String x:Key="Cmd.Layer.Flatten">Bild auf eine Ebene _reduzieren</sys:String>
+    <sys:String x:Key="Cmd.Layer.SelectionFromAlpha">Auswahl aus Ebenen_transparenz</sys:String>
+    <sys:String x:Key="Cmd.Layer.Transform">Ebene _transformieren …</sys:String>
+
+    <!-- Ebenen: Standardnamen ({0} = laufende Nummer bzw. Originalname) -->
+    <sys:String x:Key="Layer.Background">Hintergrund</sys:String>
+    <sys:String x:Key="Layer.NewName">Ebene {0}</sys:String>
+    <sys:String x:Key="Layer.CopyName">{0} Kopie</sys:String>
+    <sys:String x:Key="Layer.GroupName">Gruppe {0}</sys:String>
+
+    <!-- Mischmodi -->
+    <sys:String x:Key="Blend.Normal">Normal</sys:String>
+    <sys:String x:Key="Blend.Multiply">Multiplizieren</sys:String>
+    <sys:String x:Key="Blend.Screen">Bildschirm</sys:String>
+    <sys:String x:Key="Blend.Add">Addieren</sys:String>
+    <sys:String x:Key="Blend.Negation">Negativ</sys:String>
+    <sys:String x:Key="Blend.Difference">Differenz</sys:String>
+    <sys:String x:Key="Blend.Darken">Abdunkeln</sys:String>
+    <sys:String x:Key="Blend.Lighten">Aufhellen</sys:String>
+    <sys:String x:Key="Blend.Overlay">Überlagern</sys:String>
+
+    <!-- Ebenen-Panel -->
+    <sys:String x:Key="Panel.Layers.Title">Ebenen</sys:String>
+    <sys:String x:Key="Panel.Layers.Opacity">_Deckkraft:</sys:String>
+    <sys:String x:Key="Panel.Layers.BlendMode">_Mischmodus:</sys:String>
+    <sys:String x:Key="Panel.Layers.Visible">Sichtbar</sys:String>
+    <sys:String x:Key="Panel.Layers.Locked">Gesperrt</sys:String>
+    <sys:String x:Key="Panel.Layers.MaskOn">Maske aktiv</sys:String>
+    <sys:String x:Key="Panel.Layers.MaskOff">Maske deaktiviert</sys:String>
+    <sys:String x:Key="Panel.Layers.Group">Gruppe</sys:String>
+    <sys:String x:Key="Panel.Layers.Details">{0:0} % · {1}</sys:String>
+    <sys:String x:Key="Panel.Layers.New">Neue Ebene</sys:String>
+    <sys:String x:Key="Panel.Layers.Duplicate">Duplizieren</sys:String>
+    <sys:String x:Key="Panel.Layers.Delete">Löschen</sys:String>
+    <sys:String x:Key="Panel.Layers.Up">Nach oben</sys:String>
+    <sys:String x:Key="Panel.Layers.Down">Nach unten</sys:String>
+    <sys:String x:Key="Panel.Layers.Properties">Eigenschaften (Doppelklick)</sys:String>
+
+    <!-- Dialog: Ebeneneigenschaften -->
+    <sys:String x:Key="Dlg.Layer.Title">Ebeneneigenschaften</sys:String>
+    <sys:String x:Key="Dlg.Layer.Name">_Name:</sys:String>
+    <sys:String x:Key="Dlg.Layer.Visible">_Sichtbar</sys:String>
+    <sys:String x:Key="Dlg.Layer.Locked">_Gesperrt</sys:String>
+    <sys:String x:Key="Dlg.Layer.Opacity">_Deckkraft (%):</sys:String>
+    <sys:String x:Key="Dlg.Layer.BlendMode">_Mischmodus:</sys:String>
+    <sys:String x:Key="Dlg.Layer.Error.Name">Bitte einen Namen eingeben.</sys:String>
+    <sys:String x:Key="Dlg.Layer.Error.Opacity">Die Deckkraft muss eine Zahl von 0 bis 100 sein.</sys:String>
+
+    <!-- Ebenen: Rückfragen (destruktiv, Rückgängig folgt in M4) -->
+    <sys:String x:Key="Msg.Layer.Confirm.Title">Ebenen ändern</sys:String>
+    <sys:String x:Key="Msg.Layer.Confirm.Delete">„{0}" löschen? Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
+    <sys:String x:Key="Msg.Layer.Confirm.DeleteGroup">Gruppe „{0}" mit allen enthaltenen Ebenen löschen? Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
+    <sys:String x:Key="Msg.Layer.Confirm.Merge">„{0}" mit „{1}" zusammenführen? Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
+    <sys:String x:Key="Msg.Layer.Confirm.Flatten">Alle Ebenen zu einer Ebene zusammenführen? Ausgeblendete Ebenen gehen verloren. Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
+    <sys:String x:Key="Msg.Layer.Confirm.ApplyMask">Maske von „{0}" dauerhaft in die Pixel einrechnen?</sys:String>
+    <sys:String x:Key="Msg.Layer.Confirm.Dissolve">Gruppe „{0}" auflösen? Deckkraft und Mischmodus der Gruppe gehen dabei verloren.</sys:String>
+    <sys:String x:Key="Msg.Layer.Imported.Title">Importiert</sys:String>
+    <sys:String x:Key="Msg.Layer.Imported.Cropped">„{0}" ist größer als das Bild und wurde oben links ausgerichtet und beschnitten.</sys:String>
+
+    <!-- Ebenen: Fehler -->
+    <sys:String x:Key="Msg.Layer.Error.Title">Ebenen</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.Locked">Die Ebene ist gesperrt. Bitte zuerst die Sperre aufheben.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.LastPixelLayer">Die letzte Pixelebene kann nicht gelöscht werden.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.NotPixelLayer">Dieser Befehl ist nur für Pixelebenen möglich, nicht für Gruppen.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.NotGroup">Bitte eine Gruppe auswählen.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.NoLayerBelow">Unter dieser Ebene liegt keine Ebene.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.LayerBelowNotPixelLayer">Unter dieser Ebene liegt eine Gruppe. Zusammenführen ist nur mit einer Pixelebene möglich.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.NoMask">Die Ebene hat keine Maske.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.AtTop">Die Ebene ist bereits ganz oben in ihrer Gruppe.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.AtBottom">Die Ebene ist bereits ganz unten in ihrer Gruppe.</sys:String>
+    <sys:String x:Key="Msg.Layer.Error.NotInDocument">Die Ebene gehört nicht zum aktiven Dokument.</sys:String>
+
+    <!-- Export mit mehreren Ebenen -->
+    <sys:String x:Key="Msg.Export.Merge.Title">Ebenen werden zusammengeführt</sys:String>
+    <sys:String x:Key="Msg.Export.Merge.Body">Das Bild hat {0} Ebenen. Beim Export als {1} werden alle sichtbaren Ebenen zu einem Bild zusammengeführt. Die Ebenen im Dokument bleiben erhalten, werden aber nicht in die Datei geschrieben. Fortfahren?</sys:String>
 
     <!-- Farben -->
     <sys:String x:Key="Cmd.Adjust.BrightnessContrast">_Helligkeit/Kontrast …</sys:String>

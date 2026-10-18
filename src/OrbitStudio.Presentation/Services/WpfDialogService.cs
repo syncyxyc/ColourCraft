@@ -43,6 +43,12 @@ public sealed class WpfDialogService : IDialogService
         return ShowCommon(dialog) ? (dialog.FileName, dialog.FilterIndex - 1) : null;
     }
 
+    public LayerProperties? ShowLayerProperties(LayerProperties initial, LayerPropertyFocus focus)
+    {
+        var dialog = new LayerPropertiesDialog(initial, focus) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Result : null;
+    }
+
     public bool ConfirmDiscardChanges(string documentName) =>
         Confirm(Loc.Get("Msg.Unsaved.Title"), Loc.Format("Msg.Unsaved.Body", documentName));
 

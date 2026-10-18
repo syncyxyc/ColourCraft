@@ -20,6 +20,9 @@ public interface IDialogService
     (string Path, int FilterIndex)? ShowSaveFile(string title, IReadOnlyList<FileFilter> filters, string defaultFileName,
         int defaultFilterIndex);
 
+    /// <summary>Dialog „Ebeneneigenschaften". Null = abgebrochen.</summary>
+    LayerProperties? ShowLayerProperties(LayerProperties initial, LayerPropertyFocus focus);
+
     /// <summary>Fragt, ob ungespeicherte Änderungen verworfen werden dürfen. True = verwerfen.</summary>
     bool ConfirmDiscardChanges(string documentName);
 
