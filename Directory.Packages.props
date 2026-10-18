@@ -1,0 +1,13 @@
+<Project>
+  <!-- Zentrale Paketversionen. Lizenzen siehe docs/dependencies-and-licenses.de.md -->
+  <ItemGroup>
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+  </ItemGroup>
+</Project>

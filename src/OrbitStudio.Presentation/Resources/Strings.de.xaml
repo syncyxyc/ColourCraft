@@ -1,0 +1,188 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <!--
+        Zentrale deutsche Texte. Weitere Sprachen: Datei kopieren (Strings.xx.xaml), Schlüssel beibehalten.
+        Schlüsselpräfixe: Menu.* Menüs, Cmd.* Befehle, Dlg.* Dialoge, Status.* Statusleiste, Msg.* Meldungen.
+    -->
+
+    <!-- Allgemein -->
+    <sys:String x:Key="Common.Ok">OK</sys:String>
+    <sys:String x:Key="Common.Cancel">Abbrechen</sys:String>
+    <sys:String x:Key="Common.Close">Schließen</sys:String>
+    <sys:String x:Key="Common.Pixels">px</sys:String>
+    <sys:String x:Key="Common.PlannedTooltip">Noch nicht verfügbar – wird in Meilenstein {0} umgesetzt.</sys:String>
+    <sys:String x:Key="Common.UnsavedSuffix"> *</sys:String>
+
+    <!-- Hauptmenüs -->
+    <sys:String x:Key="Menu.File">_Datei</sys:String>
+    <sys:String x:Key="Menu.Edit">_Bearbeiten</sys:String>
+    <sys:String x:Key="Menu.View">_Ansicht</sys:String>
+    <sys:String x:Key="Menu.Image">B_ild</sys:String>
+    <sys:String x:Key="Menu.Layers">_Ebenen</sys:String>
+    <sys:String x:Key="Menu.Adjustments">_Farben</sys:String>
+    <sys:String x:Key="Menu.Effects">Effe_kte</sys:String>
+    <sys:String x:Key="Menu.Tools">_Werkzeuge</sys:String>
+    <sys:String x:Key="Menu.Window">Fe_nster</sys:String>
+    <sys:String x:Key="Menu.Help">_Hilfe</sys:String>
+
+    <!-- Datei -->
+    <sys:String x:Key="Cmd.File.New">_Neu …</sys:String>
+    <sys:String x:Key="Cmd.File.Open">Ö_ffnen …</sys:String>
+    <sys:String x:Key="Cmd.File.Recent">_Zuletzt verwendet</sys:String>
+    <sys:String x:Key="Cmd.File.Save">_Speichern</sys:String>
+    <sys:String x:Key="Cmd.File.SaveAs">Speichern _unter …</sys:String>
+    <sys:String x:Key="Cmd.File.SaveCopy">_Kopie speichern …</sys:String>
+    <sys:String x:Key="Cmd.File.Import">_Importieren …</sys:String>
+    <sys:String x:Key="Cmd.File.Export">_Exportieren …</sys:String>
+    <sys:String x:Key="Cmd.File.DocumentInfo">_Dokumentinformationen …</sys:String>
+    <sys:String x:Key="Cmd.File.Close">S_chließen</sys:String>
+    <sys:String x:Key="Cmd.File.CloseAll">_Alle schließen</sys:String>
+    <sys:String x:Key="Cmd.File.Exit">_Beenden</sys:String>
+
+    <!-- Bearbeiten -->
+    <sys:String x:Key="Cmd.Edit.Undo">_Rückgängig</sys:String>
+    <sys:String x:Key="Cmd.Edit.Redo">_Wiederholen</sys:String>
+    <sys:String x:Key="Cmd.Edit.Cut">_Ausschneiden</sys:String>
+    <sys:String x:Key="Cmd.Edit.Copy">_Kopieren</sys:String>
+    <sys:String x:Key="Cmd.Edit.Paste">_Einfügen</sys:String>
+    <sys:String x:Key="Cmd.Edit.Delete">_Löschen</sys:String>
+    <sys:String x:Key="Cmd.Edit.SelectAll">Alles a_uswählen</sys:String>
+    <sys:String x:Key="Cmd.Edit.Deselect">Auswahl au_fheben</sys:String>
+    <sys:String x:Key="Cmd.Edit.InvertSelection">Auswahl u_mkehren</sys:String>
+    <sys:String x:Key="Cmd.Edit.Preferences">_Einstellungen …</sys:String>
+
+    <!-- Ansicht -->
+    <sys:String x:Key="Cmd.View.ZoomIn">_Vergrößern</sys:String>
+    <sys:String x:Key="Cmd.View.ZoomOut">Ver_kleinern</sys:String>
+    <sys:String x:Key="Cmd.View.ActualSize">_100 %</sys:String>
+    <sys:String x:Key="Cmd.View.FitToWindow">Bild _anpassen</sys:String>
+    <sys:String x:Key="Cmd.View.Rulers">_Lineale</sys:String>
+    <sys:String x:Key="Cmd.View.Grid">_Raster</sys:String>
+    <sys:String x:Key="Cmd.View.Guides">_Hilfslinien</sys:String>
+    <sys:String x:Key="Cmd.View.PixelGrid">_Pixelraster</sys:String>
+    <sys:String x:Key="Cmd.View.FullScreen">V_ollbild</sys:String>
+    <sys:String x:Key="Cmd.View.Panels">Pa_nels</sys:String>
+    <sys:String x:Key="Cmd.View.Workspaces">_Arbeitsbereiche</sys:String>
+
+    <!-- Bild -->
+    <sys:String x:Key="Cmd.Image.Resize">_Bildgröße …</sys:String>
+    <sys:String x:Key="Cmd.Image.CanvasSize">_Leinwandgröße …</sys:String>
+    <sys:String x:Key="Cmd.Image.Rotate">_Drehen</sys:String>
+    <sys:String x:Key="Cmd.Image.Flip">_Spiegeln</sys:String>
+    <sys:String x:Key="Cmd.Image.Crop">_Zuschneiden</sys:String>
+    <sys:String x:Key="Cmd.Image.Info">Bild_informationen …</sys:String>
+
+    <!-- Ebenen -->
+    <sys:String x:Key="Cmd.Layer.New">_Neue Ebene</sys:String>
+    <sys:String x:Key="Cmd.Layer.Duplicate">_Duplizieren</sys:String>
+    <sys:String x:Key="Cmd.Layer.Delete">_Löschen</sys:String>
+    <sys:String x:Key="Cmd.Layer.Rename">_Umbenennen …</sys:String>
+    <sys:String x:Key="Cmd.Layer.MoveUp">Nach _oben</sys:String>
+    <sys:String x:Key="Cmd.Layer.MoveDown">Nach u_nten</sys:String>
+    <sys:String x:Key="Cmd.Layer.GroupCreate">_Gruppe erstellen</sys:String>
+    <sys:String x:Key="Cmd.Layer.GroupDissolve">Gruppe _auflösen</sys:String>
+    <sys:String x:Key="Cmd.Layer.Visibility">_Sichtbarkeit</sys:String>
+    <sys:String x:Key="Cmd.Layer.Opacity">_Deckkraft …</sys:String>
+    <sys:String x:Key="Cmd.Layer.BlendMode">_Mischmodus …</sys:String>
+    <sys:String x:Key="Cmd.Layer.AddMask">Mas_ke hinzufügen</sys:String>
+    <sys:String x:Key="Cmd.Layer.Merge">_Zusammenführen</sys:String>
+
+    <!-- Farben -->
+    <sys:String x:Key="Cmd.Adjust.BrightnessContrast">_Helligkeit/Kontrast …</sys:String>
+    <sys:String x:Key="Cmd.Adjust.HueSaturation">_Farbton/Sättigung …</sys:String>
+    <sys:String x:Key="Cmd.Adjust.Levels">_Tonwertkorrektur …</sys:String>
+    <sys:String x:Key="Cmd.Adjust.Curves">Farb_kurven …</sys:String>
+    <sys:String x:Key="Cmd.Adjust.BlackWhite">_Schwarzweiß</sys:String>
+    <sys:String x:Key="Cmd.Adjust.Invert">_Invertieren</sys:String>
+    <sys:String x:Key="Cmd.Adjust.Sepia">S_epia</sys:String>
+
+    <!-- Effekte -->
+    <sys:String x:Key="Cmd.Effect.Blur">_Weichzeichnen</sys:String>
+    <sys:String x:Key="Cmd.Effect.Sharpen">_Schärfen</sys:String>
+    <sys:String x:Key="Cmd.Effect.Noise">_Rauschen</sys:String>
+    <sys:String x:Key="Cmd.Effect.Denoise">Rausch_reduktion</sys:String>
+    <sys:String x:Key="Cmd.Effect.Edges">_Kantenerkennung</sys:String>
+    <sys:String x:Key="Cmd.Effect.Shadow">Sc_hatten</sys:String>
+    <sys:String x:Key="Cmd.Effect.Distort">_Verzerrungen</sys:String>
+    <sys:String x:Key="Cmd.Effect.Extensions">_Erweiterungen</sys:String>
+
+    <!-- Werkzeuge -->
+    <sys:String x:Key="Cmd.Tools.Options">_Werkzeugoptionen</sys:String>
+    <sys:String x:Key="Cmd.Tools.Shortcuts">_Tastenkürzel …</sys:String>
+
+    <!-- Fenster -->
+    <sys:String x:Key="Cmd.Window.Tools">_Werkzeuge</sys:String>
+    <sys:String x:Key="Cmd.Window.Layers">_Ebenen</sys:String>
+    <sys:String x:Key="Cmd.Window.Colors">_Farben</sys:String>
+    <sys:String x:Key="Cmd.Window.History">_Historie</sys:String>
+    <sys:String x:Key="Cmd.Window.Navigator">_Navigator</sys:String>
+    <sys:String x:Key="Cmd.Window.Properties">_Eigenschaften</sys:String>
+    <sys:String x:Key="Cmd.Window.EffectBrowser">Effekt_browser</sys:String>
+    <sys:String x:Key="Cmd.Window.Plugins">_Plugins</sys:String>
+    <sys:String x:Key="Cmd.Window.Diagnostics">_Diagnose</sys:String>
+
+    <!-- Hilfe -->
+    <sys:String x:Key="Cmd.Help.UserGuide">_Benutzerhandbuch</sys:String>
+    <sys:String x:Key="Cmd.Help.Shortcuts">_Tastenkürzel</sys:String>
+    <sys:String x:Key="Cmd.Help.About">Ü_ber {0}</sys:String>
+    <sys:String x:Key="Cmd.Help.Diagnostics">_Diagnosebericht</sys:String>
+    <sys:String x:Key="Cmd.Help.Licenses">_Lizenzinformationen</sys:String>
+
+    <!-- Statusleiste -->
+    <sys:String x:Key="Status.Ready">Bereit</sys:String>
+    <sys:String x:Key="Status.NoDocument">Kein Dokument geöffnet</sys:String>
+    <sys:String x:Key="Status.Zoom">Zoom: {0:0} %</sys:String>
+    <sys:String x:Key="Status.Size">{0} × {1} px</sys:String>
+    <sys:String x:Key="Status.Cursor">{0}, {1}</sys:String>
+    <sys:String x:Key="Status.CursorOutside">–</sys:String>
+    <sys:String x:Key="Status.Tool">Werkzeug: keines (folgt in M4)</sys:String>
+
+    <!-- Arbeitsfläche -->
+    <sys:String x:Key="Workspace.Empty">Kein Dokument geöffnet. Mit Datei › Neu (Strg+N) ein Bild anlegen.</sys:String>
+    <sys:String x:Key="Workspace.CloseTab">Dokument schließen</sys:String>
+
+    <!-- Dialog: Neues Bild -->
+    <sys:String x:Key="Dlg.New.Title">Neues Bild</sys:String>
+    <sys:String x:Key="Dlg.New.Name">_Name:</sys:String>
+    <sys:String x:Key="Dlg.New.Width">_Breite (px):</sys:String>
+    <sys:String x:Key="Dlg.New.Height">_Höhe (px):</sys:String>
+    <sys:String x:Key="Dlg.New.Background">Hinter_grund:</sys:String>
+    <sys:String x:Key="Dlg.New.Background.White">Weiß</sys:String>
+    <sys:String x:Key="Dlg.New.Background.Transparent">Transparent</sys:String>
+    <sys:String x:Key="Dlg.New.Untitled">Unbenannt {0}</sys:String>
+    <sys:String x:Key="Dlg.New.Error.Number">Bitte ganze Zahlen für Breite und Höhe eingeben.</sys:String>
+    <sys:String x:Key="Dlg.New.Error.Name">Bitte einen Namen eingeben.</sys:String>
+
+    <!-- Validierungsmeldungen Dokumentgröße -->
+    <sys:String x:Key="Msg.Size.NonPositive">Breite und Höhe müssen größer als 0 sein.</sys:String>
+    <sys:String x:Key="Msg.Size.ExceedsMaxDimension">Breite und Höhe dürfen höchstens {0} Pixel betragen.</sys:String>
+    <sys:String x:Key="Msg.Size.ExceedsMaxPixelCount">Das Bild ist zu groß. Erlaubt sind höchstens {0:N0} Pixel insgesamt.</sys:String>
+
+    <!-- Dokumentinformationen -->
+    <sys:String x:Key="Msg.DocInfo.Title">Dokumentinformationen</sys:String>
+    <sys:String x:Key="Msg.DocInfo.Body">Name: {0}&#x0a;Größe: {1} × {2} px&#x0a;Auflösung: {3:0.##} dpi&#x0a;Farbmodus: BGRA, 8 Bit je Kanal&#x0a;Hintergrund: {4}&#x0a;Speicherort: {5}&#x0a;Ungespeicherte Änderungen: {6}</sys:String>
+    <sys:String x:Key="Msg.DocInfo.NotSaved">noch nicht gespeichert</sys:String>
+    <sys:String x:Key="Msg.Yes">ja</sys:String>
+    <sys:String x:Key="Msg.No">nein</sys:String>
+
+    <!-- Ungespeicherte Änderungen -->
+    <sys:String x:Key="Msg.Unsaved.Title">Ungespeicherte Änderungen</sys:String>
+    <sys:String x:Key="Msg.Unsaved.Body">„{0}" enthält ungespeicherte Änderungen. Änderungen verwerfen und schließen?</sys:String>
+
+    <!-- Über -->
+    <sys:String x:Key="Msg.About.Title">Über {0}</sys:String>
+    <sys:String x:Key="Msg.About.Body">{0}&#x0a;Version {1}&#x0a;&#x0a;Bildbearbeitung für Windows.&#x0a;Keine Telemetrie, keine Netzwerkzugriffe.</sys:String>
+
+    <!-- Einstellungen -->
+    <sys:String x:Key="Msg.Settings.Title">Einstellungen</sys:String>
+    <sys:String x:Key="Msg.Settings.Invalid">Die Einstellungsdatei „{0}" war beschädigt. Es werden Standardwerte verwendet. Sicherungskopie: {1}</sys:String>
+    <sys:String x:Key="Msg.Settings.NewerVersion">Die Einstellungsdatei „{0}" stammt aus einer neueren Programmversion. Sie bleibt unverändert, es werden Standardwerte verwendet.</sys:String>
+    <sys:String x:Key="Msg.Settings.Corrected">In „{0}" waren ungültige Werte. Sie wurden durch Standardwerte ersetzt.</sys:String>
+    <sys:String x:Key="Msg.Settings.NoBackup">keine (Kopie fehlgeschlagen)</sys:String>
+    <sys:String x:Key="Msg.Settings.SaveFailed">Die Einstellungen konnten nicht gespeichert werden: {0}</sys:String>
+
+    <!-- Fehler -->
+    <sys:String x:Key="Msg.Error.Title">Fehler</sys:String>
+    <sys:String x:Key="Msg.Error.Unexpected">Ein unerwarteter Fehler ist aufgetreten. Details stehen in der Logdatei:&#x0a;{0}</sys:String>
+</ResourceDictionary>

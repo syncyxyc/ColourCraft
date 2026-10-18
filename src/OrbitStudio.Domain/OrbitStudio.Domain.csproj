@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domänenmodell: keine Abhängigkeit zu WPF, UI oder Codec-Bibliotheken. -->
+</Project>

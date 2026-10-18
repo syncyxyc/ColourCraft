@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>OrbitStudio</AssemblyName>
+    <RootNamespace>OrbitStudio.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <!-- Single-File-Publish (Abschnitt 15.2), nur beim Veröffentlichen aktiv. -->
+  <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Presentation\OrbitStudio.Presentation.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Diagnostics\OrbitStudio.Diagnostics.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+</Project>
