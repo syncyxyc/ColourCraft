@@ -114,7 +114,7 @@
   Sperre, Deckkraft, Mischmodus, Schaltflächen) ist daher Teil von M3. Andocken, Vorschaubilder und Ziehen
   zum Umsortieren folgen mit dem Panel-System in M8.
 
-## E-024 – Rückfragen vor nicht umkehrbaren Ebenenänderungen (18.10.2026)
+## E-024 – Rückfragen vor nicht umkehrbaren Ebenenänderungen (18.10.2026, durch E-028 abgelöst)
 - Bis Rückgängig/Wiederholen (M4) existiert, fragen Löschen, Zusammenführen, Reduzieren und Maske anwenden nach.
   Die Rückfragen werden in M4 überprüft und entfallen, wo Rückgängig sie überflüssig macht.
 
@@ -122,6 +122,41 @@
 - Damit der Smoke-Test Befehle mit Rückfragen und Dateidialogen über die echte Befehlskette ausführen kann,
   ersetzt `SmokeDialogService` im Testmodus den WPF-Dialogdienst: vorbereitete Antworten, automatisch bestätigte
   Rückfragen, Protokoll aller Meldungen. Der normale Programmstart verwendet ausschließlich echte Dialoge.
+
+## E-026 – Historie: Deltas für Pixel, Referenzen für Struktur und Größe (18.10.2026)
+- Spezifikation 10 verlangt Command-Pattern, Deltas und gezielte Snapshots statt Ebenenkopien nach jeder Aktion.
+- Malen/Verschieben speichern nur das geänderte Rechteck (vorher/nachher). Ebenenoperationen speichern Struktur und
+  Eigenschaften (Ebenen per Referenz) und kopieren nur Pixel, die die Operation verändert. Bildtransformationen
+  erzeugen neue Puffer; die alten werden nur referenziert. Grenzen: 100 Schritte / 1024 MB je Dokument.
+
+## E-027 – „Sicherung + Abdeckung“ statt direktem Stempeln (18.10.2026)
+- Alternativen: Pinselabdrücke direkt in die Ebene stempeln (Deckkraft addiert sich bei Überlappung, Vorschauen
+  hinterlassen Spuren). Entscheidung: Abdeckungspuffer mit Maximum und Neuberechnung aus der Sicherung. Kostet je
+  Zug eine Kopie der Ebene und einen float-Puffer (8 Byte/Pixel), liefert aber exakte Ergebnisse, saubere Vorschauen
+  und exaktes Abbrechen. Optimierung (Kacheln) in M11 nach Messung.
+
+## E-028 – Keine Rückfragen mehr bei Ebenenoperationen (18.10.2026)
+- Mit Rückgängig sind Löschen, Zusammenführen, Reduzieren und Maske anwenden umkehrbar; die Rückfragen aus E-024
+  entfallen. Rückfragen bleiben dort, wo Daten das Programm verlassen (Export) oder verloren gehen (Schließen).
+
+## E-029 – Farben und Werkzeugoptionen global (18.10.2026)
+- Spezifikation 4 trennt Dokumentzustand (Ebenen, Auswahl, Historie, Ansicht) und globale Einstellungen; Farben werden
+  dort nicht eindeutig zugeordnet. Wie in gängigen Editoren gelten Vorder-/Hintergrundfarbe, Werkzeugoptionen und
+  „Maske bearbeiten“ für alle Dokumente. Pixel, Ebenen, Auswahl und Historie werden nie zwischen Tabs geteilt (Tests).
+
+## E-030 – Einfache Tastenkürzel über die Registry (18.10.2026)
+- WPF-KeyBindings erlauben keine Buchstaben ohne Strg/Alt. Werkzeugkürzel (B, P, E, M, Umschalt+M …) sowie X/D stehen
+  trotzdem in der Command-Registry (Konflikterkennung, später anpassbar); das Hauptfenster wertet sie selbst aus und
+  ignoriert sie, solange ein Textfeld den Fokus hat.
+
+## E-031 – Zwischenablage zweifach (18.10.2026)
+- „PNG“ erhält Transparenz für Bildprogramme, die Standard-Bitmap sorgt für Kompatibilität mit allen anderen.
+  Eingefügt wird bevorzugt aus „PNG“. Der Smoke-Test nutzt eine Zwischenablage im Speicher, damit die echte
+  Windows-Zwischenablage des Nutzers nie verändert wird.
+
+## E-032 – Verlauf und Malen im vormultiplizierten Raum (18.10.2026)
+- Interpolation und Auftrag vormultipliziert, damit transparente Farben keine dunklen Säume erzeugen; dieselbe Regel
+  gilt für das Resampling (Bildgröße, Drehen).
 
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist

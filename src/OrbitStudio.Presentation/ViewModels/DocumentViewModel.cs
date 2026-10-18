@@ -42,8 +42,14 @@ public sealed partial class DocumentViewModel : ObservableObject
             SyncLayerItems();
         };
         document.ActiveLayerChanged += (_, _) => SyncSelection();
+        document.SelectionChanged += (_, _) => UpdateSelectionOutline();
+        document.SizeChanged += (_, _) => OnDocumentSizeChanged();
         SyncLayerItems();
+        UpdateSelectionOutline();
     }
+
+    /// <summary>Ausführer für Ebenenänderungen aus dem Panel (mit Historie, vom Hauptfenster gesetzt).</summary>
+    public ILayerEditExecutor LayerEdits { get; set; } = DirectLayerEditExecutor.Instance;
 
     public ImageDocument Document { get; }
 
@@ -69,6 +75,13 @@ public sealed partial class DocumentViewModel : ObservableObject
     public int Width => Document.Width;
 
     public int Height => Document.Height;
+
+    /// <summary>Kanten der Auswahl (Dokumentkoordinaten) für die Auswahlkontur; leer ohne Auswahl.</summary>
+    public IReadOnlyList<(PointD A, PointD B)> SelectionOutline { get; private set; } = [];
+
+    public string SelectionText => Document.Selection?.Bounds() is { IsEmpty: false } b
+        ? Loc.Format("Status.Selection", b.Width, b.Height)
+        : Loc.Get("Status.NoSelection");
 
     public double Zoom => View.Zoom;
 
@@ -106,9 +119,10 @@ public sealed partial class DocumentViewModel : ObservableObject
         get => Document.ActiveLayer is { } layer ? Math.Round(layer.Opacity * 100, 1) : 100;
         set
         {
-            if (Document.ActiveLayer is { } layer)
+            if (Document.ActiveLayer is { } layer && Math.Abs(layer.Opacity - Math.Clamp(value / 100.0, 0, 1)) > 1e-9)
             {
-                LayerOperations.SetOpacity(Document, layer, value / 100.0);
+                LayerEdits.Execute(Document, "History.LayerOpacity",
+                    () => LayerOperations.SetOpacity(Document, layer, value / 100.0), coalesceKey: "opacity:" + layer.Id);
             }
         }
     }
@@ -120,7 +134,11 @@ public sealed partial class DocumentViewModel : ObservableObject
         {
             if (Document.ActiveLayer is { } layer && value is not null)
             {
-                LayerOperations.SetBlendMode(Document, layer, value.Mode);
+                if (layer.BlendMode != value.Mode)
+                {
+                    LayerEdits.Execute(Document, "History.LayerBlendMode",
+                        () => LayerOperations.SetBlendMode(Document, layer, value.Mode));
+                }
             }
         }
     }
@@ -148,7 +166,7 @@ public sealed partial class DocumentViewModel : ObservableObject
                 Layers.Clear();
                 foreach (var node in nodes)
                 {
-                    Layers.Add(new LayerItemViewModel(Document, node));
+                    Layers.Add(new LayerItemViewModel(Document, node, () => LayerEdits));
                 }
             }
             finally
@@ -192,11 +210,104 @@ public sealed partial class DocumentViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedBlendMode));
     }
 
+    // --- Auswahl und Größe --------------------------------------------------------------------
+
+    /// <summary>Höchstzahl der Konturstrecken; darüber wird nur das umschließende Rechteck gezeigt.</summary>
+    public const int MaxOutlineSegments = 400_000;
+
+    /// <summary>
+    /// Berechnet die Grenzlinien zwischen ausgewählten (≥ 128) und nicht ausgewählten Pixeln.
+    /// Benachbarte Kantenstücke werden zu langen Strecken zusammengefasst.
+    /// </summary>
+    private void UpdateSelectionOutline()
+    {
+        var selection = Document.Selection;
+        var segments = new List<(PointD, PointD)>();
+        if (selection is not null)
+        {
+            var w = selection.Width;
+            var h = selection.Height;
+            bool In(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && selection.Get(x, y) >= 128;
+
+            // Waagerechte Kanten auf Höhe y (zwischen Zeile y−1 und y)
+            for (var y = 0; y <= h && segments.Count <= MaxOutlineSegments; y++)
+            {
+                var runStart = -1;
+                for (var x = 0; x <= w; x++)
+                {
+                    var edge = x < w && In(x, y) != In(x, y - 1);
+                    if (edge && runStart < 0)
+                    {
+                        runStart = x;
+                    }
+                    else if (!edge && runStart >= 0)
+                    {
+                        segments.Add((new PointD(runStart, y), new PointD(x, y)));
+                        runStart = -1;
+                    }
+                }
+            }
+
+            // Senkrechte Kanten auf x (zwischen Spalte x−1 und x)
+            for (var x = 0; x <= w && segments.Count <= MaxOutlineSegments; x++)
+            {
+                var runStart = -1;
+                for (var y = 0; y <= h; y++)
+                {
+                    var edge = y < h && In(x, y) != In(x - 1, y);
+                    if (edge && runStart < 0)
+                    {
+                        runStart = y;
+                    }
+                    else if (!edge && runStart >= 0)
+                    {
+                        segments.Add((new PointD(x, runStart), new PointD(x, y)));
+                        runStart = -1;
+                    }
+                }
+            }
+
+            if (segments.Count > MaxOutlineSegments)
+            {
+                var b = selection.Bounds();
+                segments =
+                [
+                    (new PointD(b.X, b.Y), new PointD(b.Right, b.Y)), (new PointD(b.Right, b.Y), new PointD(b.Right, b.Bottom)),
+                    (new PointD(b.Right, b.Bottom), new PointD(b.X, b.Bottom)), (new PointD(b.X, b.Bottom), new PointD(b.X, b.Y)),
+                ];
+            }
+        }
+
+        SelectionOutline = segments;
+        OnPropertyChanged(nameof(SelectionText));
+        ViewChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Bildgröße geändert: Ansicht, Komposit und Bitmap neu aufbauen.</summary>
+    private void OnDocumentSizeChanged()
+    {
+        _composite = null;
+        _bitmap = null;
+        View.SetDocumentSize(Document.Width, Document.Height);
+        View.FitToViewport(allowUpscale: false);
+        OnPropertyChanged(nameof(Width));
+        OnPropertyChanged(nameof(Height));
+        OnPropertyChanged(nameof(SizeText));
+        UpdateSelectionOutline();
+    }
+
     // --- Darstellung ----------------------------------------------------------------------------
 
     /// <summary>Setzt den Bereich neu zusammen und überträgt nur diesen in die Bitmap (Dirty-Rectangle).</summary>
     private void Recomposite(IntRect region)
     {
+        if (_composite is not null && (_composite.Width != Document.Width || _composite.Height != Document.Height))
+        {
+            // Größe hat sich geändert, bevor SizeChanged verarbeitet wurde: Cache verwerfen.
+            _composite = null;
+            _bitmap = null;
+        }
+
         if (_composite is not null)
         {
             LayerCompositor.CompositeRegion(Document.Root, _composite, region);

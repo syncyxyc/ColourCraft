@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Werkzeug-API und Werkzeuge (Zeichnen, Auswahl, Füllung, Transformation, Ansicht). Ohne UI. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+    <ProjectReference Include="..\OrbitStudio.History\OrbitStudio.History.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Rendering\OrbitStudio.Rendering.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Layers\OrbitStudio.Layers.csproj" />
+  </ItemGroup>
+</Project>

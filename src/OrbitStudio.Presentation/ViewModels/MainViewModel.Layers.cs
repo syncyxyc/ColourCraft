@@ -4,15 +4,18 @@ using Microsoft.Extensions.Logging;
 using OrbitStudio.Application.Commands;
 using OrbitStudio.Domain.Documents;
 using OrbitStudio.Domain.Layers;
+using OrbitStudio.History;
 using OrbitStudio.Layers;
 using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Services;
+using OrbitStudio.Tools.Selection;
+using OrbitStudio.Tools.Transform;
 using static OrbitStudio.Presentation.Commands.CommandIds;
 
 namespace OrbitStudio.Presentation.ViewModels;
 
-/// <summary>Ebenenbefehle (Menü „Ebenen", Ebenen-Panel) und Importieren.</summary>
-public sealed partial class MainViewModel
+/// <summary>Ebenenbefehle (Menü „Ebenen", Ebenen-Panel) und Importieren – alle mit Rückgängig.</summary>
+public sealed partial class MainViewModel : ILayerEditExecutor
 {
     private ImageDocument? Doc => _workspace.ActiveDocument;
 
@@ -42,68 +45,129 @@ public sealed partial class MainViewModel
     {
         bool HasNode() => !IsBusy && ActiveNode is not null;
         bool Unlocked() => HasNode() && !ActiveNode!.IsEffectivelyLocked;
-        bool PixelLayer() => HasNode() && ActiveNode is PixelLayer;
+        bool IsPixelLayer() => HasNode() && ActiveNode is PixelLayer;
+        bool UnlockedPixelLayer() => IsPixelLayer() && !ActiveNode!.IsEffectivelyLocked;
         bool HasMask() => HasNode() && ActiveNode is PixelLayer { Mask: not null };
 
         void Add(AppCommand c) => _registry.Register(c);
 
         Add(AppCommand.Create(LayerNew, "Cmd.Layer.New",
-            () => Run(d => LayerOperations.AddLayer(d, LayerOperations.NextName(d, Loc.Get("Layer.NewName")))),
+            () => Run("History.LayerNew", d => LayerOperations.AddLayer(d, LayerOperations.NextName(d, Loc.Get("Layer.NewName")))),
             () => !IsBusy && Doc is not null, "Ctrl+Shift+N"));
         Add(AppCommand.Create(LayerDuplicate, "Cmd.Layer.Duplicate",
-            () => Run(d => LayerOperations.Duplicate(d, d.ActiveLayer!, Loc.Format("Layer.CopyName", d.ActiveLayer!.Name))),
+            () => Run("History.LayerDuplicate",
+                d => LayerOperations.Duplicate(d, d.ActiveLayer!, Loc.Format("Layer.CopyName", d.ActiveLayer!.Name))),
             HasNode, "Ctrl+J"));
-        Add(AppCommand.Create(LayerDelete, "Cmd.Layer.Delete", DeleteActiveLayer,
+        Add(AppCommand.Create(LayerDelete, "Cmd.Layer.Delete",
+            () => Run("History.LayerDelete", d => LayerOperations.Delete(d, d.ActiveLayer!)),
             () => HasNode() && LayerOperations.CanDelete(Doc!, ActiveNode!)));
         Add(AppCommand.Create(LayerRename, "Cmd.Layer.Rename", () => EditLayerProperties(LayerPropertyFocus.Name), HasNode,
             "F2"));
-        Add(AppCommand.Create(LayerMoveUp, "Cmd.Layer.MoveUp", () => Run(d => LayerOperations.MoveUp(d, d.ActiveLayer!)),
+        Add(AppCommand.Create(LayerMoveUp, "Cmd.Layer.MoveUp",
+            () => Run("History.LayerMoveUp", d => LayerOperations.MoveUp(d, d.ActiveLayer!)),
             () => HasNode() && LayerOperations.CanMoveUp(ActiveNode!), "Ctrl+Shift+Up"));
-        Add(AppCommand.Create(LayerMoveDown, "Cmd.Layer.MoveDown", () => Run(d => LayerOperations.MoveDown(d, d.ActiveLayer!)),
+        Add(AppCommand.Create(LayerMoveDown, "Cmd.Layer.MoveDown",
+            () => Run("History.LayerMoveDown", d => LayerOperations.MoveDown(d, d.ActiveLayer!)),
             () => HasNode() && LayerOperations.CanMoveDown(ActiveNode!), "Ctrl+Shift+Down"));
         Add(AppCommand.Create(LayerGroupCreate, "Cmd.Layer.GroupCreate",
-            () => Run(d => LayerOperations.CreateGroup(d, d.ActiveLayer!, LayerOperations.NextName(d, Loc.Get("Layer.GroupName")))),
+            () => Run("History.LayerGroup",
+                d => LayerOperations.CreateGroup(d, d.ActiveLayer!, LayerOperations.NextName(d, Loc.Get("Layer.GroupName")))),
             Unlocked, "Ctrl+G"));
-        Add(AppCommand.Create(LayerGroupDissolve, "Cmd.Layer.GroupDissolve", DissolveActiveGroup,
+        Add(AppCommand.Create(LayerGroupDissolve, "Cmd.Layer.GroupDissolve",
+            () => Run("History.LayerUngroup", d => LayerOperations.DissolveGroup(d, d.ActiveLayer!)),
             () => Unlocked() && ActiveNode is LayerGroup, "Ctrl+Shift+G"));
         Add(AppCommand.Toggle(LayerVisibility, "Cmd.Layer.Visibility",
-            () => Run(d => LayerOperations.SetVisibility(d, d.ActiveLayer!, !d.ActiveLayer!.IsVisible)),
+            () => Run("History.LayerVisibility", d => LayerOperations.SetVisibility(d, d.ActiveLayer!, !d.ActiveLayer!.IsVisible)),
             () => ActiveNode?.IsVisible == true, HasNode));
         Add(AppCommand.Toggle(LayerLock, "Cmd.Layer.Lock",
-            () => Run(d => LayerOperations.SetLocked(d, d.ActiveLayer!, !d.ActiveLayer!.IsLocked)),
+            () => Run("History.LayerLock", d => LayerOperations.SetLocked(d, d.ActiveLayer!, !d.ActiveLayer!.IsLocked)),
             () => ActiveNode?.IsLocked == true, HasNode));
         Add(AppCommand.Create(LayerOpacity, "Cmd.Layer.Opacity", () => EditLayerProperties(LayerPropertyFocus.Opacity), HasNode));
         Add(AppCommand.Create(LayerBlendMode, "Cmd.Layer.BlendMode", () => EditLayerProperties(LayerPropertyFocus.BlendMode),
             HasNode));
-        Add(AppCommand.Create(LayerAddMask, "Cmd.Layer.AddMask", () => Run(d => LayerOperations.AddMask(d, d.ActiveLayer!)),
-            () => PixelLayer() && ActiveNode is PixelLayer { Mask: null }));
+        Add(AppCommand.Create(LayerAddMask, "Cmd.Layer.AddMask",
+            () => Run("History.MaskAdd", d => LayerOperations.AddMask(d, d.ActiveLayer!)),
+            () => IsPixelLayer() && ActiveNode is PixelLayer { Mask: null }));
+        Add(AppCommand.Toggle(LayerEditMask, "Cmd.Layer.EditMask", () => Tools.EditMask = !Tools.EditMask,
+            () => Tools.EditMask, () => !IsBusy));
         Add(AppCommand.Toggle(LayerMaskEnabled, "Cmd.Layer.MaskEnabled",
-            () => Run(d => LayerOperations.SetMaskEnabled(d, d.ActiveLayer!, !((PixelLayer)d.ActiveLayer!).Mask!.IsEnabled)),
+            () => Run("History.MaskEnabled",
+                d => LayerOperations.SetMaskEnabled(d, d.ActiveLayer!, !((PixelLayer)d.ActiveLayer!).Mask!.IsEnabled)),
             () => ActiveNode is PixelLayer { Mask.IsEnabled: true }, HasMask));
-        Add(AppCommand.Create(LayerMaskInvert, "Cmd.Layer.MaskInvert", () => Run(d => LayerOperations.InvertMask(d, d.ActiveLayer!)),
+        Add(AppCommand.Create(LayerMaskInvert, "Cmd.Layer.MaskInvert",
+            () => Run("History.MaskInvert", d => LayerOperations.InvertMask(d, d.ActiveLayer!),
+                masks: d => [((PixelLayer)d.ActiveLayer!).Mask!]),
             HasMask));
-        Add(AppCommand.Create(LayerMaskApply, "Cmd.Layer.MaskApply", ApplyActiveMask, () => HasMask() && Unlocked()));
-        Add(AppCommand.Create(LayerMaskDelete, "Cmd.Layer.MaskDelete", () => Run(d => LayerOperations.RemoveMask(d, d.ActiveLayer!)),
+        Add(AppCommand.Create(LayerMaskApply, "Cmd.Layer.MaskApply",
+            () => Run("History.MaskApply", d => LayerOperations.ApplyMask(d, d.ActiveLayer!),
+                pixels: d => [(PixelLayer)d.ActiveLayer!]),
+            () => HasMask() && Unlocked()));
+        Add(AppCommand.Create(LayerMaskDelete, "Cmd.Layer.MaskDelete",
+            () => Run("History.MaskDelete", d => LayerOperations.RemoveMask(d, d.ActiveLayer!)),
             HasMask));
-        Add(AppCommand.Planned(LayerSelectionFromAlpha, "Cmd.Layer.SelectionFromAlpha", "M4"));
-        Add(AppCommand.Planned(LayerTransform, "Cmd.Layer.Transform", "M4"));
-        Add(AppCommand.Create(LayerMerge, "Cmd.Layer.Merge", MergeActiveDown,
+        Add(AppCommand.Create(LayerSelectionFromAlpha, "Cmd.Layer.SelectionFromAlpha",
+            () => WithHistory((d, h) => SelectionEditing.FromLayerAlpha(d, h)), IsPixelLayer));
+        Add(AppCommand.Create(LayerFlipH, "Cmd.Layer.FlipH",
+            () => WithHistory((d, h) => DocumentTransforms.FlipLayer(d, h, (PixelLayer)d.ActiveLayer!, horizontal: true)),
+            UnlockedPixelLayer));
+        Add(AppCommand.Create(LayerFlipV, "Cmd.Layer.FlipV",
+            () => WithHistory((d, h) => DocumentTransforms.FlipLayer(d, h, (PixelLayer)d.ActiveLayer!, horizontal: false)),
+            UnlockedPixelLayer));
+        Add(AppCommand.Create(LayerTransform, "Cmd.Layer.Transform", TransformActiveLayer, UnlockedPixelLayer));
+        Add(AppCommand.Create(LayerMerge, "Cmd.Layer.Merge",
+            () => Run("History.LayerMerge", d => LayerOperations.MergeDown(d, d.ActiveLayer!), pixels: LayerBelowActive),
             () => HasNode() && LayerOperations.CanMergeDown(Doc!, ActiveNode!), "Ctrl+E"));
-        Add(AppCommand.Create(LayerFlatten, "Cmd.Layer.Flatten", FlattenActive,
+        Add(AppCommand.Create(LayerFlatten, "Cmd.Layer.Flatten",
+            () => Run("History.LayerFlatten", d => LayerOperations.Flatten(d, Loc.Get("Layer.Background"))),
             () => !IsBusy && Doc is { LayerCount: > 1 }, "Ctrl+Shift+F"));
     }
 
-    /// <summary>Führt eine Ebenenoperation aus und zeigt Ablehnungen als deutsche Meldung an.</summary>
-    private void Run(Action<ImageDocument> operation)
+    private static IEnumerable<PixelLayer> LayerBelowActive(ImageDocument d) =>
+        d.ActiveLayer is { Parent: { } parent } node && parent.IndexOf(node) > 0
+        && parent.Children[parent.IndexOf(node) - 1] is PixelLayer below
+            ? [below]
+            : [];
+
+    /// <summary>
+    /// Führt eine Ebenenoperation mit Historie aus und zeigt Ablehnungen als deutsche Meldung an.
+    /// </summary>
+    /// <param name="pixels">Ebenen, deren Pixel die Operation ändert (werden für Rückgängig gesichert).</param>
+    /// <param name="masks">Masken, deren Inhalt die Operation ändert.</param>
+    private void Run(string nameKey, Action<ImageDocument> operation,
+        Func<ImageDocument, IEnumerable<PixelLayer>>? pixels = null,
+        Func<ImageDocument, IEnumerable<LayerMask>>? masks = null)
     {
         if (Doc is not { } document)
         {
             return;
         }
 
+        Execute(document, nameKey, () => operation(document), null, pixels?.Invoke(document), masks?.Invoke(document));
+    }
+
+    /// <inheritdoc />
+    public void Execute(ImageDocument document, string nameKey, Action operation, string? coalesceKey = null,
+        IEnumerable<PixelLayer>? changedPixels = null, IEnumerable<LayerMask>? changedMasks = null)
+    {
+        Tools.CommitActive();
         try
         {
-            operation(document);
+            var entry = LayerTreeEntry.Record(nameKey, document, operation, changedPixels, changedMasks, coalesceKey);
+            var history = _histories.For(document);
+            if (coalesceKey is null)
+            {
+                history.Push(entry);
+            }
+            else
+            {
+                // Viele kleine Schritte eines Reglerzugs (innerhalb von 2 s) ergeben einen Rückgängig-Schritt.
+                history.PushOrMerge(entry, (last, next) =>
+                    last is LayerTreeEntry previous && next is LayerTreeEntry current
+                    && previous.CoalesceKey == coalesceKey
+                    && current.CreatedUtc - previous.CreatedUtc < TimeSpan.FromSeconds(2)
+                        ? LayerTreeEntry.Merge(previous, current)
+                        : null);
+            }
         }
         catch (LayerOperationException ex)
         {
@@ -120,70 +184,54 @@ public sealed partial class MainViewModel
         }
     }
 
-    private void DeleteActiveLayer()
+    /// <summary>Werkzeug- und Bildbefehle mit Historie des aktiven Dokuments ausführen.</summary>
+    private void WithHistory(Action<ImageDocument, DocumentHistory> action)
     {
-        if (ActiveNode is not { } node)
+        if (Doc is not { } document)
         {
             return;
         }
 
-        var message = node is LayerGroup
-            ? Loc.Format("Msg.Layer.Confirm.DeleteGroup", node.Name)
-            : Loc.Format("Msg.Layer.Confirm.Delete", node.Name);
-        if (_dialogs.Confirm(Loc.Get("Msg.Layer.Confirm.Title"), message))
+        Tools.CommitActive();
+        try
         {
-            Run(d => LayerOperations.Delete(d, node));
+            action(document, _histories.For(document));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Befehl abgelehnt.");
+            _dialogs.ShowWarning(Loc.Get("Msg.Layer.Error.Title"), Loc.Get("Msg.Layer.Error.Locked"));
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "Nicht genug Speicher.");
+            _dialogs.ShowError(Loc.Get("Msg.Error.Title"), Loc.Format("Msg.File.OutOfMemory", document.Name));
+        }
+        finally
+        {
+            _registry.NotifyStateChanged();
         }
     }
 
-    private void DissolveActiveGroup()
+    private void TransformActiveLayer()
     {
-        if (ActiveNode is not LayerGroup group)
+        if (ActiveNode is not PixelLayer layer)
         {
             return;
         }
 
-        // Nur nachfragen, wenn sich das Aussehen ändern kann.
-        var changesLook = group.Opacity < 1 || group.BlendMode != BlendMode.Normal || !group.IsVisible;
-        if (!changesLook || _dialogs.Confirm(Loc.Get("Msg.Layer.Confirm.Title"),
-                Loc.Format("Msg.Layer.Confirm.Dissolve", group.Name)))
+        var values = _dialogs.ShowNumbers("Dlg.Transform.Title",
+        [
+            new NumberField("Dlg.Transform.Angle", 0, -360, 360, 2),
+            new NumberField("Dlg.Transform.Scale", 100, 1, 1000, 2),
+        ]);
+        if (values is { } v && (v[0] != 0 || v[1] != 100))
         {
-            Run(d => LayerOperations.DissolveGroup(d, group));
+            WithHistory((d, h) => DocumentTransforms.RotateScaleLayer(d, h, layer, v[0], v[1] / 100));
         }
     }
 
-    private void ApplyActiveMask()
-    {
-        if (ActiveNode is PixelLayer layer && _dialogs.Confirm(Loc.Get("Msg.Layer.Confirm.Title"),
-                Loc.Format("Msg.Layer.Confirm.ApplyMask", layer.Name)))
-        {
-            Run(d => LayerOperations.ApplyMask(d, layer));
-        }
-    }
-
-    private void MergeActiveDown()
-    {
-        if (ActiveNode is not { Parent: { } parent } node || parent.IndexOf(node) < 1)
-        {
-            return;
-        }
-
-        var below = parent.Children[parent.IndexOf(node) - 1];
-        if (_dialogs.Confirm(Loc.Get("Msg.Layer.Confirm.Title"), Loc.Format("Msg.Layer.Confirm.Merge", node.Name, below.Name)))
-        {
-            Run(d => LayerOperations.MergeDown(d, node));
-        }
-    }
-
-    private void FlattenActive()
-    {
-        if (_dialogs.Confirm(Loc.Get("Msg.Layer.Confirm.Title"), Loc.Get("Msg.Layer.Confirm.Flatten")))
-        {
-            Run(d => LayerOperations.Flatten(d, Loc.Get("Layer.Background")));
-        }
-    }
-
-    /// <summary>Dialog „Ebeneneigenschaften" für die aktive Ebene; übernimmt nur geänderte Werte.</summary>
+    /// <summary>Dialog „Ebeneneigenschaften" für die aktive Ebene; übernimmt nur geänderte Werte (ein Schritt).</summary>
     private void EditLayerProperties(LayerPropertyFocus focus)
     {
         if (ActiveNode is not { } node)
@@ -199,7 +247,7 @@ public sealed partial class MainViewModel
             return;
         }
 
-        Run(d =>
+        Run("History.LayerProperties", d =>
         {
             LayerOperations.Rename(d, node, result.Name);
             LayerOperations.SetVisibility(d, node, result.IsVisible);
@@ -209,7 +257,7 @@ public sealed partial class MainViewModel
         });
     }
 
-    /// <summary>Importiert Bilddateien als neue Ebenen in das aktive Dokument.</summary>
+    /// <summary>Importiert Bilddateien als neue Ebenen in das aktive Dokument (je Datei ein Rückgängig-Schritt).</summary>
     public async Task<int> ImportFilesAsLayersAsync(IEnumerable<string> paths, bool showMessages = true)
     {
         if (Doc is not { } document)
@@ -235,7 +283,9 @@ public sealed partial class MainViewModel
                 }
 
                 var name = Path.GetFileNameWithoutExtension(path);
-                var (_, cropped) = LayerOperations.ImportAsLayer(document, loaded.Pixels!, name);
+                var cropped = false;
+                Execute(document, "History.Import",
+                    () => cropped = LayerOperations.ImportAsLayer(document, loaded.Pixels!, name).Cropped);
                 imported++;
                 if (cropped && showMessages)
                 {
@@ -255,8 +305,8 @@ public sealed partial class MainViewModel
 
     private async Task ImportWithDialogAsync()
     {
-        var paths = _dialogs.ShowOpenFiles(Loc.Get("Cmd.File.Import").Replace("_", string.Empty, StringComparison.Ordinal)
-            .TrimEnd(' ', '…'), ImageOpenFilters());
+        var paths = _dialogs.ShowOpenFiles(Loc.WithoutAccessKey(Loc.Get("Cmd.File.Import")).TrimEnd(' ', '…'),
+            ImageOpenFilters());
         if (paths is { Count: > 0 })
         {
             await ImportFilesAsLayersAsync(paths);

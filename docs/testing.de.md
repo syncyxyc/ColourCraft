@@ -10,6 +10,9 @@
 | Codec-Tests (Referenzbytes, Rundreisen, beschädigte/übergroße Dateien) | `tests/OrbitStudio.Imaging.Tests` | aktiv |
 | Ansichtstransformation und **Rendering-Referenztests** (Komposition, Mischmodi, Masken, Gruppen) | `tests/OrbitStudio.Rendering.Tests` | aktiv |
 | Ebenenoperationen | `tests/OrbitStudio.Layers.Tests` | aktiv |
+| Historie (Deltas, Schnappschüsse, Grenzen) | `tests/OrbitStudio.History.Tests` | aktiv |
+| Werkzeuge (Zeichnen, Auswahl, Füllung, Transformation, Ansicht) | `tests/OrbitStudio.Tools.Tests` | aktiv |
+| Integration je Werkzeuggruppe | `tests/OrbitStudio.Integration.Tests/ToolGroupWorkflowTests.cs` | aktiv |
 | Integration Dateien (echte Dateien, atomares Schreiben, Fehler) | `tests/OrbitStudio.Integration.Tests` | aktiv |
 | Architekturtest | `tests/OrbitStudio.Architecture.Tests` | aktiv |
 | UI-Smoke-Test | `OrbitStudio.exe --smoke-test <Datei>` (über `build/test.ps1`) | aktiv |
@@ -60,7 +63,52 @@ Grau 128 mit 40 % über Weiß: 204 (128·0,4 + 255·0,6 = 204,2). Multiplizieren
 Hintergrund (gerade 200, α 128): 114. Gruppe (50 %) mit Multiplizieren-Inhalt über transparent: (64, 64, 64, 128).
 Weitere Fälle siehe `tests/OrbitStudio.Rendering.Tests/LayerCompositorTests.cs`.
 
+### Werkzeug-Referenzwerte (Auszug)
+
+Bleistift 1 px: Klick in Pixel (5,7) setzt genau dieses Pixel. Gefülltes Rechteck aus (4,2;5,4)–(9,6;8,7): Ecken auf
+(4,5)–(10,9) gerundet, exakt 6 × 4 schwarze Pixel, keine Kantenglättungsreste. Pinsel 50 % schwarz über Weiß, Hin-
+und Rückweg im selben Zug: 128 (keine Anhäufung). Farbbereich mit Toleranz 10 %: Abweichung 25 (9,8 %) ausgewählt,
+30 (11,8 %) nicht. Erweitern um 2 px: Abstand √2 ausgewählt, √5 nicht. Bildgröße 2 schwarze + 2 weiße Spalten → 1:
+exakt Schwarz/Weiß; Rot neben Transparent verkleinert → (R 128, A 128), also unvermindertes Rot bei halber Deckkraft.
+
 ## Ergebnisse
+
+### 18.10.2026 – M4 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+| Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |
+|---|---|---|---|
+| OrbitStudio.Domain.Tests | 74 | 0 | 0 |
+| OrbitStudio.Configuration.Tests | 19 | 0 | 0 |
+| OrbitStudio.Application.Tests | 24 | 0 | 0 |
+| OrbitStudio.Imaging.Tests | 27 | 0 | 0 |
+| OrbitStudio.Rendering.Tests | 60 | 0 | 0 |
+| OrbitStudio.Layers.Tests | 23 | 0 | 0 |
+| OrbitStudio.History.Tests | 12 | 0 | 0 |
+| OrbitStudio.Tools.Tests | 50 | 0 | 0 |
+| OrbitStudio.Integration.Tests | 20 | 0 | 0 |
+| OrbitStudio.Architecture.Tests | 24 | 0 | 0 |
+| **Summe** | **333** | **0** | **0** |
+
+Beim ersten Lauf der Architekturtests schlugen 3 Fälle fehl, weil die Projektreferenz auf `OrbitStudio.Tools` im
+Testprojekt fehlte (Testaufbau, nicht Produktcode). Nach Korrektur: alle bestanden.
+
+Integrationsabläufe je Werkzeuggruppe: Zeichnen (neue Ebene, Rechteck, Linie, Export/Wiedereinlesen, alles rückgängig
+und wiederholt), Auswahl (Zauberstab auf importierter Ebene, Löschen, Umkehren, rückgängig), Füllung/Farbe (Pipette aus
+dem Bild, Farbeimer auf anderer Ebene, Verlauf), Transformation (Auswahl verschieben, Zuschneiden, Bildgröße, Drehen,
+Kette rückgängig), Ansicht (Zoom/Hand ohne Pixel- oder Historienänderung).
+
+UI-Smoke-Test (Debug und veröffentlichte EXE, 157,6 MB): je 117 von 117 bestanden, Exitcode 0. Neu in M4: Werkzeugleiste
+vollständig sichtbar (alle 22), Farbfelder mit Inhalt, Werkzeugwahl per Befehl, Bleistift/Pinsel über den
+Werkzeug-Controller mit exakten Pixeln, Rückgängig/Wiederholen über die Befehle, Farben tauschen/zurücksetzen,
+Rechteckauswahl begrenzt das Malen, Kopieren/Einfügen (Zwischenablage im Speicher), Verschieben, Auswahl verkleinern
+(Dialog), Entf, Zuschneiden auf Auswahl, Drehen, Bildgröße, drei Schritte rückgängig, Pipette, Farbeimer, Maske bemalen,
+Hinweis bei gesperrter Ebene, Escape bricht Formvorschau exakt ab, Löschen/Rückgängig/Wiederholen von Ebenen.
+
+Bei der Sichtprüfung des ersten M4-Bildschirmfotos fielen zwei Darstellungsfehler auf (nur eine Werkzeugspalte,
+untere Werkzeuge abgeschnitten; Farbfelder ohne Inhalt). Beide wurden behoben und sind seither Smoke-Prüfungen.
+
+UI-Eingabetest: um einen Pinselstrich mit echter Maus + Strg+Z erweitert; in M4 **nicht ausgeführt** (Sitzung aktiv
+benutzt, der Test bewegt den Mauszeiger).
 
 ### 18.10.2026 – M3 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 

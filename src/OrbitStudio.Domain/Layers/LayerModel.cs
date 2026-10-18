@@ -103,7 +103,8 @@ public sealed class PixelLayer : LayerNode
         Pixels = pixels ?? throw new ArgumentNullException(nameof(pixels));
     }
 
-    public PixelBuffer Pixels { get; }
+    /// <summary>Pixelinhalt in Dokumentgröße. Wird nur zusammen mit der Dokumentgröße ersetzt (ImageDocument.ReplaceContent).</summary>
+    public PixelBuffer Pixels { get; internal set; }
 
     public LayerMask? Mask { get; set; }
 
@@ -148,11 +149,26 @@ public sealed class LayerMask
         return new LayerMask(width, height, data);
     }
 
+    /// <summary>Maske aus vorhandenen Werten (Länge = Breite · Höhe). Die Daten werden kopiert.</summary>
+    public static LayerMask FromBytes(int width, int height, ReadOnlySpan<byte> data)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        if (data.Length != (long)width * height)
+        {
+            throw new ArgumentException("Falsche Datenlänge für die Maske.", nameof(data));
+        }
+
+        return new LayerMask(width, height, data.ToArray());
+    }
+
     public byte Get(int x, int y) => _data[y * Width + x];
 
     public void Set(int x, int y, byte value) => _data[y * Width + x] = value;
 
     public ReadOnlySpan<byte> GetRow(int y) => _data.AsSpan(y * Width, Width);
+
+    public Span<byte> GetWritableRow(int y) => _data.AsSpan(y * Width, Width);
 
     public void Fill(IntRect region, byte value)
     {
@@ -259,6 +275,27 @@ public sealed class LayerGroup : LayerNode
     }
 
     public IEnumerable<PixelLayer> PixelLayers() => Descendants().OfType<PixelLayer>();
+
+    /// <summary>Schnappschuss, Phase 1: alle Kinder lösen.</summary>
+    internal void DetachAllChildren()
+    {
+        foreach (var child in _children)
+        {
+            child.Parent = null;
+        }
+
+        _children.Clear();
+    }
+
+    /// <summary>Schnappschuss, Phase 2: Kinder in gespeicherter Reihenfolge anhängen.</summary>
+    internal void AttachChildren(IReadOnlyList<LayerNode> children)
+    {
+        foreach (var child in children)
+        {
+            _children.Add(child);
+            child.Parent = this;
+        }
+    }
 
     public override LayerNode Duplicate(string name)
     {

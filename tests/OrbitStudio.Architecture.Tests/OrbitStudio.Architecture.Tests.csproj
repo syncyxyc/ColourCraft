@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\src\OrbitStudio.Diagnostics\OrbitStudio.Diagnostics.csproj" />
     <ProjectReference Include="..\..\src\OrbitStudio.Rendering\OrbitStudio.Rendering.csproj" />
     <ProjectReference Include="..\..\src\OrbitStudio.Layers\OrbitStudio.Layers.csproj" />
+    <ProjectReference Include="..\..\src\OrbitStudio.Tools\OrbitStudio.Tools.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

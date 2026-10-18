@@ -67,6 +67,16 @@ public static class LayerCompositor
         }
     }
 
+    /// <summary>Zusammengesetzter Wert eines einzelnen Pixels (z. B. Pipette), ohne großen Zielpuffer.</summary>
+    public static Bgra32 CompositePixel(LayerGroup root, int x, int y)
+    {
+        var accumulator = new double[4];
+        CompositeGroupRow(root, y, x, 1, accumulator);
+        Span<byte> result = stackalloc byte[4];
+        WriteRow(accumulator, result);
+        return new Bgra32(result[0], result[1], result[2], result[3]);
+    }
+
     /// <summary>
     /// Mischt eine Quelle mit Deckkraft, Maske und Mischmodus direkt in einen Puffer (für „Zusammenführen").
     /// </summary>

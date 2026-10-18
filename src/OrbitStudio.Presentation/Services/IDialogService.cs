@@ -8,9 +8,21 @@ public sealed record NewDocumentRequest(string Name, int Width, int Height, Docu
 /// <summary>Ein Dateityp-Filter für Datei-Dialoge, z. B. ("PNG-Bild", ["*.png"]).</summary>
 public sealed record FileFilter(string Description, IReadOnlyList<string> Patterns);
 
+/// <summary>Zahlenfeld eines Eingabedialogs (Beschriftung als Textschlüssel, Grenzen inklusive).</summary>
+public sealed record NumberField(string LabelKey, double Value, double Minimum, double Maximum, int Decimals = 0);
+
 /// <summary>Kapselt alle Dialoge, damit ViewModels ohne Fenster testbar bleiben.</summary>
 public interface IDialogService
 {
+    /// <summary>Farbwahl. Null = abgebrochen.</summary>
+    Domain.Imaging.ColorRgba? ShowColorPicker(Domain.Imaging.ColorRgba initial);
+
+    /// <summary>Eingabe einer oder mehrerer Zahlen. Optional sind die ersten beiden Felder im Verhältnis gekoppelt.</summary>
+    double[]? ShowNumbers(string titleKey, IReadOnlyList<NumberField> fields, bool linkFirstTwo = false);
+
+    /// <summary>Leinwandgröße mit Ausrichtung.</summary>
+    (int Width, int Height, Tools.Transform.CanvasAnchor Anchor)? ShowCanvasSize(int width, int height);
+
     NewDocumentRequest? ShowNewDocument(string defaultName, int defaultWidth, int defaultHeight);
 
     /// <summary>Datei-öffnen-Dialog mit Mehrfachauswahl. Null = abgebrochen.</summary>

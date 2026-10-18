@@ -26,6 +26,16 @@ public static class CommandIds
     public const string EditDeselect = "edit.deselect";
     public const string EditInvertSelection = "edit.invertSelection";
     public const string EditPreferences = "edit.preferences";
+    public const string EditGrowSelection = "edit.growSelection";
+    public const string EditShrinkSelection = "edit.shrinkSelection";
+    public const string ColorsSwap = "colors.swap";
+    public const string ColorsReset = "colors.reset";
+    public const string LayerFlipH = "layer.flipH";
+    public const string LayerFlipV = "layer.flipV";
+    public const string LayerEditMask = "layer.editMask";
+
+    /// <summary>Präfix der Werkzeugbefehle: „tool.&lt;Werkzeug-Id&gt;".</summary>
+    public const string ToolPrefix = "tool.";
 
     public const string ViewZoomIn = "view.zoomIn";
     public const string ViewZoomOut = "view.zoomOut";
@@ -41,8 +51,11 @@ public static class CommandIds
 
     public const string ImageResize = "image.resize";
     public const string ImageCanvasSize = "image.canvasSize";
-    public const string ImageRotate = "image.rotate";
-    public const string ImageFlip = "image.flip";
+    public const string ImageRotateCw = "image.rotateCw";
+    public const string ImageRotateCcw = "image.rotateCcw";
+    public const string ImageRotate180 = "image.rotate180";
+    public const string ImageFlipH = "image.flipH";
+    public const string ImageFlipV = "image.flipV";
     public const string ImageCrop = "image.crop";
     public const string ImageInfo = "image.info";
 

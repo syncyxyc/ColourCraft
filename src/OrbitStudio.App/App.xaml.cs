@@ -12,6 +12,7 @@ using OrbitStudio.Configuration;
 using OrbitStudio.Diagnostics;
 using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Services;
+using OrbitStudio.Presentation.Tooling;
 using OrbitStudio.Presentation.ViewModels;
 using OrbitStudio.Presentation.Views;
 
@@ -107,14 +108,20 @@ public partial class App : System.Windows.Application
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<ShellService>();
         services.AddSingleton<IShellService>(sp => sp.GetRequiredService<ShellService>());
+        services.AddSingleton<HistoryService>();
+        services.AddSingleton<ToolController>();
         if (useSmokeDialogs)
         {
+            // Smoke-Test: keine modalen Dialoge, keine Veränderung der echten Windows-Zwischenablage.
             services.AddSingleton<SmokeDialogService>();
             services.AddSingleton<IDialogService>(sp => sp.GetRequiredService<SmokeDialogService>());
+            services.AddSingleton<SmokeClipboardService>();
+            services.AddSingleton<IClipboardService>(sp => sp.GetRequiredService<SmokeClipboardService>());
         }
         else
         {
             services.AddSingleton<IDialogService, WpfDialogService>();
+            services.AddSingleton<IClipboardService, WpfClipboardService>();
         }
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();

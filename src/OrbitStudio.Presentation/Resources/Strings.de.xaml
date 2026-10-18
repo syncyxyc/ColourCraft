@@ -51,6 +51,13 @@
     <sys:String x:Key="Cmd.Edit.Deselect">Auswahl au_fheben</sys:String>
     <sys:String x:Key="Cmd.Edit.InvertSelection">Auswahl u_mkehren</sys:String>
     <sys:String x:Key="Cmd.Edit.Preferences">_Einstellungen …</sys:String>
+    <sys:String x:Key="Cmd.Edit.GrowSelection">Auswahl er_weitern …</sys:String>
+    <sys:String x:Key="Cmd.Edit.ShrinkSelection">Auswahl _verkleinern …</sys:String>
+    <sys:String x:Key="Cmd.Colors.Swap">Farben _tauschen</sys:String>
+    <sys:String x:Key="Cmd.Colors.Reset">Farben zu_rücksetzen</sys:String>
+    <sys:String x:Key="Cmd.Layer.FlipH">Ebene _waagerecht spiegeln</sys:String>
+    <sys:String x:Key="Cmd.Layer.FlipV">Ebene _senkrecht spiegeln</sys:String>
+    <sys:String x:Key="Cmd.Layer.EditMask">Maske _bearbeiten</sys:String>
 
     <!-- Ansicht -->
     <sys:String x:Key="Cmd.View.ZoomIn">_Vergrößern</sys:String>
@@ -68,9 +75,12 @@
     <!-- Bild -->
     <sys:String x:Key="Cmd.Image.Resize">_Bildgröße …</sys:String>
     <sys:String x:Key="Cmd.Image.CanvasSize">_Leinwandgröße …</sys:String>
-    <sys:String x:Key="Cmd.Image.Rotate">_Drehen</sys:String>
-    <sys:String x:Key="Cmd.Image.Flip">_Spiegeln</sys:String>
-    <sys:String x:Key="Cmd.Image.Crop">_Zuschneiden</sys:String>
+    <sys:String x:Key="Cmd.Image.RotateCw">Um 90° im _Uhrzeigersinn drehen</sys:String>
+    <sys:String x:Key="Cmd.Image.RotateCcw">Um 90° _gegen den Uhrzeigersinn drehen</sys:String>
+    <sys:String x:Key="Cmd.Image.Rotate180">Um _180° drehen</sys:String>
+    <sys:String x:Key="Cmd.Image.FlipH">_Waagerecht spiegeln</sys:String>
+    <sys:String x:Key="Cmd.Image.FlipV">_Senkrecht spiegeln</sys:String>
+    <sys:String x:Key="Cmd.Image.Crop">Auf Auswahl _zuschneiden</sys:String>
     <sys:String x:Key="Cmd.Image.Info">Bild_informationen …</sys:String>
 
     <!-- Ebenen -->
@@ -140,14 +150,6 @@
     <sys:String x:Key="Dlg.Layer.Error.Name">Bitte einen Namen eingeben.</sys:String>
     <sys:String x:Key="Dlg.Layer.Error.Opacity">Die Deckkraft muss eine Zahl von 0 bis 100 sein.</sys:String>
 
-    <!-- Ebenen: Rückfragen (destruktiv, Rückgängig folgt in M4) -->
-    <sys:String x:Key="Msg.Layer.Confirm.Title">Ebenen ändern</sys:String>
-    <sys:String x:Key="Msg.Layer.Confirm.Delete">„{0}" löschen? Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
-    <sys:String x:Key="Msg.Layer.Confirm.DeleteGroup">Gruppe „{0}" mit allen enthaltenen Ebenen löschen? Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
-    <sys:String x:Key="Msg.Layer.Confirm.Merge">„{0}" mit „{1}" zusammenführen? Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
-    <sys:String x:Key="Msg.Layer.Confirm.Flatten">Alle Ebenen zu einer Ebene zusammenführen? Ausgeblendete Ebenen gehen verloren. Rückgängig ist erst ab einer späteren Version möglich.</sys:String>
-    <sys:String x:Key="Msg.Layer.Confirm.ApplyMask">Maske von „{0}" dauerhaft in die Pixel einrechnen?</sys:String>
-    <sys:String x:Key="Msg.Layer.Confirm.Dissolve">Gruppe „{0}" auflösen? Deckkraft und Mischmodus der Gruppe gehen dabei verloren.</sys:String>
     <sys:String x:Key="Msg.Layer.Imported.Title">Importiert</sys:String>
     <sys:String x:Key="Msg.Layer.Imported.Cropped">„{0}" ist größer als das Bild und wurde oben links ausgerichtet und beschnitten.</sys:String>
 
@@ -216,14 +218,12 @@
     <sys:String x:Key="Status.Size">{0} × {1} px</sys:String>
     <sys:String x:Key="Status.Cursor">{0}, {1}</sys:String>
     <sys:String x:Key="Status.CursorOutside">–</sys:String>
-    <sys:String x:Key="Status.Tool">Werkzeug: keines (folgt in M4)</sys:String>
     <sys:String x:Key="Status.Busy">Bitte warten …</sys:String>
     <sys:String x:Key="Status.Opened">Geöffnet: {0}</sys:String>
     <sys:String x:Key="Status.Exported">Exportiert: {0}</sys:String>
 
     <!-- Arbeitsfläche -->
     <sys:String x:Key="Workspace.Empty">Kein Dokument geöffnet. Mit Datei › Neu (Strg+N) ein Bild anlegen, mit Datei › Öffnen (Strg+O) ein Bild laden oder Bilddateien hierher ziehen.</sys:String>
-    <sys:String x:Key="Workspace.CanvasHint">Mausrad: Zoom · Mittlere Maustaste oder Leertaste + Ziehen: Verschieben</sys:String>
     <sys:String x:Key="Workspace.CloseTab">Dokument schließen</sys:String>
 
     <!-- Dialog: Neues Bild -->
@@ -296,6 +296,160 @@
     <sys:String x:Key="Msg.File.Cancelled">Der Vorgang für „{0}" wurde abgebrochen.</sys:String>
     <sys:String x:Key="Msg.Export.AlphaLost.Title">Transparenz geht verloren</sys:String>
     <sys:String x:Key="Msg.Export.AlphaLost.Body">Das Format {0} kann keine Transparenz speichern. Transparente Bereiche werden weiß gefüllt. Fortfahren?</sys:String>
+
+    <!-- Werkzeuge (Schlüssel Tool.<Id>) -->
+    <sys:String x:Key="Tool.selectRectangle">Rechteckauswahl</sys:String>
+    <sys:String x:Key="Tool.selectEllipse">Ellipsenauswahl</sys:String>
+    <sys:String x:Key="Tool.selectLasso">Freihandauswahl (Lasso)</sys:String>
+    <sys:String x:Key="Tool.selectPolygon">Polygonauswahl</sys:String>
+    <sys:String x:Key="Tool.magicWand">Zauberstab</sys:String>
+    <sys:String x:Key="Tool.colorRange">Farbbereich auswählen</sys:String>
+    <sys:String x:Key="Tool.move">Ausgewählte Pixel verschieben</sys:String>
+    <sys:String x:Key="Tool.crop">Zuschneiden</sys:String>
+    <sys:String x:Key="Tool.brush">Pinsel</sys:String>
+    <sys:String x:Key="Tool.pencil">Bleistift</sys:String>
+    <sys:String x:Key="Tool.eraser">Radierer</sys:String>
+    <sys:String x:Key="Tool.freehand">Freihandlinie</sys:String>
+    <sys:String x:Key="Tool.line">Linie</sys:String>
+    <sys:String x:Key="Tool.rectangle">Rechteck</sys:String>
+    <sys:String x:Key="Tool.rectangleFilled">Gefülltes Rechteck</sys:String>
+    <sys:String x:Key="Tool.ellipse">Ellipse</sys:String>
+    <sys:String x:Key="Tool.ellipseFilled">Gefüllte Ellipse</sys:String>
+    <sys:String x:Key="Tool.bucket">Farbeimer</sys:String>
+    <sys:String x:Key="Tool.gradient">Verlauf</sys:String>
+    <sys:String x:Key="Tool.pipette">Pipette</sys:String>
+    <sys:String x:Key="Tool.hand">Hand (Ansicht verschieben)</sys:String>
+    <sys:String x:Key="Tool.zoom">Zoom</sys:String>
+    <sys:String x:Key="Tool.ToolTip">{0} ({1})</sys:String>
+    <sys:String x:Key="Tool.Hint.crop">Rechteck aufziehen, mit Enter oder Doppelklick zuschneiden, Esc bricht ab.</sys:String>
+    <sys:String x:Key="Tool.Hint.selectPolygon">Klicken setzt Eckpunkte; Doppelklick, Enter oder Klick auf den ersten Punkt schließt.</sys:String>
+    <sys:String x:Key="Tool.Hint.selection">Umschalt: hinzufügen · Alt: abziehen · Umschalt+Alt: Schnittmenge</sys:String>
+    <sys:String x:Key="Tool.Hint.move">Ziehen verschiebt die Auswahl (ohne Auswahl die Ebene). Pfeiltasten: 1 px, mit Umschalt 10 px.</sys:String>
+
+    <!-- Werkzeugoptionen -->
+    <sys:String x:Key="Opt.Size">Größe</sys:String>
+    <sys:String x:Key="Opt.Hardness">Härte</sys:String>
+    <sys:String x:Key="Opt.Opacity">Deckkraft</sys:String>
+    <sys:String x:Key="Opt.Antialias">Kantenglättung</sys:String>
+    <sys:String x:Key="Opt.LineWidth">Linienbreite</sys:String>
+    <sys:String x:Key="Opt.Tolerance">Toleranz</sys:String>
+    <sys:String x:Key="Opt.FloodMode">Bereich</sys:String>
+    <sys:String x:Key="Opt.SampleFrom">Quelle</sys:String>
+    <sys:String x:Key="Opt.SelectionMode">Modus</sys:String>
+    <sys:String x:Key="Opt.GradientType">Art</sys:String>
+    <sys:String x:Key="Choice.Replace">Ersetzen</sys:String>
+    <sys:String x:Key="Choice.Add">Hinzufügen</sys:String>
+    <sys:String x:Key="Choice.Subtract">Abziehen</sys:String>
+    <sys:String x:Key="Choice.Intersect">Schnittmenge</sys:String>
+    <sys:String x:Key="Choice.Contiguous">Zusammenhängend</sys:String>
+    <sys:String x:Key="Choice.Global">Ganzes Bild</sys:String>
+    <sys:String x:Key="Choice.Layer">Ebene</sys:String>
+    <sys:String x:Key="Choice.Image">Bild</sys:String>
+    <sys:String x:Key="Choice.Linear">Linear</sys:String>
+    <sys:String x:Key="Choice.Radial">Radial</sys:String>
+    <sys:String x:Key="Unit.Px">px</sys:String>
+    <sys:String x:Key="Unit.Percent">%</sys:String>
+    <sys:String x:Key="Unit.Degree">°</sys:String>
+
+    <!-- Werkzeugprobleme (Statusleiste) -->
+    <sys:String x:Key="ToolProblem.NoPixelLayer">Bitte eine Pixelebene auswählen (Gruppen können nicht bemalt werden).</sys:String>
+    <sys:String x:Key="ToolProblem.LayerLocked">Die aktive Ebene ist gesperrt.</sys:String>
+    <sys:String x:Key="ToolProblem.NoMask">„Maske bearbeiten" ist an, aber die Ebene hat keine Maske.</sys:String>
+    <sys:String x:Key="ToolProblem.NothingToMove">Die Auswahl ist leer – nichts zu verschieben.</sys:String>
+
+    <!-- Farben -->
+    <sys:String x:Key="Colors.Primary">Vordergrundfarbe (Klick: ändern)</sys:String>
+    <sys:String x:Key="Colors.Secondary">Hintergrundfarbe (Klick: ändern)</sys:String>
+    <sys:String x:Key="Colors.Swap">Farben tauschen (X)</sys:String>
+    <sys:String x:Key="Colors.Reset">Schwarz/Weiß (D)</sys:String>
+    <sys:String x:Key="Dlg.Color.Title">Farbe wählen</sys:String>
+    <sys:String x:Key="Dlg.Color.Red">_Rot:</sys:String>
+    <sys:String x:Key="Dlg.Color.Green">_Grün:</sys:String>
+    <sys:String x:Key="Dlg.Color.Blue">_Blau:</sys:String>
+    <sys:String x:Key="Dlg.Color.Alpha">_Deckkraft:</sys:String>
+    <sys:String x:Key="Dlg.Color.Hex">_Hex:</sys:String>
+    <sys:String x:Key="Dlg.Color.Error">Ungültige Farbe. Erlaubt: Werte 0–255 bzw. Hex wie #FF8800 oder #FF880080.</sys:String>
+
+    <!-- Historie (Schlüssel der Einträge) -->
+    <sys:String x:Key="History.SelectAll">Alles auswählen</sys:String>
+    <sys:String x:Key="History.Deselect">Auswahl aufheben</sys:String>
+    <sys:String x:Key="History.InvertSelection">Auswahl umkehren</sys:String>
+    <sys:String x:Key="History.GrowSelection">Auswahl erweitern</sys:String>
+    <sys:String x:Key="History.ShrinkSelection">Auswahl verkleinern</sys:String>
+    <sys:String x:Key="History.SelectionFromAlpha">Auswahl aus Ebenentransparenz</sys:String>
+    <sys:String x:Key="History.Delete">Löschen</sys:String>
+    <sys:String x:Key="History.Cut">Ausschneiden</sys:String>
+    <sys:String x:Key="History.Paste">Einfügen</sys:String>
+    <sys:String x:Key="History.ResizeImage">Bildgröße</sys:String>
+    <sys:String x:Key="History.CanvasSize">Leinwandgröße</sys:String>
+    <sys:String x:Key="History.Crop">Zuschneiden</sys:String>
+    <sys:String x:Key="History.Rotate90">Um 90° im Uhrzeigersinn drehen</sys:String>
+    <sys:String x:Key="History.Rotate180">Um 180° drehen</sys:String>
+    <sys:String x:Key="History.Rotate270">Um 90° gegen den Uhrzeigersinn drehen</sys:String>
+    <sys:String x:Key="History.FlipHorizontal">Waagerecht spiegeln</sys:String>
+    <sys:String x:Key="History.FlipVertical">Senkrecht spiegeln</sys:String>
+    <sys:String x:Key="History.FlipLayerHorizontal">Ebene waagerecht spiegeln</sys:String>
+    <sys:String x:Key="History.FlipLayerVertical">Ebene senkrecht spiegeln</sys:String>
+    <sys:String x:Key="History.TransformLayer">Ebene transformieren</sys:String>
+    <sys:String x:Key="History.LayerNew">Neue Ebene</sys:String>
+    <sys:String x:Key="History.LayerDuplicate">Ebene duplizieren</sys:String>
+    <sys:String x:Key="History.LayerDelete">Ebene löschen</sys:String>
+    <sys:String x:Key="History.LayerProperties">Ebeneneigenschaften</sys:String>
+    <sys:String x:Key="History.LayerMoveUp">Ebene nach oben</sys:String>
+    <sys:String x:Key="History.LayerMoveDown">Ebene nach unten</sys:String>
+    <sys:String x:Key="History.LayerGroup">Gruppe erstellen</sys:String>
+    <sys:String x:Key="History.LayerUngroup">Gruppe auflösen</sys:String>
+    <sys:String x:Key="History.LayerVisibility">Sichtbarkeit</sys:String>
+    <sys:String x:Key="History.LayerLock">Ebenensperre</sys:String>
+    <sys:String x:Key="History.LayerOpacity">Deckkraft</sys:String>
+    <sys:String x:Key="History.LayerBlendMode">Mischmodus</sys:String>
+    <sys:String x:Key="History.MaskAdd">Maske hinzufügen</sys:String>
+    <sys:String x:Key="History.MaskEnabled">Maske aktivieren/deaktivieren</sys:String>
+    <sys:String x:Key="History.MaskInvert">Maske umkehren</sys:String>
+    <sys:String x:Key="History.MaskApply">Maske anwenden</sys:String>
+    <sys:String x:Key="History.MaskDelete">Maske löschen</sys:String>
+    <sys:String x:Key="History.LayerMerge">Zusammenführen</sys:String>
+    <sys:String x:Key="History.LayerFlatten">Auf eine Ebene reduzieren</sys:String>
+    <sys:String x:Key="History.Import">Importieren</sys:String>
+    <sys:String x:Key="Status.Undone">Rückgängig: {0}</sys:String>
+    <sys:String x:Key="Status.Redone">Wiederholt: {0}</sys:String>
+    <sys:String x:Key="Status.Selection">Auswahl: {0} × {1}</sys:String>
+    <sys:String x:Key="Status.NoSelection">Keine Auswahl</sys:String>
+    <sys:String x:Key="Status.ToolName">Werkzeug: {0}</sys:String>
+    <sys:String x:Key="Status.MaskEditing">Maske bearbeiten</sys:String>
+    <sys:String x:Key="Status.Copied">Kopiert: {0} × {1} px</sys:String>
+
+    <!-- Dialoge M4 -->
+    <sys:String x:Key="Dlg.Grow.Title">Auswahl erweitern</sys:String>
+    <sys:String x:Key="Dlg.Shrink.Title">Auswahl verkleinern</sys:String>
+    <sys:String x:Key="Dlg.Radius">_Radius (px):</sys:String>
+    <sys:String x:Key="Dlg.Number.Error">Bitte eine Zahl von {0} bis {1} eingeben.</sys:String>
+    <sys:String x:Key="Dlg.ImageSize.Title">Bildgröße</sys:String>
+    <sys:String x:Key="Dlg.CanvasSize.Title">Leinwandgröße</sys:String>
+    <sys:String x:Key="Dlg.Size.Width">_Breite (px):</sys:String>
+    <sys:String x:Key="Dlg.Size.Height">_Höhe (px):</sys:String>
+    <sys:String x:Key="Dlg.Size.KeepRatio">_Seitenverhältnis beibehalten</sys:String>
+    <sys:String x:Key="Dlg.Size.Anchor">_Ausrichtung des Bildes:</sys:String>
+    <sys:String x:Key="Anchor.TopLeft">Oben links</sys:String>
+    <sys:String x:Key="Anchor.Top">Oben</sys:String>
+    <sys:String x:Key="Anchor.TopRight">Oben rechts</sys:String>
+    <sys:String x:Key="Anchor.Left">Links</sys:String>
+    <sys:String x:Key="Anchor.Center">Mitte</sys:String>
+    <sys:String x:Key="Anchor.Right">Rechts</sys:String>
+    <sys:String x:Key="Anchor.BottomLeft">Unten links</sys:String>
+    <sys:String x:Key="Anchor.Bottom">Unten</sys:String>
+    <sys:String x:Key="Anchor.BottomRight">Unten rechts</sys:String>
+    <sys:String x:Key="Dlg.Transform.Title">Ebene transformieren</sys:String>
+    <sys:String x:Key="Dlg.Transform.Angle">_Drehung (°, im Uhrzeigersinn):</sys:String>
+    <sys:String x:Key="Dlg.Transform.Scale">_Skalierung (%):</sys:String>
+    <sys:String x:Key="Dlg.Transform.Error">Drehung −360 bis 360 °, Skalierung 1 bis 1000 %.</sys:String>
+
+    <!-- Zwischenablage -->
+    <sys:String x:Key="Msg.Clipboard.Title">Zwischenablage</sys:String>
+    <sys:String x:Key="Msg.Clipboard.Empty">Die Zwischenablage enthält kein Bild.</sys:String>
+    <sys:String x:Key="Msg.Clipboard.Failed">Auf die Zwischenablage konnte nicht zugegriffen werden (vielleicht von einem anderen Programm belegt). Bitte erneut versuchen.</sys:String>
+    <sys:String x:Key="Msg.Clipboard.TooLarge">Das Bild in der Zwischenablage ist zu groß.</sys:String>
+    <sys:String x:Key="Layer.Pasted">Eingefügt</sys:String>
 
     <!-- Fehler -->
     <sys:String x:Key="Msg.Error.Title">Fehler</sys:String>

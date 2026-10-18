@@ -156,6 +156,29 @@ try {
     Start-Sleep -Milliseconds 300
     Check "Strg+B passt das Bild ein ($(Get-ZoomValue) %, beim Öffnen $initial %)" ((Get-ZoomValue) -eq $initial)
 
+    # 6) Malen mit echter Maus: Taste B (Pinsel), Strich ziehen, Strg+Z – Statusleiste meldet „Rückgängig: Pinsel"
+    function Get-StatusMessage {
+        foreach ($t in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $textCond)) {
+            if ($t.Current.Name -like 'Rückgängig:*' -or $t.Current.Name -like 'Bereit*' -or $t.Current.Name -like 'Geöffnet:*') { return $t.Current.Name }
+        }
+        return $null
+    }
+    Assert-Foreground 'Taste B'
+    [System.Windows.Forms.SendKeys]::SendWait('b')
+    Start-Sleep -Milliseconds 200
+    [NativeInput]::SetCursorPos($cx - 100, $cy) | Out-Null
+    Start-Sleep -Milliseconds 100
+    Assert-Foreground 'Pinselstrich'
+    [NativeInput]::mouse_event([NativeInput]::LEFTDOWN, 0, 0, 0, [UIntPtr]::Zero)
+    for ($step = 1; $step -le 10; $step++) { [NativeInput]::SetCursorPos($cx - 100 + 20 * $step, $cy + 5 * $step) | Out-Null; Start-Sleep -Milliseconds 30 }
+    [NativeInput]::mouse_event([NativeInput]::LEFTUP, 0, 0, 0, [UIntPtr]::Zero)
+    Start-Sleep -Milliseconds 300
+    Assert-Foreground 'Strg+Z'
+    [System.Windows.Forms.SendKeys]::SendWait('^z')
+    Start-Sleep -Milliseconds 300
+    $status = Get-StatusMessage
+    Check "Pinselstrich mit echter Maus und Strg+Z ($status)" ($status -like 'Rückgängig: Pinsel*')
+
     # Bildschirmfoto des Fensters
     [NativeInput]::GetWindowRect($hwnd, [ref]$rect) | Out-Null
     $shot = New-Object System.Drawing.Bitmap ($rect.Right - $rect.Left), ($rect.Bottom - $rect.Top)

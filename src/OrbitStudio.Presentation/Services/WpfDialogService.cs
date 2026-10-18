@@ -43,6 +43,24 @@ public sealed class WpfDialogService : IDialogService
         return ShowCommon(dialog) ? (dialog.FileName, dialog.FilterIndex - 1) : null;
     }
 
+    public Domain.Imaging.ColorRgba? ShowColorPicker(Domain.Imaging.ColorRgba initial)
+    {
+        var dialog = new ColorDialog(initial) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Result : null;
+    }
+
+    public double[]? ShowNumbers(string titleKey, IReadOnlyList<NumberField> fields, bool linkFirstTwo = false)
+    {
+        var dialog = new NumberFieldsDialog(titleKey, fields, linkFirstTwo) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Result : null;
+    }
+
+    public (int Width, int Height, Tools.Transform.CanvasAnchor Anchor)? ShowCanvasSize(int width, int height)
+    {
+        var dialog = new CanvasSizeDialog(width, height) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Result : null;
+    }
+
     public LayerProperties? ShowLayerProperties(LayerProperties initial, LayerPropertyFocus focus)
     {
         var dialog = new LayerPropertiesDialog(initial, focus) { Owner = Owner };

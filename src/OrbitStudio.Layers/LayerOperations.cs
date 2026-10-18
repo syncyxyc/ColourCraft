@@ -45,19 +45,20 @@ public static class LayerOperations
     /// Fügt ein Bild als neue Ebene über der aktiven ein, oben links ausgerichtet.
     /// Liefert true in <c>Cropped</c>, wenn das Bild größer als das Dokument war und beschnitten wurde.
     /// </summary>
-    public static (PixelLayer Layer, bool Cropped) ImportAsLayer(ImageDocument document, PixelBuffer image, string name)
+    public static (PixelLayer Layer, bool Cropped) ImportAsLayer(ImageDocument document, PixelBuffer image, string name,
+        int offsetX = 0, int offsetY = 0)
     {
         var pixels = PixelBuffer.Create(document.Width, document.Height);
-        var width = Math.Min(image.Width, document.Width);
-        var height = Math.Min(image.Height, document.Height);
-        for (var y = 0; y < height; y++)
+        var target = new IntRect(offsetX, offsetY, image.Width, image.Height).Intersect(document.Bounds);
+        for (var y = target.Y; y < target.Bottom; y++)
         {
-            image.GetRow(y)[..(width * 4)].CopyTo(pixels.GetRow(y));
+            image.GetRow(y - offsetY).Slice((target.X - offsetX) * 4, target.Width * 4)
+                .CopyTo(pixels.GetRow(y).Slice(target.X * 4));
         }
 
         var layer = new PixelLayer(name, pixels);
         InsertAboveActive(document, layer);
-        return (layer, image.Width > document.Width || image.Height > document.Height);
+        return (layer, target.Width < image.Width || target.Height < image.Height);
     }
 
     /// <summary>Tiefe Kopie direkt über dem Original; die Kopie wird aktiv und ist nicht gesperrt.</summary>

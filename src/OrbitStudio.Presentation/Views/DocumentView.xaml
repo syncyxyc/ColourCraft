@@ -15,7 +15,7 @@
 
         <vp:CanvasView x:Name="Canvas" ViewModel="{Binding}"
                        ShowPixelGrid="{Binding DataContext.ShowPixelGrid, RelativeSource={RelativeSource AncestorType=Window}}"
-                       ToolTip="{StaticResource Workspace.CanvasHint}" ToolTipService.InitialShowDelay="2000"
+                       Tools="{Binding DataContext.Tools, RelativeSource={RelativeSource AncestorType=Window}}"
                        AutomationProperties.Name="Leinwand" />
 
         <ScrollBar x:Name="VerticalBar" Grid.Column="1" Orientation="Vertical" Minimum="0"

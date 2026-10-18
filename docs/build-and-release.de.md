@@ -38,6 +38,7 @@ ReadyToRun) stehen in `OrbitStudio.App.csproj` und gelten nur beim Veröffentlic
 | Datum | Build | Ergebnis |
 |---|---|---|
 | 18.10.2026 (M1) | `artifacts/publish/OrbitStudio.exe`, 142,3 MB, Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (18/18, Exitcode 0) |
+| 18.10.2026 (M4) | `artifacts/publish/OrbitStudio.exe`, 157,6 MB, Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (117/117, Exitcode 0) |
 | 18.10.2026 (M3) | `artifacts/publish/OrbitStudio.exe`, 156,9 MB, Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (79/79, Exitcode 0) |
 | 18.10.2026 (M2) | `artifacts/publish/OrbitStudio.exe`, 156,6 MB (inkl. SkiaSharp-Native), Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (42/42, Exitcode 0) – inkl. Öffnen/Export über SkiaSharp aus der Single-File-EXE |
 

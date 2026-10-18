@@ -3,9 +3,10 @@
 Windows-Bildbearbeitung (WPF, .NET 10) mit Ebenen, Werkzeugen, Effekten und eigenem Projektformat `.orbit`.
 Vollständig deutsche Oberfläche, keine Telemetrie.
 
-> Status: **Meilenstein M3** – Bilder öffnen (PNG, JPEG, BMP, WebP, GIF), anzeigen mit Zoom und Verschieben,
-> Ebenen mit Gruppen, Masken, Deckkraft und 9 Mischmodi, Importieren als Ebene, exportieren (PNG, JPEG, BMP, WebP).
-> Werkzeuge und Rückgängig folgen in M4; noch nicht verfügbare Menübefehle sind deaktiviert und nennen ihren Meilenstein. Details: [docs/implementation-roadmap.de.md](docs/implementation-roadmap.de.md)
+> Status: **Meilenstein M4** – Bilder öffnen und exportieren, Ebenen mit Gruppen, Masken und 9 Mischmodi,
+> 22 Werkzeuge (Auswahl, Malen, Formen, Füllen, Verlauf, Pipette, Verschieben, Zuschneiden, Hand, Zoom),
+> Rückgängig/Wiederholen, Zwischenablage, Bildgröße/Leinwand/Drehen/Spiegeln. Effekte und das Projektformat
+> folgen; noch nicht verfügbare Menübefehle sind deaktiviert und nennen ihren Meilenstein. Details: [docs/implementation-roadmap.de.md](docs/implementation-roadmap.de.md)
 
 ## Schnellstart
 

@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\OrbitStudio.Application\OrbitStudio.Application.csproj" />
+    <ProjectReference Include="..\..\src\OrbitStudio.Tools\OrbitStudio.Tools.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

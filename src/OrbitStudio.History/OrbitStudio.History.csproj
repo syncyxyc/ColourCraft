@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Rückgängig/Wiederholen: Historie je Dokument, Deltas und gezielte Schnappschüsse. Kennt keine UI. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+  </ItemGroup>
+</Project>

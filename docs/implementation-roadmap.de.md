@@ -6,7 +6,7 @@
 | M1 | Grundgerüst | ✅ abgeschlossen (18.10.2026) |
 | M2 | Dokumentmodell, Import, Darstellung | ✅ abgeschlossen (18.10.2026) |
 | M3 | Ebenen und Komposition | ✅ abgeschlossen (18.10.2026) |
-| M4 | Werkzeuge, Auswahl, Historie | offen |
+| M4 | Werkzeuge, Auswahl, Historie | ✅ abgeschlossen (18.10.2026) |
 | M5 | Strichmuster-Werkzeug | offen |
 | M6 | Effekte | offen |
 | M7 | Projektformat `.orbit` | offen |
@@ -109,8 +109,35 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Ebenen-Panel andockbar, Vorschaubilder, Ziehen zum Umsortieren, Verschieben in/aus Gruppen → M8.
 - Maske bemalen → M4 (Werkzeuge).
 
-## Nächster Schritt: M4
+## M4 – Werkzeuge, Auswahl, Historie (18.10.2026)
 
-Historie (Undo/Redo, Command-Pattern mit Deltas), Werkzeug-API `ITool`, Zeichenwerkzeuge (Pinsel, Bleistift,
-Radierer, Linie, Rechteck, Ellipse), Auswahlwerkzeuge und Auswahlmasken, Transformation, Farbwahl;
-Ebenenoperationen werden rückgängig machbar. Je Werkzeuggruppe mindestens ein Integrationstest.
+Erfüllt:
+- Neues Projekt `OrbitStudio.History`: Historie je Dokument mit Pixel-/Masken-Deltas, Auswahl-, Ebenenbaum- und
+  Inhaltsschnappschüssen, Zusammenfassen von Reglerschritten, Grenzen für Anzahl und Speicher (Einstellungen).
+  Rückgängig (Strg+Z) / Wiederholen (Strg+Y) für alle Bearbeitungen inkl. aller Ebenenoperationen und Panel-Änderungen.
+- Neues Projekt `OrbitStudio.Tools`: Werkzeug-API `ITool` mit Optionen, Überlagerungen, Abbruch/Übernahme;
+  22 Werkzeuge in 5 Gruppen (Auswahl 6, Transformation 2, Zeichnen 9, Füllung/Farbe 3, Ansicht 2).
+- Auswahlmodell mit Grenzregel, Verknüpfungsmodi, Zauberstab/Farbbereich mit Toleranz, Erweitern/Verkleinern
+  (euklidisch), Umkehren, Alles auswählen, Aufheben, Auswahl aus Ebenentransparenz; Auswahlkontur auf der Leinwand.
+  Alle Malwerkzeuge sind auf Auswahl und Bildgrenzen begrenzt.
+- Bearbeiten: Ausschneiden, Kopieren, Einfügen (als neue Ebene, an Originalposition, mit Auswahl und
+  Verschieben-Werkzeug), Löschen; Zwischenablage mit PNG (Transparenz) und Standard-Bitmap.
+- Bild: Bildgröße, Leinwandgröße (Ausrichtung), Drehen 90°/180°/270°, Spiegeln, Auf Auswahl zuschneiden.
+  Ebenen: spiegeln, frei drehen/skalieren (Dialog), Maske bemalen („Maske bearbeiten“).
+- Oberfläche: Werkzeugleiste mit Vorder-/Hintergrundfarbe (Farbdialog mit RGBA und Hex, Tauschen X, Zurücksetzen D),
+  Optionsleiste (Größe, Härte, Deckkraft, Kantenglättung, Linienbreite, Toleranz, Modi), Werkzeug-Tastenkürzel,
+  Statusleiste mit Werkzeug, Auswahlgröße und Meldungen („Rückgängig: Pinsel“, gesperrte Ebene …).
+- Die Rückfragen vor Löschen/Zusammenführen/Reduzieren/Maske anwenden aus M3 sind entfallen (rückgängig machbar).
+- Tests: 333 Unit-/Integrations-/Architekturtests (je Werkzeuggruppe ein Integrationsablauf), 117 Smoke-Prüfungen.
+  Single-File-EXE geprüft.
+
+Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
+- Text, Klonen, Retusche (Werkzeuggruppe „Erweitert“) und Farbfelder.
+- Freies Drehen/Skalieren von Ebenen nur per Dialog, ohne Anfasser und Live-Vorschau.
+- Eingabetest mit echter Maus für das Malen: Skript erweitert, in M4 nicht ausgeführt.
+
+## Nächster Schritt: M5
+
+Strichmuster-Werkzeug nach Abschnitt 1.1: ziehbare Kontrollpunkte (Überlagerung), Echtzeitvorschau, Winkel/Länge/
+Richtung, synchrone Eingabefelder X1/Y1/X2/Y2, Parameter (Linienstärke, Strichlänge, Strichabstand, Farbe, Deckkraft),
+Segmentberechnung ohne UI mit Randfällen, Anwenden/Abbrechen/Zurücksetzen, Rückgängig; Abnahme dokumentiert.

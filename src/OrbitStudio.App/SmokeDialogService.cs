@@ -1,4 +1,6 @@
+using OrbitStudio.Domain.Imaging;
 using OrbitStudio.Presentation.Services;
+using OrbitStudio.Tools.Transform;
 
 namespace OrbitStudio.App;
 
@@ -20,6 +22,30 @@ internal sealed class SmokeDialogService : IDialogService
     public Queue<(string Path, int FilterIndex)?> SaveFileAnswers { get; } = new();
 
     public Queue<Func<LayerProperties, LayerProperties?>> LayerPropertiesAnswers { get; } = new();
+
+    public Queue<ColorRgba?> ColorAnswers { get; } = new();
+
+    public Queue<double[]?> NumberAnswers { get; } = new();
+
+    public Queue<(int Width, int Height, CanvasAnchor Anchor)?> CanvasAnswers { get; } = new();
+
+    public ColorRgba? ShowColorPicker(ColorRgba initial) => ColorAnswers.TryDequeue(out var answer) ? answer : null;
+
+    public double[]? ShowNumbers(string titleKey, IReadOnlyList<NumberField> fields, bool linkFirstTwo = false)
+    {
+        if (!NumberAnswers.TryDequeue(out var answer) || answer is null)
+        {
+            return null;
+        }
+
+        // Wie der echte Dialog: Werte gegen die Feldgrenzen prüfen.
+        var (values, _) = Presentation.Views.NumberFieldsDialog.Validate(fields,
+            answer.Select(v => v.ToString(Presentation.Localization.Loc.Culture)).ToList());
+        return values;
+    }
+
+    public (int Width, int Height, CanvasAnchor Anchor)? ShowCanvasSize(int width, int height) =>
+        CanvasAnswers.TryDequeue(out var answer) ? answer : null;
 
     public NewDocumentRequest? ShowNewDocument(string defaultName, int defaultWidth, int defaultHeight) =>
         NewDocumentAnswers.TryDequeue(out var answer) ? answer : null;

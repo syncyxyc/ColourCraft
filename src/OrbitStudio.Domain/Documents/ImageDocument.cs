@@ -1,5 +1,6 @@
 using OrbitStudio.Domain.Imaging;
 using OrbitStudio.Domain.Layers;
+using OrbitStudio.Domain.Selection;
 
 namespace OrbitStudio.Domain.Documents;
 
@@ -69,11 +70,89 @@ public sealed class ImageDocument
         }
     }
 
-    public int Width { get; }
+    public int Width { get; private set; }
 
-    public int Height { get; }
+    public int Height { get; private set; }
 
     public IntRect Bounds => new(0, 0, Width, Height);
+
+    /// <summary>Aktuelle Auswahl oder null (keine Auswahl = das ganze Bild ist bearbeitbar).</summary>
+    public SelectionMask? Selection { get; private set; }
+
+    public bool HasSelection => Selection is not null;
+
+    /// <summary>Auswahl hat sich geändert.</summary>
+    public event EventHandler? SelectionChanged;
+
+    /// <summary>Bildgröße hat sich geändert (Bildgröße, Leinwand, Drehen, Zuschneiden).</summary>
+    public event EventHandler? SizeChanged;
+
+    /// <summary>
+    /// Setzt die Auswahl. Eine leere Maske wird als „keine Auswahl" gespeichert. Die Maske wird übernommen
+    /// (nicht kopiert) und darf danach nicht mehr verändert werden.
+    /// </summary>
+    public void SetSelection(SelectionMask? selection)
+    {
+        if (selection is not null && (selection.Width != Width || selection.Height != Height))
+        {
+            throw new ArgumentException("Die Auswahl muss die Größe des Dokuments haben.", nameof(selection));
+        }
+
+        Selection = selection is null || selection.IsEmpty ? null : selection;
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Bearbeitungsfaktor eines Pixels (0–255): Auswahlwert oder 255 ohne Auswahl.</summary>
+    public byte EditableAmount(int x, int y) => Selection?.Get(x, y) ?? 255;
+
+    /// <summary>Schnappschuss von Größe, Pixelpuffern, Masken und Auswahl (Referenzen, keine Kopien).</summary>
+    public DocumentContent CaptureContent() => new(Width, Height,
+        PixelLayers.ToDictionary(l => l, l => (l.Pixels, l.Mask)), Selection);
+
+    /// <summary>
+    /// Ersetzt Größe und Inhalt aller Pixelebenen auf einmal (Bildgröße, Leinwand, Drehen, Zuschneiden, Rückgängig).
+    /// Jede Pixelebene des Dokuments muss enthalten sein; alle Puffer und Masken müssen die neue Größe haben.
+    /// </summary>
+    public void ReplaceContent(DocumentContent content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        if (DocumentLimits.ValidateSize(content.Width, content.Height) is var check && check != SizeValidationResult.Valid)
+        {
+            throw new DocumentValidationException(check);
+        }
+
+        foreach (var layer in PixelLayers)
+        {
+            if (!content.Layers.TryGetValue(layer, out var entry))
+            {
+                throw new ArgumentException($"Inhalt für Ebene „{layer.Name}“ fehlt.", nameof(content));
+            }
+
+            if (entry.Pixels.Width != content.Width || entry.Pixels.Height != content.Height
+                || (entry.Mask is { } m && (m.Width != content.Width || m.Height != content.Height)))
+            {
+                throw new ArgumentException("Puffergröße passt nicht zur neuen Dokumentgröße.", nameof(content));
+            }
+        }
+
+        var sizeChanged = Width != content.Width || Height != content.Height;
+        Width = content.Width;
+        Height = content.Height;
+        foreach (var (layer, entry) in content.Layers)
+        {
+            layer.Pixels = entry.Pixels;
+            layer.Mask = entry.Mask;
+        }
+
+        Selection = content.Selection;
+        if (sizeChanged)
+        {
+            SizeChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        CommitLayerChange();
+    }
 
     /// <summary>Wurzel des Ebenenbaums. Kinder von unten (Index 0) nach oben.</summary>
     public LayerGroup Root { get; }
@@ -241,6 +320,18 @@ public sealed class ImageDocument
             throw new ArgumentOutOfRangeException(nameof(dpi), dpi, "Ungültige Auflösung.");
         }
     }
+}
+
+/// <summary>Größe und Inhalt eines Dokuments zu einem Zeitpunkt (Referenzen auf Puffer, keine Kopien).</summary>
+public sealed record DocumentContent(
+    int Width,
+    int Height,
+    IReadOnlyDictionary<PixelLayer, (PixelBuffer Pixels, LayerMask? Mask)> Layers,
+    SelectionMask? Selection)
+{
+    /// <summary>Ungefährer Speicherbedarf in Byte (für die Begrenzung der Historie).</summary>
+    public long SizeBytes => Layers.Values.Sum(v => (long)v.Pixels.Data.Length + (v.Mask is null ? 0 : v.Mask.Data.Length))
+                             + (Selection?.Data.Length ?? 0);
 }
 
 /// <summary>Wird ausgelöst, wenn ein Dokument mit ungültigen Abmessungen angelegt werden soll.</summary>

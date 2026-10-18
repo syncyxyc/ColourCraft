@@ -10,6 +10,7 @@ using OrbitStudio.Domain.Documents;
 using OrbitStudio.Presentation.Commands;
 using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Services;
+using OrbitStudio.Presentation.Tooling;
 using static OrbitStudio.Presentation.Commands.CommandIds;
 
 namespace OrbitStudio.Presentation.ViewModels;
@@ -24,10 +25,13 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly SettingsService _settings;
     private readonly ImageFileService _files;
     private readonly ILogger<MainViewModel> _logger;
+    private readonly HistoryService _histories;
+    private readonly IClipboardService _clipboard;
     private readonly ObservableCollection<MenuItemViewModel> _recentItems = [];
 
     public MainViewModel(DocumentWorkspace workspace, CommandRegistry registry, IDialogService dialogs,
-        IShellService shell, SettingsService settings, ImageFileService files, ILogger<MainViewModel> logger)
+        IShellService shell, SettingsService settings, ImageFileService files, ToolController tools,
+        HistoryService histories, IClipboardService clipboard, ILogger<MainViewModel> logger)
     {
         _workspace = workspace;
         _registry = registry;
@@ -35,11 +39,26 @@ public sealed partial class MainViewModel : ObservableObject
         _shell = shell;
         _settings = settings;
         _files = files;
+        Tools = tools;
+        _histories = histories;
+        _clipboard = clipboard;
         _logger = logger;
+
+        Tools.ProblemReported += OnToolProblem;
+        Tools.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ToolController.ActiveTool) or nameof(ToolController.EditMask))
+            {
+                OnPropertyChanged(nameof(ToolStatusText));
+                _registry.NotifyStateChanged();
+            }
+        };
 
         _workspace.DocumentAdded += (_, doc) =>
         {
-            Documents.Add(new DocumentViewModel(doc));
+            Documents.Add(new DocumentViewModel(doc) { LayerEdits = this });
+            _histories.For(doc).Changed += (_, _) => _registry.NotifyStateChanged();
+            doc.SelectionChanged += (_, _) => _registry.NotifyStateChanged();
             // Ebenenbefehle hängen von der aktiven Ebene ab.
             doc.ActiveLayerChanged += (_, _) => _registry.NotifyStateChanged();
             doc.LayersChanged += (_, _) => _registry.NotifyStateChanged();
@@ -49,11 +68,13 @@ public sealed partial class MainViewModel : ObservableObject
             var vm = Documents.FirstOrDefault(d => d.Document == doc);
             if (vm is not null)
             {
+                Tools.ForgetDocument(vm);
                 Documents.Remove(vm);
             }
         };
         _workspace.ActiveDocumentChanged += (_, _) =>
         {
+            Tools.CommitActive();
             ActiveDocument = Documents.FirstOrDefault(d => d.Document == _workspace.ActiveDocument);
             _registry.NotifyStateChanged();
         };
@@ -61,6 +82,7 @@ public sealed partial class MainViewModel : ObservableObject
         _settings.WorkspaceChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowPixelGrid));
+            OnPropertyChanged(nameof(ShowToolOptions));
             _registry.NotifyStateChanged();
         };
 
@@ -79,9 +101,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     public CommandRegistry Registry => _registry;
 
+    /// <summary>Werkzeuge, Farben und Masken-Bearbeitungsmodus.</summary>
+    public ToolController Tools { get; }
+
     public bool HasDocuments => Documents.Count > 0;
 
-    public string ToolStatusText => Loc.Get("Status.Tool");
+    public string ToolStatusText => Loc.Format("Status.ToolName", Tools.ActiveToolName)
+                                    + (Tools.EditMask ? " · " + Loc.Get("Status.MaskEditing") : string.Empty);
 
     /// <summary>Pixelraster ab 800 % (Arbeitsbereichs-Einstellung, gilt für alle Dokumente).</summary>
     public bool ShowPixelGrid => _settings.Workspace.ShowPixelGrid;
@@ -258,15 +284,7 @@ public sealed partial class MainViewModel : ObservableObject
         Add(AppCommand.Create(FileExit, "Cmd.File.Exit", _shell.RequestExit));
 
         // Bearbeiten
-        Plan(EditUndo, "Cmd.Edit.Undo", "M4", "Ctrl+Z");
-        Plan(EditRedo, "Cmd.Edit.Redo", "M4", "Ctrl+Y");
-        Plan(EditCut, "Cmd.Edit.Cut", "M4", "Ctrl+X");
-        Plan(EditCopy, "Cmd.Edit.Copy", "M4", "Ctrl+C");
-        Plan(EditPaste, "Cmd.Edit.Paste", "M4", "Ctrl+V");
-        Plan(EditDelete, "Cmd.Edit.Delete", "M4", "Delete");
-        Plan(EditSelectAll, "Cmd.Edit.SelectAll", "M4", "Ctrl+A");
-        Plan(EditDeselect, "Cmd.Edit.Deselect", "M4", "Ctrl+D");
-        Plan(EditInvertSelection, "Cmd.Edit.InvertSelection", "M4", "Ctrl+I");
+        RegisterEditingCommands();
         Plan(EditPreferences, "Cmd.Edit.Preferences", "M9");
 
         // Ansicht
@@ -282,12 +300,7 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(ViewPanels, "Cmd.View.Panels", "M8");
         Plan(ViewWorkspaces, "Cmd.View.Workspaces", "M9");
 
-        // Bild
-        Plan(ImageResize, "Cmd.Image.Resize", "M4", "Ctrl+R");
-        Plan(ImageCanvasSize, "Cmd.Image.CanvasSize", "M4", "Ctrl+Shift+R");
-        Plan(ImageRotate, "Cmd.Image.Rotate", "M4");
-        Plan(ImageFlip, "Cmd.Image.Flip", "M4");
-        Plan(ImageCrop, "Cmd.Image.Crop", "M4");
+        // Bild (Größe, Drehen, Spiegeln, Zuschneiden: MainViewModel.Editing.cs)
         Add(AppCommand.Create(ImageInfo, "Cmd.Image.Info", ShowDocumentInfo, HasDoc));
 
         // Ebenen (MainViewModel.Layers.cs)
@@ -313,7 +326,6 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(EffectExtensions, "Cmd.Effect.Extensions", "M10");
 
         // Werkzeuge
-        Plan(ToolsOptions, "Cmd.Tools.Options", "M4");
         Plan(ToolsShortcuts, "Cmd.Tools.Shortcuts", "M9");
 
         // Fenster
@@ -344,7 +356,9 @@ public sealed partial class MainViewModel : ObservableObject
     private IReadOnlyList<MenuItemViewModel> BuildMenus() =>
         MenuLayout.Default.Select(menu => MenuItemViewModel.Submenu(
             Loc.Get(menu.TextKey),
-            menu.Items.Select(BuildMenuItem).ToList())).ToList();
+            menu.Items.SelectMany(id => id == MenuLayout.ToolsTokens
+                ? Tools.Tools.Select(t => MenuItemViewModel.ForCommand(_registry.Get(ToolPrefix + t.Id), _registry))
+                : [BuildMenuItem(id)]).ToList())).ToList();
 
     private MenuItemViewModel BuildMenuItem(string id) => id switch
     {

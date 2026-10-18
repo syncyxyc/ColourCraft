@@ -1,6 +1,6 @@
 # Benutzerhandbuch – ORBIT Studio
 
-Stand: Meilenstein M3. Dieses Handbuch beschreibt nur Funktionen, die bereits umgesetzt sind.
+Stand: Meilenstein M4. Dieses Handbuch beschreibt nur Funktionen, die bereits umgesetzt sind.
 Ausgegraute Menüeinträge nennen im Tooltip den Meilenstein, in dem sie folgen.
 
 ## Bilder anlegen und öffnen
@@ -26,8 +26,72 @@ Fotos mit EXIF-Ausrichtung erscheinen richtig gedreht. Farbprofile werden nach s
 | Pixelraster ab 800 % | Ansicht › Pixelraster (wird gespeichert) |
 | Vollbild | F11 |
 
-Zoom und Ausschnitt merkt sich jedes Dokument einzeln. Die Statusleiste zeigt Bildgröße,
-Pixelposition unter dem Mauszeiger und Zoom. Zoomen verändert niemals das Bild.
+Zoom und Ausschnitt merkt sich jedes Dokument einzeln. Die Statusleiste zeigt Werkzeug, Bildgröße,
+Pixelposition unter dem Mauszeiger, Zoom und Auswahlgröße. Zoomen verändert niemals das Bild.
+
+## Werkzeuge
+
+Links stehen die Werkzeuge, darunter Vorder- und Hintergrundfarbe. Oben zeigt die **Optionsleiste** die
+Einstellungen des aktiven Werkzeugs (Werkzeuge › Werkzeugoptionen blendet sie aus und ein). Linke Maustaste malt mit
+der Vordergrundfarbe, rechte mit der Hintergrundfarbe. **Esc** bricht eine laufende Bearbeitung ab, **Enter**
+übernimmt sie (Polygonauswahl, Zuschneiden).
+
+| Werkzeug | Taste | Hinweise |
+|---|---|---|
+| Rechteckauswahl / Ellipsenauswahl | M / Umschalt+M | Klick ohne Ziehen hebt die Auswahl auf |
+| Freihandauswahl (Lasso) / Polygonauswahl | S / Umschalt+S | Polygon: Klicks setzen Ecken, Doppelklick oder Enter schließt |
+| Zauberstab / Farbbereich | W / Umschalt+W | Toleranz in %, Quelle Ebene oder Bild |
+| Ausgewählte Pixel verschieben | V | ohne Auswahl die ganze Ebene; Pfeiltasten 1 px, mit Umschalt 10 px |
+| Zuschneiden | C | Rechteck ziehen, Enter oder Doppelklick schneidet zu |
+| Pinsel | B | Größe, Härte, Deckkraft, Kantenglättung |
+| Bleistift | P | harte, nicht geglättete Pixel |
+| Radierer | E | macht Pixel transparent |
+| Freihandlinie / Linie | F / L | Linie: Umschalt rastet in 15°-Schritten ein |
+| Rechteck / gefülltes Rechteck | R / Umschalt+R | Umschalt beim Ziehen: Quadrat |
+| Ellipse / gefüllte Ellipse | O / Umschalt+O | Umschalt beim Ziehen: Kreis |
+| Farbeimer | G | Toleranz, zusammenhängend oder ganzes Bild |
+| Verlauf | Umschalt+G | linear oder radial, von Vorder- zu Hintergrundfarbe |
+| Pipette | I | links: Vordergrund-, rechts: Hintergrundfarbe |
+| Hand / Zoom | H / Z | Zoom: Klick vergrößert, Rechtsklick oder Alt+Klick verkleinert |
+
+**Farben:** Klick auf ein Farbfeld öffnet den Farbdialog (Rot, Grün, Blau, Deckkraft, Hex wie `#FF8800` oder
+`#FF880080`). **X** tauscht die Farben, **D** setzt Schwarz/Weiß.
+
+Gesperrte Ebenen und Gruppen werden nicht bemalt; die Statusleiste zeigt dann einen Hinweis.
+
+## Auswahl
+
+Bei Auswahlwerkzeugen gilt: **Umschalt** fügt hinzu, **Alt** zieht ab, **Umschalt+Alt** bildet die Schnittmenge
+(oder Modus in der Optionsleiste). Alle Malwerkzeuge wirken nur innerhalb der Auswahl.
+
+| Befehl (Menü Bearbeiten) | Kürzel |
+|---|---|
+| Alles auswählen / Auswahl aufheben / Auswahl umkehren | Strg+A / Strg+D / Strg+I |
+| Auswahl erweitern … / verkleinern … | – (Radius in Pixeln) |
+| Auswahl aus Ebenentransparenz | Menü Ebenen |
+
+## Bearbeiten und Rückgängig
+
+| Befehl | Kürzel |
+|---|---|
+| Rückgängig / Wiederholen | Strg+Z / Strg+Y |
+| Ausschneiden / Kopieren / Einfügen | Strg+X / Strg+C / Strg+V |
+| Löschen (ausgewählte Pixel transparent) | Entf |
+
+Jede Bearbeitung – Malen, Auswahl, Ebenen, Bildgröße – lässt sich rückgängig machen; die Statusleiste nennt den
+Schritt („Rückgängig: Pinsel“). Je Dokument werden bis zu 100 Schritte gespeichert. **Einfügen** legt eine neue Ebene
+an (an der ursprünglichen Stelle, wenn das Bild aus ORBIT Studio kopiert wurde), wählt sie aus und aktiviert das
+Verschieben-Werkzeug. Kopiert wird mit Transparenz.
+
+## Bild
+
+| Befehl (Menü Bild) | Kürzel |
+|---|---|
+| Bildgröße … (Seitenverhältnis optional fest) | Strg+R |
+| Leinwandgröße … (mit Ausrichtung) | Strg+Umschalt+R |
+| Um 90° im / gegen den Uhrzeigersinn drehen | Strg+H / Strg+Umschalt+H |
+| Um 180° drehen, waagerecht/senkrecht spiegeln | – |
+| Auf Auswahl zuschneiden | Strg+Umschalt+X |
 
 ## Ebenen
 
@@ -39,7 +103,7 @@ auf die sich alle Befehle im Menü **Ebenen** beziehen.
 | Kästchen links | Sichtbarkeit ein/aus |
 | Name (fett = Gruppe), darunter Deckkraft und Mischmodus | Doppelklick öffnet die Ebeneneigenschaften |
 | „M“ | Ebene hat eine Maske (blass = deaktiviert) |
-| 🔒-Kästchen | Sperre: nicht löschen, verschieben, zusammenführen |
+| 🔒-Kästchen | Sperre: nicht bemalen, löschen, verschieben, zusammenführen |
 
 Unter der Liste: **Deckkraft** (Regler) und **Mischmodus** der aktiven Ebene, darunter Schaltflächen für
 Neue Ebene, Duplizieren, Nach oben, Nach unten und Löschen.
@@ -58,14 +122,19 @@ Neue Ebene, Duplizieren, Nach oben, Nach unten und Löschen.
 
 **Gruppen** fassen Ebenen zusammen; Sichtbarkeit, Deckkraft und Mischmodus der Gruppe wirken auf ihren ganzen Inhalt.
 
-**Masken:** Ebenen › Maske hinzufügen legt eine weiße Maske an (alles sichtbar). Maske umkehren, aktiv/inaktiv
-schalten, anwenden (in die Pixel einrechnen) oder löschen. Masken bemalen ist ab Meilenstein M4 möglich.
+**Masken:** Ebenen › Maske hinzufügen legt eine weiße Maske an (alles sichtbar). Mit **Ebenen › Maske bearbeiten**
+malen alle Malwerkzeuge in die Maske statt in die Pixel: Schwarz verbirgt, Weiß zeigt, Grau macht teilweise
+durchsichtig; der Radierer öffnet die Maske wieder. Außerdem: Maske umkehren, aktiv/inaktiv schalten, anwenden
+(in die Pixel einrechnen) oder löschen.
+
+**Ebene spiegeln / transformieren:** Ebenen › Ebene waagerecht/senkrecht spiegeln; „Ebene transformieren …“ dreht
+(Grad) und skaliert (%) die aktive Ebene um die Bildmitte.
 
 **Importieren** (Datei › Importieren, Strg+Umschalt+O) fügt Bilddateien als neue Ebenen ein (oben links ausgerichtet;
 zu große Bilder werden beschnitten).
 
-Noch gibt es kein Rückgängig. Löschen, Zusammenführen, Reduzieren und „Maske anwenden“ fragen deshalb nach.
-Ebenen bleiben erst mit dem Projektformat `.orbit` (Meilenstein M7) über das Schließen hinaus erhalten.
+Alle Ebenenänderungen lassen sich mit Strg+Z rückgängig machen. Ebenen bleiben erst mit dem Projektformat `.orbit`
+(Meilenstein M7) über das Schließen hinaus erhalten.
 
 ## Exportieren
 
@@ -82,7 +151,9 @@ erscheint vorher ein Hinweis. Die Ebenen im Dokument bleiben dabei erhalten.
 
 Tab-Schaltfläche ✕, **Datei › Schließen** (Strg+W) oder **Alle schließen** (Strg+Umschalt+W).
 
-## Tastenkürzel (umgesetzte Befehle)
+## Tastenkürzel (Datei und Ansicht)
+
+Werkzeug-, Bearbeiten-, Bild- und Ebenenkürzel stehen in den jeweiligen Abschnitten oben.
 
 | Befehl | Kürzel |
 |---|---|

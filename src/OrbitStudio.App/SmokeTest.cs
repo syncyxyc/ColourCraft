@@ -80,6 +80,7 @@ internal static class SmokeTest
             CheckBasics(context);
             await CheckFilesAndViewAsync(context, shotBase);
             await CheckLayersAsync(context, shotBase);
+            CheckTools(context, shotBase);
             CheckFullScreen(context);
         }
         catch (Exception ex)
@@ -347,7 +348,7 @@ internal static class SmokeTest
         c.Check("Ebeneneigenschaften: Name und Deckkraft übernommen",
             gray.Name == "Grau" && gray.Opacity == 1.0 && doc.Layers[0].Name == "Grau");
 
-        // Duplizieren, Reihenfolge, Löschen (Rückfrage wird bestätigt)
+        // Duplizieren, Reihenfolge, Löschen (ohne Rückfrage – rückgängig machbar)
         c.Execute(CommandIds.LayerDuplicate);
         var copy = doc.Document.ActiveLayer!;
         c.Check("Duplizieren legt Kopie darüber an", doc.Document.LayerCount == 3 && doc.Document.Root.Children[2] == copy
@@ -357,8 +358,13 @@ internal static class SmokeTest
         c.Check("Nach unten verschiebt in der Liste", doc.Document.Root.Children[1] == copy && doc.Layers[1].Node == copy);
         c.Dialogs.Messages.Clear();
         c.Execute(CommandIds.LayerDelete);
-        c.Check("Löschen mit Rückfrage", doc.Document.LayerCount == 2 && !doc.Document.Contains(copy)
-                                          && c.Dialogs.Messages.Any(m => m.Kind == "confirm"));
+        c.Check("Löschen ohne Rückfrage", doc.Document.LayerCount == 2 && !doc.Document.Contains(copy)
+                                           && !c.Dialogs.Messages.Any(m => m.Kind == "confirm"));
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Rückgängig stellt gelöschte Ebene an derselben Stelle wieder her",
+            doc.Document.LayerCount == 3 && doc.Document.Root.Children[1] == copy && doc.Layers[1].Node == copy);
+        c.Execute(CommandIds.EditRedo);
+        c.Check("Wiederholen löscht sie erneut", !doc.Document.Contains(copy));
 
         // Sperre
         doc.Document.ActiveLayer = gray;
@@ -437,6 +443,177 @@ internal static class SmokeTest
         c.Execute(CommandIds.FileCloseAll);
         c.Check("Schließen mit ungespeicherten Änderungen fragt nach",
             vm.Documents.Count == 0 && c.Dialogs.Messages.Any(m => m.Title == "discard"));
+    }
+
+    // --- M4: Werkzeuge, Auswahl, Historie ---------------------------------------------------------
+
+    private static void CheckTools(Context c, string shotBase)
+    {
+        var vm = c.Vm;
+        var tools = vm.Tools;
+        var doc = vm.CreateDocument(new NewDocumentRequest("Werkzeuge", 120, 80, DocumentBackground.White));
+        Flush(c.Window);
+        var layer = doc.Document.PixelLayers.Single();
+        var canvas = FindDescendant<CanvasView>(c.Window)!;
+
+        c.Check("Werkzeugleiste mit 22 Werkzeugen sichtbar",
+            FindDescendant<System.Windows.Controls.ItemsControl>(c.Window, "ToolPalette") is { Items.Count: 22, IsVisible: true });
+        c.Check("Leinwand ist mit dem Werkzeug-Controller verbunden", canvas.Tools == tools);
+        var palette = FindDescendant<System.Windows.Controls.ItemsControl>(c.Window, "ToolPalette")!;
+        var lastTool = (FrameworkElement)palette.ItemContainerGenerator.ContainerFromIndex(palette.Items.Count - 1);
+        var paletteBottom = lastTool.TranslatePoint(new Point(0, lastTool.ActualHeight), palette).Y;
+        c.Check($"Alle Werkzeuge in der Leiste sichtbar (unterstes endet bei {paletteBottom:0} von {palette.ActualHeight:0})",
+            paletteBottom <= palette.ActualHeight + 0.5);
+        var primaryButton = (System.Windows.Controls.Button)c.Window.FindName("PrimaryColorButton");
+        c.Check("Farbfeld zeigt die Farbe (Inhalt hat Größe)",
+            primaryButton.Content is FrameworkElement { ActualWidth: > 20, ActualHeight: > 20 });
+        c.Check("Ohne Bearbeitung: Rückgängig deaktiviert", !c.CanExecute(CommandIds.EditUndo));
+
+        void Stroke(double x0, double y0, double x1, double y1, OrbitStudio.Tools.PointerButton button = OrbitStudio.Tools.PointerButton.Primary)
+        {
+            tools.PointerDown(doc, new PointD(x0, y0), default, button, OrbitStudio.Tools.ToolModifiers.None, 1);
+            for (var i = 1; i <= 8; i++)
+            {
+                var t = i / 8.0;
+                tools.PointerMove(doc, new PointD(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t), default, button,
+                    OrbitStudio.Tools.ToolModifiers.None);
+            }
+
+            tools.PointerUp(doc, new PointD(x1, y1), default, button, OrbitStudio.Tools.ToolModifiers.None);
+            Flush(c.Window);
+        }
+
+        // Werkzeugwahl über das Tastenkürzel-Kommando (wie Taste „P")
+        c.Execute(CommandIds.ToolPrefix + "pencil");
+        c.Check("Werkzeugwahl per Befehl (Bleistift)", tools.ActiveTool.Id == "pencil"
+                                                        && vm.ToolStatusText.Contains(Loc.Get("Tool.pencil"), StringComparison.Ordinal));
+        c.Check("Optionsleiste zeigt Optionen des Werkzeugs", tools.Options.Count == 1);
+        var original = layer.Pixels.Clone();
+        Stroke(10.5, 10.5, 50.5, 10.5);
+        c.Check("Bleistiftstrich setzt exakte Pixel", layer.Pixels.GetPixel(10, 10) == Bgra32.Black
+                                                       && layer.Pixels.GetPixel(50, 10) == Bgra32.Black
+                                                       && layer.Pixels.GetPixel(30, 11) == Bgra32.White);
+        c.Check("Komposit und Bitmap zeigen den Strich", doc.Composite.GetPixel(30, 10) == Bgra32.Black
+                                                          && BitmapMatches(doc.Bitmap, doc.Composite));
+        c.Check("Bearbeitung markiert Dokument als geändert", doc.IsDirty);
+        var painted = layer.Pixels.Clone();
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Rückgängig (Strg+Z-Befehl) stellt Pixel exakt wieder her", layer.Pixels.ContentEquals(original)
+                                                                         && vm.StatusMessage.Contains(Loc.Get("Tool.pencil"), StringComparison.Ordinal));
+        c.Execute(CommandIds.EditRedo);
+        c.Check("Wiederholen stellt den Strich exakt wieder her", layer.Pixels.ContentEquals(painted));
+
+        // Farben: Tauschen und Pinsel mit rechter Maustaste
+        tools.Colors.Primary = new ColorRgba(255, 0, 0);
+        c.Execute(CommandIds.ColorsSwap);
+        c.Check("Farben tauschen", tools.Colors.Primary == ColorRgba.White && tools.Colors.Secondary == new ColorRgba(255, 0, 0));
+        c.Execute(CommandIds.ToolPrefix + "brush");
+        ((OrbitStudio.Tools.Drawing.BrushTool)tools.ActiveTool).HardnessOption.Value = 100;
+        Stroke(10, 40, 50, 40, OrbitStudio.Tools.PointerButton.Secondary);
+        c.Check("Pinsel mit rechter Maustaste malt Hintergrundfarbe", layer.Pixels.GetPixel(30, 40) == new Bgra32(0, 0, 255, 255));
+        c.Execute(CommandIds.ColorsReset);
+        c.Check("Farben zurücksetzen", tools.Colors.Primary == ColorRgba.Black && tools.Colors.Secondary == ColorRgba.White);
+
+        // Auswahl: Rechteck, dann Pinsel nur innerhalb
+        c.Execute(CommandIds.ToolPrefix + "selectRectangle");
+        Stroke(60, 0, 90, 80);
+        c.Check("Rechteckauswahl", doc.Document.Selection?.Bounds() == new IntRect(60, 0, 30, 80)
+                                    && doc.SelectionText.Contains("30", StringComparison.Ordinal)
+                                    && doc.SelectionOutline.Count >= 4);
+        c.Execute(CommandIds.ToolPrefix + "brush");
+        Stroke(40, 60, 110, 60);
+        c.Check("Malen bleibt innerhalb der Auswahl", layer.Pixels.GetPixel(70, 60) == Bgra32.Black
+                                                       && layer.Pixels.GetPixel(50, 60) == Bgra32.White
+                                                       && layer.Pixels.GetPixel(100, 60) == Bgra32.White);
+        SaveScreenshot(c.Window, shotBase + "-werkzeuge.png");
+
+        // Kopieren / Einfügen (Zwischenablage im Speicher) und Verschieben
+        c.Execute(CommandIds.EditCopy);
+        c.Execute(CommandIds.EditPaste);
+        var pasted = doc.Document.ActivePixelLayer!;
+        c.Check("Einfügen: neue Ebene an Originalstelle, Auswahl, Verschieben-Werkzeug",
+            doc.Document.LayerCount == 2 && pasted.Name == Loc.Get("Layer.Pasted")
+            && pasted.Pixels.GetPixel(70, 60) == Bgra32.Black && pasted.Pixels.GetPixel(10, 10) == Bgra32.Transparent
+            && tools.ActiveTool.Id == "move");
+        Stroke(75, 40, 65, 40); // 10 px nach links
+        c.Check("Verschieben bewegt eingefügte Pixel und Auswahl", pasted.Pixels.GetPixel(60, 60) == Bgra32.Black
+                                                                   && doc.Document.Selection?.Bounds().X == 50);
+        c.Execute(CommandIds.EditUndo);
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Rückgängig: Verschieben und Einfügen", doc.Document.LayerCount == 1 && doc.Document.ActivePixelLayer == layer);
+
+        // Auswahl umkehren, löschen, aufheben – über die Menübefehle
+        c.Execute(CommandIds.EditDeselect);
+        c.Check("Auswahl aufheben", !doc.Document.HasSelection && !c.CanExecute(CommandIds.EditDeselect));
+        c.Execute(CommandIds.EditSelectAll);
+        c.Dialogs.NumberAnswers.Enqueue([10]);
+        c.Execute(CommandIds.EditShrinkSelection);
+        c.Check("Auswahl verkleinern (Dialog 10 px)", doc.Document.Selection?.Bounds() == new IntRect(10, 10, 100, 60));
+        c.Execute(CommandIds.EditDelete);
+        c.Check("Entf löscht ausgewählte Pixel", layer.Pixels.GetPixel(30, 40) == Bgra32.Transparent
+                                                  && layer.Pixels.GetPixel(5, 5) == Bgra32.White);
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Löschen rückgängig", layer.Pixels.GetPixel(30, 40) == new Bgra32(0, 0, 255, 255));
+
+        // Bild: Zuschneiden auf Auswahl, Drehen, Bildgröße
+        c.Execute(CommandIds.ImageCrop);
+        c.Check("Auf Auswahl zuschneiden", doc.Document.Width == 100 && doc.Document.Height == 60
+                                            && doc.Width == 100 && doc.View.DocumentWidth == 100);
+        Flush(c.Window);
+        c.Check("Bitmap nach Größenänderung neu aufgebaut", BitmapMatches(doc.Bitmap, doc.Composite));
+        c.Execute(CommandIds.ImageRotateCw);
+        c.Check("Um 90° drehen", doc.Document.Width == 60 && doc.Document.Height == 100);
+        c.Dialogs.NumberAnswers.Enqueue([30, 50]);
+        c.Execute(CommandIds.ImageResize);
+        c.Check("Bildgröße (Dialog)", doc.Document.Width == 30 && doc.Document.Height == 50);
+        c.Execute(CommandIds.EditUndo);
+        c.Execute(CommandIds.EditUndo);
+        c.Execute(CommandIds.EditUndo);
+        c.Check("Drei Bildtransformationen rückgängig", doc.Document.Width == 120 && doc.Document.Height == 80
+                                                         && layer.Pixels.GetPixel(30, 40) == new Bgra32(0, 0, 255, 255));
+
+        // Farbeimer, Pipette, Maske bemalen
+        c.Execute(CommandIds.EditDeselect);
+        c.Execute(CommandIds.ToolPrefix + "pipette");
+        tools.PointerDown(doc, new PointD(30.5, 40.5), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None, 1);
+        tools.PointerUp(doc, new PointD(30.5, 40.5), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None);
+        c.Check("Pipette übernimmt Farbe", tools.Colors.Primary == new ColorRgba(255, 0, 0));
+        c.Execute(CommandIds.ToolPrefix + "bucket");
+        tools.PointerDown(doc, new PointD(115, 75), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None, 1);
+        tools.PointerUp(doc, new PointD(115, 75), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None);
+        c.Check("Farbeimer füllt zusammenhängende Fläche", layer.Pixels.GetPixel(115, 75) == new Bgra32(0, 0, 255, 255)
+                                                             && layer.Pixels.GetPixel(10, 10) == Bgra32.Black);
+        c.Execute(CommandIds.LayerAddMask);
+        c.Execute(CommandIds.LayerEditMask);
+        c.Check("Maske bearbeiten aktiv", tools.EditMask && vm.ToolStatusText.Contains(Loc.Get("Status.MaskEditing"), StringComparison.Ordinal));
+        c.Execute(CommandIds.ToolPrefix + "pencil");
+        tools.Colors.Primary = ColorRgba.Black;
+        var beforeMask = layer.Pixels.Clone();
+        Stroke(5.5, 70.5, 20.5, 70.5);
+        c.Check("Malen auf der Maske verbirgt Pixel, Ebenenpixel unverändert",
+            layer.Mask!.Get(10, 70) == 0 && layer.Pixels.ContentEquals(beforeMask)
+            && doc.Composite.GetPixel(10, 70) == Bgra32.Transparent);
+        c.Execute(CommandIds.LayerEditMask);
+
+        // Problemmeldung bei gesperrter Ebene
+        c.Execute(CommandIds.LayerLock);
+        Stroke(1.5, 1.5, 3.5, 1.5);
+        c.Check("Gesperrte Ebene: Hinweis statt Malen", vm.StatusMessage == Loc.Get("ToolProblem.LayerLocked"));
+        c.Execute(CommandIds.LayerLock);
+
+        // Escape bricht eine laufende Form ab
+        c.Execute(CommandIds.ToolPrefix + "rectangleFilled");
+        var beforeShape = layer.Pixels.Clone();
+        tools.PointerDown(doc, new PointD(40, 20), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None, 1);
+        tools.PointerMove(doc, new PointD(80, 50), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None);
+        c.Check("Formvorschau sichtbar", !layer.Pixels.ContentEquals(beforeShape));
+        tools.Key(doc, OrbitStudio.Tools.ToolKey.Escape, OrbitStudio.Tools.ToolModifiers.None);
+        tools.PointerUp(doc, new PointD(80, 50), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None);
+        Flush(c.Window);
+        c.Check("Escape stellt Original exakt wieder her", layer.Pixels.ContentEquals(beforeShape));
+
+        c.Dialogs.ConfirmAnswer = true;
+        c.Execute(CommandIds.FileCloseAll);
     }
 
     // --- M1: Vollbild -----------------------------------------------------------------------------
@@ -545,17 +722,18 @@ internal static class SmokeTest
         encoder.Save(stream);
     }
 
-    private static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject
+    private static T? FindDescendant<T>(DependencyObject root, string? name = null) where T : DependencyObject
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
         {
             var child = VisualTreeHelper.GetChild(root, i);
-            if (child is T match && (child is not UIElement ui || ui.IsVisible))
+            if (child is T match && (child is not UIElement ui || ui.IsVisible)
+                && (name is null || (child is FrameworkElement fe && fe.Name == name)))
             {
                 return match;
             }
 
-            if (FindDescendant<T>(child) is { } nested)
+            if (FindDescendant<T>(child, name) is { } nested)
             {
                 return nested;
             }

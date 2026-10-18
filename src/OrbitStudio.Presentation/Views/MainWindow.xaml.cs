@@ -1,14 +1,21 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
+using OrbitStudio.Application.Commands;
 using OrbitStudio.Presentation.ViewModels;
+using OrbitStudio.Tools;
 
 namespace OrbitStudio.Presentation.Views;
 
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+
+    /// <summary>Einfache Tastenkürzel ohne Strg/Alt (z. B. „B", „Shift+M"), Normalform → Befehl.</summary>
+    private readonly Dictionary<string, AppCommand> _simpleShortcuts = new(StringComparer.Ordinal);
 
     public MainWindow(MainViewModel viewModel, ILogger<MainWindow> logger)
     {
@@ -20,19 +27,29 @@ public partial class MainWindow : Window
 
     public MainViewModel ViewModel => _viewModel;
 
-    /// <summary>Tastenkürzel werden nur hier und nur aus der Registry gebunden – nie in einzelnen Controls.</summary>
+    /// <summary>
+    /// Tastenkürzel werden nur hier und nur aus der Registry gebunden – nie in einzelnen Controls.
+    /// Kürzel mit Strg/Alt oder Funktionstasten laufen über WPF-KeyBindings; einfache Buchstaben-Kürzel (Werkzeuge,
+    /// Farben) über <see cref="OnPreviewKeyDown"/>, damit sie beim Tippen in Textfeldern nicht auslösen.
+    /// </summary>
     private void BindShortcuts(ILogger logger)
     {
         foreach (var command in _viewModel.Registry.All)
         {
-            if (command.Gesture is null)
+            if (command.Gesture is not { } text)
             {
+                continue;
+            }
+
+            if (IsSimpleShortcut(text))
+            {
+                _simpleShortcuts[text] = command;
                 continue;
             }
 
             try
             {
-                var gesture = GestureDisplay.ToKeyGesture(command.Gesture);
+                var gesture = GestureDisplay.ToKeyGesture(text);
                 if (gesture is not null)
                 {
                     InputBindings.Add(new KeyBinding(new CommandAdapter(command, _viewModel.Registry), gesture));
@@ -40,10 +57,84 @@ public partial class MainWindow : Window
             }
             catch (Exception ex) when (ex is NotSupportedException or ArgumentException or FormatException)
             {
-                logger.LogError(ex, "Ungültiges Tastenkürzel {Gesture} für {Command}", command.Gesture, command.Id);
+                logger.LogError(ex, "Ungültiges Tastenkürzel {Gesture} für {Command}", text, command.Id);
             }
         }
     }
+
+    /// <summary>Buchstabe/Ziffer, optional mit Umschalt, ohne Strg/Alt/Win.</summary>
+    public static bool IsSimpleShortcut(string gesture)
+    {
+        var parts = gesture.Split('+');
+        var key = parts[^1];
+        var modifiersOk = parts[..^1].All(p => p == "Shift");
+        return modifiersOk && key.Length == 1 && char.IsLetterOrDigit(key[0]);
+    }
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Handled || IsTextInput(Keyboard.FocusedElement))
+        {
+            return;
+        }
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        var modifiers = Keyboard.Modifiers;
+        var document = _viewModel.ActiveDocument;
+
+        // Escape, Enter und Pfeiltasten zuerst an das aktive Werkzeug (Abbrechen, Übernehmen, Verschieben).
+        ToolKey? toolKey = key switch
+        {
+            Key.Escape => ToolKey.Escape,
+            Key.Enter => ToolKey.Enter,
+            Key.Left => ToolKey.Left,
+            Key.Right => ToolKey.Right,
+            Key.Up => ToolKey.Up,
+            Key.Down => ToolKey.Down,
+            _ => null,
+        };
+        if (toolKey is { } tk && document is not null && (modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == 0
+            && !(Keyboard.FocusedElement is Selector or ScrollBar && tk is not (ToolKey.Escape or ToolKey.Enter)))
+        {
+            var toolModifiers = modifiers.HasFlag(ModifierKeys.Shift) ? ToolModifiers.Shift : ToolModifiers.None;
+            if (_viewModel.Tools.Key(document, tk, toolModifiers))
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+
+        if ((modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+        {
+            return;
+        }
+
+        var name = key switch
+        {
+            >= Key.A and <= Key.Z => key.ToString(),
+            >= Key.D0 and <= Key.D9 => ((int)(key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            _ => null,
+        };
+        if (name is null)
+        {
+            return;
+        }
+
+        var gesture = modifiers.HasFlag(ModifierKeys.Shift) ? "Shift+" + name : name;
+        if (_simpleShortcuts.TryGetValue(gesture, out var command) && command.CanExecute())
+        {
+            command.Execute();
+            e.Handled = true;
+        }
+    }
+
+    private static bool IsTextInput(IInputElement? element) =>
+        element is TextBoxBase or PasswordBox || (element is ComboBox { IsEditable: true });
+
+    private void OnPrimaryColorClick(object sender, RoutedEventArgs e) => _viewModel.PickColor(primary: true);
+
+    private void OnSecondaryColorClick(object sender, RoutedEventArgs e) => _viewModel.PickColor(primary: false);
 
     private void OnDragOver(object sender, DragEventArgs e)
     {
@@ -65,6 +156,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        _viewModel.Tools.CommitActive();
         if (!_viewModel.CloseAllDocuments())
         {
             e.Cancel = true;

@@ -25,6 +25,12 @@ public sealed record GlobalSettings : IVersionedSettings
     /// <summary>Qualität für JPEG/WebP-Export (1–100).</summary>
     public int JpegQuality { get; init; } = 92;
 
+    /// <summary>Höchstzahl der Rückgängig-Schritte je Dokument (1–1000).</summary>
+    public int HistoryMaxEntries { get; init; } = 100;
+
+    /// <summary>Speichergrenze der Historie je Dokument in MB (16–16384).</summary>
+    public int HistoryMaxMegabytes { get; init; } = 1024;
+
     /// <summary>Bringt geladene Werte in gültige Bereiche. Liefert true, wenn etwas korrigiert wurde.</summary>
     public static GlobalSettings Normalize(GlobalSettings s, out bool changed)
     {
@@ -38,6 +44,8 @@ public sealed record GlobalSettings : IVersionedSettings
         var width = s.NewDocumentWidth is > 0 and <= 65_535 ? s.NewDocumentWidth : defaults.NewDocumentWidth;
         var height = s.NewDocumentHeight is > 0 and <= 65_535 ? s.NewDocumentHeight : defaults.NewDocumentHeight;
         var quality = s.JpegQuality is >= 1 and <= 100 ? s.JpegQuality : defaults.JpegQuality;
+        var historyEntries = s.HistoryMaxEntries is >= 1 and <= 1000 ? s.HistoryMaxEntries : defaults.HistoryMaxEntries;
+        var historyMb = s.HistoryMaxMegabytes is >= 16 and <= 16384 ? s.HistoryMaxMegabytes : defaults.HistoryMaxMegabytes;
 
         var result = s with
         {
@@ -47,11 +55,15 @@ public sealed record GlobalSettings : IVersionedSettings
             NewDocumentWidth = width,
             NewDocumentHeight = height,
             JpegQuality = quality,
+            HistoryMaxEntries = historyEntries,
+            HistoryMaxMegabytes = historyMb,
         };
         changed = language != s.Language
                   || width != s.NewDocumentWidth
                   || height != s.NewDocumentHeight
                   || quality != s.JpegQuality
+                  || historyEntries != s.HistoryMaxEntries
+                  || historyMb != s.HistoryMaxMegabytes
                   || s.RecentFiles is null
                   || !recent.SequenceEqual(s.RecentFiles);
         return result;
@@ -95,6 +107,9 @@ public sealed record WorkspaceSettings : IVersionedSettings
 
     /// <summary>Pixelraster bei starker Vergrößerung (ab 800 %) anzeigen.</summary>
     public bool ShowPixelGrid { get; init; } = true;
+
+    /// <summary>Leiste mit den Optionen des aktiven Werkzeugs anzeigen.</summary>
+    public bool ShowToolOptions { get; init; } = true;
 
     public static WorkspaceSettings Normalize(WorkspaceSettings s, out bool changed)
     {

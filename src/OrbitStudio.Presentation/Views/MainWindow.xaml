@@ -4,6 +4,7 @@
         xmlns:vm="clr-namespace:OrbitStudio.Presentation.ViewModels"
         xmlns:views="clr-namespace:OrbitStudio.Presentation.Views"
         xmlns:conv="clr-namespace:OrbitStudio.Presentation.Converters"
+        xmlns:tooling="clr-namespace:OrbitStudio.Presentation.Tooling"
         Title="{Binding WindowTitle}"
         MinWidth="640" MinHeight="480"
         Background="{DynamicResource Brush.Window.Background}"
@@ -75,7 +76,115 @@
             <StatusBarItem>
                 <TextBlock MinWidth="80" Text="{Binding ActiveDocument.ZoomText, FallbackValue={StaticResource Status.CursorOutside}}" />
             </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock x:Name="SelectionStatus" MinWidth="110"
+                           Text="{Binding ActiveDocument.SelectionText, FallbackValue={StaticResource Status.CursorOutside}}" />
+            </StatusBarItem>
         </StatusBar>
+
+        <!-- Optionsleiste des aktiven Werkzeugs -->
+        <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border}"
+                Background="{DynamicResource Brush.Panel.Background}" Padding="8,3"
+                Visibility="{Binding ShowToolOptions, Converter={StaticResource BoolToVisible}}"
+                AutomationProperties.Name="Werkzeugoptionen">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Tools.ActiveToolName}" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,16,0" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Tools.ActiveToolHint}" Opacity="0.7"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="16,0,0,0" />
+                <ItemsControl x:Name="ToolOptions" ItemsSource="{Binding Tools.Options}" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.Resources>
+                        <DataTemplate DataType="{x:Type tooling:NumberOptionViewModel}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <Slider Width="110" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                                        SmallChange="{Binding Step}" LargeChange="10" IsSnapToTickEnabled="True"
+                                        TickFrequency="{Binding Step}" VerticalAlignment="Center"
+                                        Value="{Binding Value, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" />
+                                <TextBox Width="44" Margin="6,0,2,0" VerticalAlignment="Center"
+                                         Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                         AutomationProperties.Name="{Binding Label}" />
+                                <TextBlock Text="{Binding Unit}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type tooling:ToggleOptionViewModel}">
+                            <CheckBox Content="{Binding Label}" IsChecked="{Binding Value, Mode=TwoWay}"
+                                      VerticalAlignment="Center" Margin="0,0,16,0" />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type tooling:ChoiceOptionViewModel}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <ComboBox ItemsSource="{Binding Choices}" SelectedIndex="{Binding Index, Mode=TwoWay}"
+                                          MinWidth="110" AutomationProperties.Name="{Binding Label}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <!-- Werkzeugleiste und Farben (fest links; andockbar ab M8) -->
+        <Border DockPanel.Dock="Left" Width="88" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource Brush.Border}"
+                Background="{DynamicResource Brush.Panel.Background}" AutomationProperties.Name="Werkzeuge">
+            <DockPanel>
+                <!-- Vorder- und Hintergrundfarbe -->
+                <Grid DockPanel.Dock="Bottom" Width="60" Height="60" Margin="0,8,0,8">
+                    <Button x:Name="SecondaryColorButton" Width="34" Height="34" HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom" Padding="0" Click="OnSecondaryColorClick"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                            ToolTip="{StaticResource Colors.Secondary}"
+                            AutomationProperties.Name="{StaticResource Colors.Secondary}">
+                        <Border Background="{DynamicResource Brush.Checkerboard}">
+                            <Border>
+                                <Border.Background>
+                                    <SolidColorBrush Color="{Binding Tools.SecondaryColor}" />
+                                </Border.Background>
+                            </Border>
+                        </Border>
+                    </Button>
+                    <Button x:Name="PrimaryColorButton" Width="34" Height="34" HorizontalAlignment="Left"
+                            VerticalAlignment="Top" Padding="0" Click="OnPrimaryColorClick"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                            ToolTip="{StaticResource Colors.Primary}"
+                            AutomationProperties.Name="{StaticResource Colors.Primary}">
+                        <Border Background="{DynamicResource Brush.Checkerboard}">
+                            <Border>
+                                <Border.Background>
+                                    <SolidColorBrush Color="{Binding Tools.PrimaryColor}" />
+                                </Border.Background>
+                            </Border>
+                        </Border>
+                    </Button>
+                    <Button Width="18" Height="18" Padding="0" FontSize="10" Content="⇄" HorizontalAlignment="Right"
+                            VerticalAlignment="Top" Command="{Binding SwapColorsCommand}"
+                            ToolTip="{StaticResource Colors.Swap}" AutomationProperties.Name="{StaticResource Colors.Swap}" />
+                    <Button Width="18" Height="18" Padding="0" FontSize="10" Content="◩" HorizontalAlignment="Left"
+                            VerticalAlignment="Bottom" Command="{Binding ResetColorsCommand}"
+                            ToolTip="{StaticResource Colors.Reset}" AutomationProperties.Name="{StaticResource Colors.Reset}" />
+                </Grid>
+
+                <ItemsControl x:Name="ToolPalette" ItemsSource="{Binding Tools.Items}" Margin="4" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type tooling:ToolItemViewModel}">
+                            <ToggleButton Width="34" Height="30" Margin="1" Padding="0" FontSize="15"
+                                          Content="{Binding Glyph}" IsChecked="{Binding IsActive, Mode=TwoWay}"
+                                          ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Name}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
 
         <!-- Ebenen-Panel (fest rechts; andockbar ab M8) -->
         <Border DockPanel.Dock="Right" Width="270" BorderThickness="1,0,0,0"

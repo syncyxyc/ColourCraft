@@ -25,11 +25,13 @@ public sealed record BlendModeOption(BlendMode Mode, string Name)
 public sealed class LayerItemViewModel : ObservableObject
 {
     private readonly ImageDocument _document;
+    private readonly Func<ILayerEditExecutor> _executor;
 
-    public LayerItemViewModel(ImageDocument document, LayerNode node)
+    public LayerItemViewModel(ImageDocument document, LayerNode node, Func<ILayerEditExecutor>? executor = null)
     {
         _document = document;
         Node = node;
+        _executor = executor ?? (() => DirectLayerEditExecutor.Instance);
     }
 
     public LayerNode Node { get; }
@@ -44,13 +46,26 @@ public sealed class LayerItemViewModel : ObservableObject
     public bool IsVisible
     {
         get => Node.IsVisible;
-        set => LayerOperations.SetVisibility(_document, Node, value);
+        set
+        {
+            if (value != Node.IsVisible)
+            {
+                _executor().Execute(_document, "History.LayerVisibility",
+                    () => LayerOperations.SetVisibility(_document, Node, value));
+            }
+        }
     }
 
     public bool IsLocked
     {
         get => Node.IsLocked;
-        set => LayerOperations.SetLocked(_document, Node, value);
+        set
+        {
+            if (value != Node.IsLocked)
+            {
+                _executor().Execute(_document, "History.LayerLock", () => LayerOperations.SetLocked(_document, Node, value));
+            }
+        }
     }
 
     public bool HasMask => Node is PixelLayer { Mask: not null };
