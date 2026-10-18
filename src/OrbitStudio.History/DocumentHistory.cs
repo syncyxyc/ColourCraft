@@ -28,6 +28,10 @@ public sealed class DocumentHistory
     private readonly LinkedList<IHistoryEntry> _undo = new();
     private readonly Stack<IHistoryEntry> _redo = new();
 
+    // Speicherpunkt: oberster Rückgängig-Eintrag beim letzten Speichern (null = leerer Stapel, z. B. neues Dokument).
+    private IHistoryEntry? _savedTop;
+    private bool _savePointReachable = true;
+
     public DocumentHistory(ImageDocument document, int maxEntries = 100, long maxBytes = 1024L * 1024 * 1024)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
@@ -68,7 +72,7 @@ public sealed class DocumentHistory
         _redo.Clear();
         _undo.AddLast(entry);
         Trim();
-        Changed?.Invoke(this, EventArgs.Empty);
+        OnChanged();
     }
 
     /// <summary>
@@ -81,7 +85,7 @@ public sealed class DocumentHistory
         {
             last.Value = combined;
             Trim();
-            Changed?.Invoke(this, EventArgs.Empty);
+            OnChanged();
             return;
         }
 
@@ -98,7 +102,7 @@ public sealed class DocumentHistory
         _undo.RemoveLast();
         node.Value.Undo(_document);
         _redo.Push(node.Value);
-        Changed?.Invoke(this, EventArgs.Empty);
+        OnChanged();
         return true;
     }
 
@@ -111,7 +115,7 @@ public sealed class DocumentHistory
 
         entry.Redo(_document);
         _undo.AddLast(entry);
-        Changed?.Invoke(this, EventArgs.Empty);
+        OnChanged();
         return true;
     }
 
@@ -119,6 +123,31 @@ public sealed class DocumentHistory
     {
         _undo.Clear();
         _redo.Clear();
+        _savedTop = null;
+        _savePointReachable = !_document.IsDirty;
+        OnChanged();
+    }
+
+    /// <summary>
+    /// Merkt den aktuellen Stand als gespeichert. Wird dieser Stand später durch Rückgängig oder Wiederholen wieder
+    /// erreicht, verliert das Dokument seine Änderungsmarkierung.
+    /// </summary>
+    public void MarkSavePoint()
+    {
+        _savedTop = _undo.Last?.Value;
+        _savePointReachable = true;
+    }
+
+    /// <summary>True, wenn der aktuelle Stand dem gespeicherten entspricht.</summary>
+    public bool IsAtSavePoint => _savePointReachable && ReferenceEquals(_undo.Last?.Value, _savedTop);
+
+    private void OnChanged()
+    {
+        if (IsAtSavePoint)
+        {
+            _document.MarkClean();
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -129,7 +158,7 @@ public sealed class DocumentHistory
         MaxEntries = maxEntries;
         MaxBytes = maxBytes;
         Trim();
-        Changed?.Invoke(this, EventArgs.Empty);
+        OnChanged();
     }
 
     /// <summary>Entfernt die ältesten Einträge. Der jüngste Eintrag bleibt immer erhalten.</summary>
@@ -137,15 +166,27 @@ public sealed class DocumentHistory
     {
         while (_undo.Count > MaxEntries)
         {
-            _undo.RemoveFirst();
+            DropOldest();
         }
 
         var bytes = TotalBytes;
         while (bytes > MaxBytes && _undo.Count > 1)
         {
             bytes -= _undo.First!.Value.SizeBytes;
-            _undo.RemoveFirst();
+            DropOldest();
         }
+    }
+
+    /// <summary>Ältesten Eintrag verwerfen; lag der Speicherpunkt davor oder darauf, ist er nicht mehr erreichbar.</summary>
+    private void DropOldest()
+    {
+        var oldest = _undo.First!.Value;
+        if (_savedTop is null || ReferenceEquals(oldest, _savedTop))
+        {
+            _savePointReachable = false;
+        }
+
+        _undo.RemoveFirst();
     }
 }
 

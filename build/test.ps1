@@ -27,7 +27,9 @@ if ($SkipSmoke) {
 }
 
 Write-Host '== UI-Smoke-Test ==' -ForegroundColor Cyan
-$exe = Join-Path $RepoRoot "src/OrbitStudio.App/bin/$Configuration/net10.0-windows/OrbitStudio.exe"
+# Die App wird von „dotnet test“ nicht zwingend neu gebaut – ohne diesen Schritt könnte eine veraltete EXE geprüft werden.
+Invoke-Dotnet build (Join-Path $RepoRoot 'src/OrbitStudio.App') -c $Configuration -v q -nologo
+$exe =Join-Path $RepoRoot "src/OrbitStudio.App/bin/$Configuration/net10.0-windows/OrbitStudio.exe"
 if (-not (Test-Path $exe)) { throw "Programm nicht gefunden: $exe (zuerst build.ps1 ausführen)." }
 
 $resultFile = Join-Path $results 'smoke-test.txt'

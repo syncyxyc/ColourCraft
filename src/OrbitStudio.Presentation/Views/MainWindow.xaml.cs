@@ -183,14 +183,34 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Beim Beenden erst alle Dokumente schließen (mit Rückfrage und ggf. Speichern im Hintergrund). Weil das Speichern
+    /// asynchron ist, wird das Schließen zunächst abgebrochen und nach erfolgreichem Schließen aller Dokumente erneut
+    /// ausgelöst. Während eines laufenden Vorgangs (Speichern, Effekt) bleibt das Fenster offen.
+    /// </summary>
     protected override void OnClosing(CancelEventArgs e)
     {
         _viewModel.Tools.CommitActive();
-        if (!_viewModel.CloseAllDocuments())
+        if (!_closeConfirmed && (_viewModel.IsBusy || _viewModel.Documents.Count > 0))
         {
             e.Cancel = true;
+            if (!_viewModel.IsBusy)
+            {
+                Dispatcher.InvokeAsync(CloseAfterDocumentsAsync);
+            }
         }
 
         base.OnClosing(e);
+    }
+
+    private bool _closeConfirmed;
+
+    private async Task CloseAfterDocumentsAsync()
+    {
+        if (await _viewModel.CloseAllDocumentsAsync())
+        {
+            _closeConfirmed = true;
+            Close();
+        }
     }
 }

@@ -1,6 +1,6 @@
 # Bekannte Einschränkungen
 
-Stand: 18.10.2026, nach M6. Jeder Punkt nennt den Meilenstein, in dem er behoben wird.
+Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben wird.
 
 ## Funktionen, die noch fehlen
 
@@ -26,9 +26,12 @@ Stand: 18.10.2026, nach M6. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - **Kombinierte Effekte** runden nach jedem Teilschritt auf 8 Bit (wie zwei getrennte Anwendungen).
 - **Verzerrungen:** nur „Verpixeln“; Wellen, Verwirbeln u. Ä. fehlen. Erweiterungen (Plugin-Effekte) → M10.
 - **Fortschritt:** Die Statusleiste meldet nur „wird berechnet“, keinen Prozentwert; Abbrechen nur mit Esc. → M8
-- **Speichern, Speichern unter, Kopie speichern (.orbit):** deaktiviert. Ebenen gehen beim Schließen verloren;
-  der Export schreibt nur das zusammengesetzte Bild (mit Warnung). Die Rückfrage bei ungespeicherten Änderungen
-  bietet nur „Verwerfen“ (OK) oder „Abbrechen“. → M7
+- **Projektformat `.orbit`:** speichert keine Auswahl, keine Ansicht (Zoom, Verschiebung) und keine Historie; nach
+  dem Öffnen beginnt Rückgängig neu. Kein Vorschaubild im Container, keine automatische Sicherung oder
+  Wiederherstellung nach Absturz. Während des Speicherns sind Bearbeitungen gesperrt (kein Speichern „im
+  Hintergrund weiterarbeiten“). Projekte mit nicht destruktiven Effekten gibt es noch nicht (E-039).
+- **Speichern beim Schließen über „Speichern“** schreibt an den bisherigen Projektpfad; Bilder ohne Projektpfad
+  (z. B. geöffnete PNG) werden als `.orbit` gespeichert, nicht zurück ins Bildformat (dafür „Exportieren“).
 - **Ebenen-Panel:** fest rechts, nicht andockbar, ohne Vorschaubilder; Umsortieren nur mit Nach oben/unten
   innerhalb einer Gruppe (nicht per Ziehen, nicht in/aus Gruppen); Auswahlfarbe ohne Fokus ist das Windows-Grau. → M8
 - **Panels allgemein:** Werkzeugleiste, Optionsleiste und Ebenen-Panel sind fest angeordnet; kein Historie-Panel
@@ -71,16 +74,18 @@ Stand: 18.10.2026, nach M6. Jeder Punkt nennt den Meilenstein, in dem er behoben
 
 ## Historie
 
-- **Ungespeicherte Änderungen:** Rückgängig bis zum Ausgangszustand entfernt die Änderungsmarkierung (*) nicht.
-  → M7 (mit dem Speicherpunkt des Projektformats)
 - **Speicher:** Grenzen 100 Schritte / 1024 MB je Dokument (nur über `settings.json` änderbar, → M9). Ein einzelner
   sehr großer Schritt bleibt auch über der Grenze erhalten.
+- **Speicherpunkt:** Fällt der gespeicherte Stand wegen der Grenzen aus der Historie, kann er durch Rückgängig nicht
+  mehr erreicht werden; das Dokument bleibt dann als geändert markiert (sicherer Fall).
 
 ## Leistung (noch nicht gemessen, → M11)
 
 - Jeder Malzug kopiert zu Beginn die ganze Ebene und legt einen Abdeckungspuffer an (zusammen 8 Byte/Pixel);
   bei sehr großen Bildern spürbar. Verlauf und Formvorschau berechnen bei jeder Mausbewegung den betroffenen Bereich neu.
 - Zauberstab mit Quelle „Bild“, Farbeimer mit Quelle „Bild“ und Bildtransformationen laufen im UI-Thread.
+- Projekte: Pixeldaten werden roh mit Deflate („Fastest“) gespeichert und mit SHA-256 geprüft; Dateien sind daher
+  größer als PNG-Ebenen und Speichern/Öffnen sehr großer Projekte dauert entsprechend (nicht gemessen).
 - Effekte: Gaußscher Weichzeichner, Schärfen und Schlagschatten kosten O(Radius) je Pixel, Rauschreduktion O(Radius) je
   Pixel und Kanal plus Median-Suche; bei großen Radien auf großen Bildern spürbar (läuft im Hintergrund, abbrechbar).
   Im Smoke-Test protokolliert, keine Messung nach Spezifikation 14.2: Gauß Radius 4 auf 3000 × 2000 in 752 ms

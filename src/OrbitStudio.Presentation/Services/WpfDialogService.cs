@@ -73,8 +73,12 @@ public sealed class WpfDialogService : IDialogService
         return dialog.ShowDialog() == true ? dialog.Result : null;
     }
 
-    public bool ConfirmDiscardChanges(string documentName) =>
-        Confirm(Loc.Get("Msg.Unsaved.Title"), Loc.Format("Msg.Unsaved.Body", documentName));
+    public UnsavedChangesChoice AskSaveChanges(string documentName)
+    {
+        var dialog = new UnsavedChangesDialog(documentName) { Owner = Owner };
+        dialog.ShowDialog();
+        return dialog.Choice;
+    }
 
     public bool Confirm(string title, string message) =>
         Show(title, message, MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK;

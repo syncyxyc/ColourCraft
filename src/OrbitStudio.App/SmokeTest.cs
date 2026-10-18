@@ -85,6 +85,7 @@ internal static class SmokeTest
             CheckTools(context, shotBase);
             CheckDashPattern(context, shotBase);
             await CheckEffectsAsync(context, shotBase);
+            await CheckProjectsAsync(context);
             CheckFullScreen(context);
         }
         catch (Exception ex)
@@ -448,7 +449,7 @@ internal static class SmokeTest
         c.Dialogs.ConfirmAnswer = true; // ungespeicherte Änderungen verwerfen
         c.Execute(CommandIds.FileCloseAll);
         c.Check("Schließen mit ungespeicherten Änderungen fragt nach",
-            vm.Documents.Count == 0 && c.Dialogs.Messages.Any(m => m.Title == "discard"));
+            vm.Documents.Count == 0 && c.Dialogs.Messages.Any(m => m.Title == "unsaved"));
     }
 
     // --- M4: Werkzeuge, Auswahl, Historie ---------------------------------------------------------
@@ -938,6 +939,129 @@ internal static class SmokeTest
         c.Check("Gesperrte Ebene: Effektbefehle deaktiviert", !c.CanExecute(CommandIds.AdjustInvert) && !c.CanExecute(CommandIds.EffectBlur));
         c.Execute(CommandIds.LayerLock);
         c.Execute(CommandIds.FileCloseAll);
+    }
+
+    // --- M7: Projektformat .orbit ---------------------------------------------------------------
+
+    private static async Task CheckProjectsAsync(Context c)
+    {
+        var vm = c.Vm;
+        var tools = vm.Tools;
+
+        async Task Run(string id)
+        {
+            c.Execute(id);
+            await WaitUntilAsync(() => !vm.IsBusy);
+            Flush(c.Window);
+        }
+
+        void Stroke(DocumentViewModel doc, double y)
+        {
+            c.Execute(CommandIds.ToolPrefix + "pencil");
+            tools.PointerDown(doc, new PointD(5.5, y), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None, 1);
+            tools.PointerMove(doc, new PointD(40.5, y), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None);
+            tools.PointerUp(doc, new PointD(40.5, y), default, OrbitStudio.Tools.PointerButton.Primary, OrbitStudio.Tools.ToolModifiers.None);
+            Flush(c.Window);
+        }
+
+        var doc = vm.CreateDocument(new NewDocumentRequest("Projekt", 100, 60, DocumentBackground.White));
+        Flush(c.Window);
+        c.Check("Speichern, Speichern unter, Kopie speichern aktiv",
+            c.CanExecute(CommandIds.FileSave) && c.CanExecute(CommandIds.FileSaveAs) && c.CanExecute(CommandIds.FileSaveCopy));
+        c.Execute(CommandIds.LayerNew);
+        Stroke(doc, 10.5);
+        var drawn = doc.Document.ActivePixelLayer!;
+        var drawnPixels = drawn.Pixels.Clone();
+
+        // Strg+S ohne Pfad → „Speichern unter“, Endung wird ergänzt
+        var basePath = Path.Combine(c.TempDir, "projekt");
+        var projectPath = basePath + ".orbit";
+        c.Dialogs.SaveFileAnswers.Enqueue((basePath, 0));
+        await Run(CommandIds.FileSave);
+        c.Check("Strg+S ohne Pfad fragt nach dem Ziel und speichert .orbit",
+            File.Exists(projectPath) && doc.Document.FilePath == projectPath && doc.Document.Name == "projekt.orbit"
+            && !doc.IsDirty && !doc.Title.EndsWith('*')
+            && vm.StatusMessage == Loc.Format("Status.Saved", "projekt.orbit")
+            && c.Settings.Global.RecentFiles.FirstOrDefault() == projectPath);
+        c.Check("Keine temporären Dateien im Zielordner",
+            !Directory.GetFiles(c.TempDir).Any(f => Path.GetFileName(f).StartsWith('.') || f.EndsWith(".tmp", StringComparison.Ordinal)));
+
+        // Speicherpunkt: Änderung → geändert, Rückgängig → wieder gespeichert, Wiederholen → geändert
+        Stroke(doc, 20.5);
+        var dirtyAfterEdit = doc.IsDirty;
+        c.Execute(CommandIds.EditUndo);
+        var cleanAfterUndo = !doc.IsDirty && !doc.Title.EndsWith('*');
+        c.Execute(CommandIds.EditRedo);
+        c.Check("Rückgängig bis zum gespeicherten Stand entfernt die Änderungsmarkierung",
+            dirtyAfterEdit && cleanAfterUndo && doc.IsDirty);
+
+        // Strg+S mit Pfad: kein Dialog
+        var answersBefore = c.Dialogs.SaveFileAnswers.Count;
+        await Run(CommandIds.FileSave);
+        c.Check("Strg+S mit vorhandenem Pfad speichert ohne Dialog", !doc.IsDirty && c.Dialogs.SaveFileAnswers.Count == answersBefore);
+        var savedPixels = drawn.Pixels.Clone();
+
+        // Kopie speichern: Dokument behält Pfad, Name und Zustand
+        var copyPath = Path.Combine(c.TempDir, "kopie.orbit");
+        Stroke(doc, 30.5);
+        c.Dialogs.SaveFileAnswers.Enqueue((copyPath, 0));
+        await Run(CommandIds.FileSaveCopy);
+        c.Check("Kopie speichern ändert Pfad, Name und Änderungsmarkierung des Dokuments nicht",
+            File.Exists(copyPath) && doc.Document.FilePath == projectPath && doc.Document.Name == "projekt.orbit" && doc.IsDirty);
+
+        // Rückfrage beim Schließen: Abbrechen lässt offen, Speichern speichert und schließt
+        c.Dialogs.UnsavedAnswers.Enqueue(UnsavedChangesChoice.Cancel);
+        await Run(CommandIds.FileClose);
+        c.Check("Schließen mit Rückfrage: Abbrechen lässt das Dokument offen", vm.Documents.Contains(doc) && doc.IsDirty);
+        var withThirdStroke = drawn.Pixels.Clone();
+        c.Dialogs.UnsavedAnswers.Enqueue(UnsavedChangesChoice.Save);
+        await Run(CommandIds.FileClose);
+        c.Check("Schließen mit Rückfrage: Speichern speichert und schließt", !vm.Documents.Contains(doc));
+
+        // Erneut öffnen (Datei › Öffnen)
+        c.Dialogs.OpenFilesAnswers.Enqueue([projectPath]);
+        await Run(CommandIds.FileOpen);
+        var reopened = vm.ActiveDocument!;
+        var layers = reopened.Document.Root.Children;
+        c.Check("Projekt öffnen: Ebenen, Namen, Pixel und Zustand wie gespeichert",
+            reopened.Document.FilePath == projectPath && !reopened.IsDirty && layers.Count == 2
+            && layers[0].Name == Loc.Get("Layer.Background") && layers[1].Name == drawn.Name
+            && ((PixelLayer)layers[1]).Pixels.ContentEquals(withThirdStroke)
+            && reopened.Document.ActiveLayer == layers[1] && BitmapMatches(reopened.Bitmap, reopened.Composite));
+        c.Dialogs.OpenFilesAnswers.Enqueue([projectPath]);
+        await Run(CommandIds.FileOpen);
+        c.Check("Bereits geöffnetes Projekt wird nur aktiviert", vm.Documents.Count(d => d.Document.FilePath == projectPath) == 1);
+
+        // Kopie enthält den Stand zum Zeitpunkt des Kopierens
+        await vm.OpenFilesAsync([copyPath]);
+        Flush(c.Window);
+        c.Check("Kopie lässt sich öffnen und enthält den kopierten Stand",
+            vm.ActiveDocument?.Document.FilePath == copyPath
+            && ((PixelLayer)vm.ActiveDocument.Document.Root.Children[1]).Pixels.ContentEquals(withThirdStroke)
+            && !((PixelLayer)vm.ActiveDocument.Document.Root.Children[1]).Pixels.ContentEquals(savedPixels)
+            && !drawnPixels.ContentEquals(withThirdStroke));
+
+        // Beschädigte bzw. fremde Datei: kontrollierte deutsche Meldung, nichts geöffnet
+        var fake = Path.Combine(c.TempDir, "kaputt.orbit");
+        await File.WriteAllTextAsync(fake, "kein Projekt");
+        var countBefore = vm.Documents.Count;
+        c.Dialogs.Messages.Clear();
+        await vm.OpenFilesAsync([fake]);
+        c.Check("Kein Projekt: Meldung statt Absturz",
+            vm.Documents.Count == countBefore
+            && c.Dialogs.Messages.Any(m => m.Kind == "error" && m.Message == Loc.Format("Msg.Project.NotAProject", "kaputt.orbit")));
+
+        // Fenster schließen mit ungespeicherten Änderungen: Abbrechen lässt Fenster und Dokument offen
+        Stroke(vm.ActiveDocument!, 40.5);
+        c.Dialogs.UnsavedAnswers.Enqueue(UnsavedChangesChoice.Cancel);
+        c.Window.Close();
+        await WaitUntilAsync(() => c.Dialogs.UnsavedAnswers.Count == 0);
+        Flush(c.Window);
+        c.Check("Programm beenden mit ungespeicherten Änderungen: Abbrechen lässt alles offen",
+            c.Window.IsVisible && vm.Documents.Count == countBefore && vm.ActiveDocument!.IsDirty);
+
+        c.Dialogs.ConfirmAnswer = true;
+        await Run(CommandIds.FileCloseAll);
     }
 
     // --- M1: Vollbild -----------------------------------------------------------------------------

@@ -1,15 +1,16 @@
 # Benutzerhandbuch – ORBIT Studio
 
-Stand: Meilenstein M4. Dieses Handbuch beschreibt nur Funktionen, die bereits umgesetzt sind.
+Stand: Meilenstein M7. Dieses Handbuch beschreibt nur Funktionen, die bereits umgesetzt sind.
 Ausgegraute Menüeinträge nennen im Tooltip den Meilenstein, in dem sie folgen.
 
 ## Bilder anlegen und öffnen
 
 - **Datei › Neu** (Strg+N): Name, Breite, Höhe (1–65.535 px, höchstens 268 Megapixel) und Hintergrund
   (Weiß oder Transparent) wählen.
-- **Datei › Öffnen** (Strg+O): eine oder mehrere Dateien wählen. Unterstützt: PNG, JPEG, BMP, WebP, GIF
-  (nur erstes Einzelbild). Jede Datei wird ein eigener Tab. Eine bereits geöffnete Datei wird nur nach vorn geholt.
-- **Ziehen und Ablegen:** Bilddateien aus dem Explorer in das Fenster ziehen.
+- **Datei › Öffnen** (Strg+O): eine oder mehrere Dateien wählen. Unterstützt: ORBIT-Projekte (`.orbit`), PNG, JPEG,
+  BMP, WebP, GIF (nur erstes Einzelbild). Jede Datei wird ein eigener Tab. Eine bereits geöffnete Datei wird nur nach
+  vorn geholt.
+- **Ziehen und Ablegen:** Bild- und Projektdateien aus dem Explorer in das Fenster ziehen.
 - **Datei › Zuletzt verwendet:** die letzten zehn Dateien. Nicht mehr vorhandene Dateien werden beim
   Öffnen gemeldet und aus der Liste entfernt.
 
@@ -171,8 +172,33 @@ durchsichtig; der Radierer öffnet die Maske wieder. Außerdem: Maske umkehren, 
 **Importieren** (Datei › Importieren, Strg+Umschalt+O) fügt Bilddateien als neue Ebenen ein (oben links ausgerichtet;
 zu große Bilder werden beschnitten).
 
-Alle Ebenenänderungen lassen sich mit Strg+Z rückgängig machen. Ebenen bleiben erst mit dem Projektformat `.orbit`
-(Meilenstein M7) über das Schließen hinaus erhalten.
+Alle Ebenenänderungen lassen sich mit Strg+Z rückgängig machen. Damit Ebenen über das Schließen hinaus erhalten
+bleiben, das Bild als Projekt speichern (siehe „Speichern als Projekt“).
+
+## Speichern als Projekt (.orbit)
+
+Ein **ORBIT-Projekt** enthält alles, was zum Weiterarbeiten nötig ist: Bildgröße und Auflösung, alle Ebenen und
+Gruppen mit Namen, Sichtbarkeit, Deckkraft, Mischmodus und Sperre, Masken (auch deaktivierte), die aktive Ebene und
+die Pixel – verlustfrei. Nicht gespeichert werden die Auswahl, Zoom und Ansicht sowie die Rückgängig-Liste.
+
+- **Datei › Speichern** (Strg+S): speichert in die Projektdatei. Hat das Bild noch keine (neues Bild oder geöffnete
+  PNG/JPEG …), wird wie bei „Speichern unter“ nach dem Ziel gefragt.
+- **Datei › Speichern unter** (Strg+Umschalt+S): neue Projektdatei wählen; der Tab heißt danach wie die Datei.
+- **Datei › Kopie speichern**: schreibt eine Kopie; das geöffnete Bild bleibt mit seiner bisherigen Datei verbunden
+  und behält seine Änderungsmarkierung.
+- Ein Sternchen (*) im Tab und in der Titelzeile zeigt ungespeicherte Änderungen. Wer mit Rückgängig/Wiederholen
+  genau zum gespeicherten Stand zurückkehrt, sieht das Sternchen verschwinden.
+- Gespeichert wird im Hintergrund; währenddessen sind Bearbeitungen kurz gesperrt. Es wird zuerst eine temporäre
+  Datei geschrieben und geprüft und erst dann die alte Datei ersetzt – bricht das Speichern ab (Fehler, voller
+  Datenträger, schreibgeschützte Datei), bleibt die vorhandene Datei unverändert.
+- **Exportieren** (PNG, JPEG …) ist kein Speichern: Dabei werden die Ebenen zu einem Bild zusammengeführt.
+
+Beim **Schließen** eines geänderten Bildes – auch über „Alle schließen“ oder beim Beenden – fragt ORBIT Studio:
+**Speichern** (speichert und schließt), **Nicht speichern** (verwirft die Änderungen) oder **Abbrechen** (nichts wird
+geschlossen). Bei mehreren geänderten Bildern werden zuerst alle Fragen gestellt; ein „Abbrechen“ lässt alle offen.
+
+Beschädigte oder veränderte Projektdateien, Dateien, die kein ORBIT-Projekt sind, zu große Projekte und Projekte aus
+einer neueren Programmversion werden mit einer Meldung abgelehnt; die Datei selbst wird dabei nicht verändert.
 
 ## Farben und Effekte
 
@@ -224,7 +250,8 @@ erscheint vorher ein Hinweis. Die Ebenen im Dokument bleiben dabei erhalten.
 
 ## Dokumente schließen
 
-Tab-Schaltfläche ✕, **Datei › Schließen** (Strg+W) oder **Alle schließen** (Strg+Umschalt+W).
+Tab-Schaltfläche ✕, **Datei › Schließen** (Strg+W) oder **Alle schließen** (Strg+Umschalt+W). Bei ungespeicherten
+Änderungen folgt die Rückfrage „Speichern / Nicht speichern / Abbrechen“ (siehe „Speichern als Projekt“).
 
 ## Tastenkürzel (Datei und Ansicht)
 
@@ -234,6 +261,7 @@ Werkzeug-, Bearbeiten-, Bild- und Ebenenkürzel stehen in den jeweiligen Abschni
 |---|---|
 | Neu | Strg+N |
 | Öffnen | Strg+O |
+| Speichern / Speichern unter | Strg+S / Strg+Umschalt+S |
 | Importieren als Ebene | Strg+Umschalt+O |
 | Exportieren | Strg+Umschalt+E |
 | Schließen / Alle schließen | Strg+W / Strg+Umschalt+W |

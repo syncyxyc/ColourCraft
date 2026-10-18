@@ -11,6 +11,14 @@ public sealed record FileFilter(string Description, IReadOnlyList<string> Patter
 /// <summary>Zahlenfeld eines Eingabedialogs (Beschriftung als Textschlüssel, Grenzen inklusive).</summary>
 public sealed record NumberField(string LabelKey, double Value, double Minimum, double Maximum, int Decimals = 0);
 
+/// <summary>Antwort auf die Rückfrage bei ungespeicherten Änderungen (Spezifikation 5.3).</summary>
+public enum UnsavedChangesChoice
+{
+    Save,
+    Discard,
+    Cancel,
+}
+
 /// <summary>Effektdialog: Effekt, Startwerte und verkleinerte Vorschau-Quelle der aktiven Ebene.</summary>
 public sealed record EffectDialogRequest(Effects.IEffect Effect, Effects.EffectSettings Initial, Effects.EffectPreview Preview);
 
@@ -41,8 +49,8 @@ public interface IDialogService
     /// <summary>Dialog „Ebeneneigenschaften". Null = abgebrochen.</summary>
     LayerProperties? ShowLayerProperties(LayerProperties initial, LayerPropertyFocus focus);
 
-    /// <summary>Fragt, ob ungespeicherte Änderungen verworfen werden dürfen. True = verwerfen.</summary>
-    bool ConfirmDiscardChanges(string documentName);
+    /// <summary>Rückfrage bei ungespeicherten Änderungen: Speichern, Nicht speichern (verwerfen) oder Abbrechen.</summary>
+    UnsavedChangesChoice AskSaveChanges(string documentName);
 
     /// <summary>OK/Abbrechen-Rückfrage. True = OK.</summary>
     bool Confirm(string title, string message);

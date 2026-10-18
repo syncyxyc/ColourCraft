@@ -1,6 +1,6 @@
 # Architektur – ORBIT Studio
 
-Stand: 18.10.2026, Meilenstein M6
+Stand: 18.10.2026, Meilenstein M7
 
 ## Schichten und Projekte
 
@@ -13,13 +13,14 @@ OrbitStudio.App            WPF-Startprojekt: Kompositionswurzel (DI), Theme-Ress
        │    └─ OrbitStudio.Layers    Ebenenoperationen (Neu, Duplizieren, Gruppen, Masken, Zusammenführen, Import)
        │         └─ OrbitStudio.Rendering  Ebenenkomposition (CPU, Mischmodi), Ansichtstransformation
        └─ OrbitStudio.Application  Arbeitsbereich, Command-Registry, Einstellungen, Datei-Dienst, Historie je Dokument
+            ├─ OrbitStudio.Storage       Projektformat .orbit: Schreiben, Prüfen, Lesen, Migration
             ├─ OrbitStudio.Imaging       Codec-Vertrag, Codec-Registry, PNG/JPEG/WebP/GIF (SkiaSharp), BMP
             │    └─ OrbitStudio.Domain   Dokument, Pixelpuffer, Farbe, Geometrie (ohne WPF, ohne Fremdbibliotheken)
             └─ OrbitStudio.Configuration AppInfo, Pfade, versionierte Einstellungen, atomares Speichern
   └─ OrbitStudio.Diagnostics    Datei-Logger (Microsoft.Extensions.Logging), keine Telemetrie
 ```
 
-Weitere Projekte der Spezifikation (Storage, Themes, Docking, Plugin.*)
+Weitere Projekte der Spezifikation (Themes, Docking, Plugin.*)
 werden in dem Meilenstein angelegt, in dem sie Code erhalten ([entscheidungen.md](entscheidungen.md), E-003).
 
 | Projekt | Zielframework | Darf referenzieren |
@@ -33,7 +34,8 @@ werden in dem Meilenstein angelegt, in dem sie Code erhalten ([entscheidungen.md
 | History | net10.0 | Domain |
 | Tools | net10.0 | Domain, History, Rendering, Layers |
 | Effects | net10.0 | Domain, History |
-| Application | net10.0 | Domain, Configuration, Imaging, History, Logging.Abstractions |
+| Storage | net10.0 | Domain |
+| Application | net10.0 | Domain, Configuration, Imaging, History, Storage, Logging.Abstractions |
 | Presentation | net10.0-windows | Application, Rendering, Layers, Tools, Effects, CommunityToolkit.Mvvm |
 | App | net10.0-windows | alle, DI, Logging |
 
@@ -280,8 +282,62 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
   Ersetzen der Zieldatei – ein Abbruch zerstört nie eine vorhandene Datei. Fehler werden als `FileError`
   zurückgegeben und in der Oberfläche als deutsche Meldung angezeigt.
 - „Öffnen“ legt je Bilddatei ein neues Dokument mit einer Ebene an (`SourcePath` = Bilddatei).
-  „Importieren“ liest nur die Pixel (`LoadPixelsAsync`) und fügt sie als Ebene ein. „Speichern“ als
-  `.orbit`-Projekt folgt in M7.
+  „Importieren“ liest nur die Pixel (`LoadPixelsAsync`) und fügt sie als Ebene ein. Dateien mit der Endung
+  `.orbit` werden als Projekt geöffnet (auch per Drag-and-drop, Kommandozeile und „Zuletzt verwendet“).
+
+## Projektformat `.orbit` (`OrbitStudio.Storage`, Formatversion 1)
+
+ZIP-Container (Spezifikation 11.2):
+
+| Eintrag | Inhalt |
+|---|---|
+| `manifest.json` | UTF-8-JSON, siehe unten; wird zuletzt geschrieben (enthält die Prüfsummen) |
+| `layers/NNNN.bgra` | Pixel einer Ebene: rohes BGRA 8 Bit, **vormultipliert**, Zeile für Zeile, Länge = Breite · Höhe · 4 |
+| `masks/NNNN.mask` | Maske einer Ebene: 8 Bit je Pixel (255 = sichtbar), Länge = Breite · Höhe |
+
+Manifest (Felder in camelCase, Aufzählungen als Namen):
+
+```json
+{
+  "format": "orbit-studio-project", "formatVersion": 1,
+  "savedWith": "ORBIT Studio 0.1.0", "savedUtc": "2026-10-18T12:00:00+00:00",
+  "document": { "name": "…", "width": 800, "height": 600, "resolutionDpi": 96,
+                "colorMode": "Bgra8Premultiplied", "background": "White" },
+  "layers": [
+    { "type": "pixel", "id": "0001", "name": "Hintergrund", "visible": true, "opacity": 1, "blendMode": "Normal",
+      "locked": false, "pixels": { "path": "layers/0001.bgra", "length": 1920000, "sha256": "…" },
+      "mask": { "data": { "path": "masks/0001.mask", "length": 480000, "sha256": "…" }, "enabled": true } },
+    { "type": "group", "id": "0002", "name": "Gruppe", "visible": true, "opacity": 0.5, "blendMode": "Multiply",
+      "locked": false, "children": [ … ] }
+  ],
+  "activeLayerId": "0001",
+  "metadata": { "created": "…" }
+}
+```
+
+- `layers` und `children` sind von unten nach oben geordnet (wie im Dokument). IDs gelten nur innerhalb der Datei.
+- **Nicht gespeichert:** Auswahl, Ansicht (Zoom/Verschiebung), Historie. Nicht destruktive Effekte gibt es nicht (E-039).
+- **Lesen in zwei Phasen:** (1) Prüfen ohne Pixeldaten – ZIP, Manifest ≤ 8 MB, Formatkennung, Version (neuer →
+  „nicht unterstützt“, älter → Migration), Schema, Dokumentgröße gegen `DocumentLimits`, Auflösung, Farbmodus,
+  Hintergrund, je Knoten Typ/ID (eindeutig)/Name/Deckkraft 0–1/Mischmodus (nur Namen), Tiefe ≤ 64, ≤ 10.000 Knoten,
+  jeder Datenblock vorhanden, nur einmal verwendet, mit der erwarteten Länge; Summe der Daten ≤ 8 GiB und ≤
+  verfügbarer Speicher; aktive Ebene bekannt. (2) Erst dann Puffer anlegen und je Block genau die erwartete Länge
+  lesen (zu kurz/zu lang → beschädigt) und SHA-256 vergleichen. Jede Abweichung ist ein kontrollierter
+  `ProjectError` (`NotAProject`, `Corrupt`, `UnsupportedVersion`, `TooLarge`, `OutOfMemory`, …).
+- **Migration:** `ProjectMigrator` hebt ein Manifest (JSON-Objekt) schrittweise v → v + 1 an (`IProjectMigration`);
+  fehlende Schritte → „nicht unterstützt“. Version 1 ist die erste Version, die Kette ist daher noch leer und wird mit
+  Test-Migrationen geprüft. Unbekannte zusätzliche Felder werden beim Lesen ignoriert.
+- **Speichern** (`ProjectFileService`, Application): im Hintergrund in `.<name>.<guid>.tmp` im Zielordner schreiben,
+  auf den Datenträger schreiben, die temporäre Datei erneut öffnen und prüfen (`Inspect`), dann per Verschieben mit
+  Überschreiben ersetzen; bei Fehler oder Abbruch bleibt die alte Datei unverändert und die temporäre wird gelöscht.
+  Während des Schreibens sind Befehle und Werkzeuge gesperrt (das Dokument wird direkt, ohne Kopie, gelesen).
+- **Speicherpunkt:** `DocumentHistory.MarkSavePoint()` merkt den obersten Rückgängig-Eintrag; wird er durch
+  Rückgängig/Wiederholen wieder erreicht, verliert das Dokument die Änderungsmarkierung. Verworfene Zweige oder aus der
+  Historie gefallene Einträge machen den Punkt unerreichbar.
+- **Oberfläche:** Speichern (Strg+S; ohne Projektpfad wie „Speichern unter“), Speichern unter (Strg+Umschalt+S; das
+  Dokument heißt danach wie die Datei), Kopie speichern (Zustand des Dokuments bleibt). Schließen/Beenden fragt bei
+  Änderungen „Speichern / Nicht speichern / Abbrechen“; „Alle schließen“ und Beenden stellen erst alle Rückfragen und
+  schließen nur, wenn keine abgebrochen wurde.
 
 ## Datenfluss (Auszug)
 

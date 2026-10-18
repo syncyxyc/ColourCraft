@@ -9,7 +9,7 @@
 | M4 | Werkzeuge, Auswahl, Historie | ✅ abgeschlossen (18.10.2026) |
 | M5 | Strichmuster-Werkzeug | ✅ abgeschlossen (18.10.2026) |
 | M6 | Effekte | ✅ abgeschlossen (18.10.2026) |
-| M7 | Projektformat `.orbit` | offen |
+| M7 | Projektformat `.orbit` | ✅ abgeschlossen (18.10.2026) |
 | M8 | Professionelle Oberfläche | offen |
 | M9 | Anpassbarkeit | offen |
 | M10 | Plugin-API | offen |
@@ -187,8 +187,30 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Farbkurven (Kurveneditor), Effektbrowser, Fortschrittsanzeige → M8; Plugin-Effekte → M10; Messungen → M11.
 - Effekte sind destruktiv mit Rückgängig (E-039).
 
-## Nächster Schritt: M7
+## M7 – Projektformat (18.10.2026)
 
-Projektformat `.orbit` (ZIP mit `manifest.json` und Pixeldaten je Ebene), Validierung vor dem Laden, Versionierung,
-Migrationsgrundlage, Speichern/Speichern unter/Kopie speichern/Öffnen, sichere Dateiersetzung; Pflicht-Workflow aus
-Abschnitt 13 als automatisierter Test.
+Erfüllt:
+- Neues Projekt `OrbitStudio.Storage` (nur Domain): versioniertes, dokumentiertes Format `.orbit` (ZIP, `manifest.json`,
+  rohe vormultiplizierte Pixel je Ebene, Masken, SHA-256 je Datenblock). Gespeichert werden Abmessungen, Auflösung,
+  Hintergrund, Ebenen und Gruppen (verschachtelt), Pixel, Namen, Sichtbarkeit, Deckkraft, Mischmodi, Sperre, Masken
+  (inkl. deaktiviert), aktive Ebene, Metadaten, Formatversion.
+- Prüfung vor dem vollständigen Laden; beschädigte, manipulierte, fremde, zu große und neuere Dateien werden
+  kontrolliert mit deutscher Meldung abgelehnt. Migrationskette für künftige Versionen (mit Test-Migrationen geprüft).
+- Sichere Dateiersetzung (temporäre Datei, auf Datenträger schreiben, erneut prüfen, ersetzen); Abbruch und Fehler lassen
+  die vorhandene Datei unverändert (getestet: Abbruch, schreibgeschützte Datei, fehlender Ordner).
+- Datei › Speichern (Strg+S), Speichern unter (Strg+Umschalt+S), Kopie speichern, Öffnen (auch Drag-and-drop,
+  Kommandozeile, Zuletzt verwendet). Speicherpunkt in der Historie: Rückgängig bis zum gespeicherten Stand entfernt das
+  Sternchen. Rückfrage „Speichern / Nicht speichern / Abbrechen“ beim Schließen, bei „Alle schließen“ und beim Beenden.
+- **Pflicht-Workflow aus Abschnitt 13 besteht als automatisierter Test** (alle 14 Schritte).
+- `build/test.ps1` baut die App vor dem Smoke-Test neu (vorher konnte eine veraltete EXE geprüft werden).
+- Tests: 488 Unit-/Integrations-/Architekturtests, 166 Smoke-Prüfungen (Debug und veröffentlichte EXE).
+
+Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
+- Auswahl, Ansicht und Historie werden nicht im Projekt gespeichert; kein Vorschaubild, keine automatische Sicherung.
+- Laufzeit von Speichern/Öffnen großer Projekte nicht gemessen (M11).
+
+## Nächster Schritt: M8
+
+Professionelle Oberfläche: andockbare Panels (Ebenen, Farben, Historie, Navigator, Eigenschaften, Werkzeugoptionen,
+Effektbrowser), Symbolleisten, Farbfelder, Farbkurven-Editor, Lineale/Raster/Hilfslinien, eigene Icons, Layoutspeicherung.
+Vorher Lizenz und .NET-10-Kompatibilität von AvalonDock prüfen.

@@ -24,13 +24,14 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IShellService _shell;
     private readonly SettingsService _settings;
     private readonly ImageFileService _files;
+    private readonly ProjectFileService _projects;
     private readonly ILogger<MainViewModel> _logger;
     private readonly HistoryService _histories;
     private readonly IClipboardService _clipboard;
     private readonly ObservableCollection<MenuItemViewModel> _recentItems = [];
 
     public MainViewModel(DocumentWorkspace workspace, CommandRegistry registry, IDialogService dialogs,
-        IShellService shell, SettingsService settings, ImageFileService files, ToolController tools,
+        IShellService shell, SettingsService settings, ImageFileService files, ProjectFileService projects, ToolController tools,
         HistoryService histories, IClipboardService clipboard, ILogger<MainViewModel> logger)
     {
         _workspace = workspace;
@@ -39,6 +40,7 @@ public sealed partial class MainViewModel : ObservableObject
         _shell = shell;
         _settings = settings;
         _files = files;
+        _projects = projects;
         Tools = tools;
         _histories = histories;
         _clipboard = clipboard;
@@ -178,11 +180,22 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Schließt ein Dokument nach Rückfrage bei ungespeicherten Änderungen. False = abgebrochen.</summary>
-    public bool CloseDocument(DocumentViewModel document)
+    /// <summary>
+    /// Schließt ein Dokument. Bei ungespeicherten Änderungen: Speichern (bei Erfolg schließen), Nicht speichern
+    /// (verwerfen) oder Abbrechen. Liefert false, wenn das Dokument offen bleibt.
+    /// </summary>
+    public async Task<bool> CloseDocumentAsync(DocumentViewModel document)
     {
-        if (document.IsDirty && !_dialogs.ConfirmDiscardChanges(document.Document.Name))
+        if (document.IsDirty)
         {
-            return false;
+            ActiveDocument = document;
+            switch (_dialogs.AskSaveChanges(document.Document.Name))
+            {
+                case UnsavedChangesChoice.Cancel:
+                    return false;
+                case UnsavedChangesChoice.Save when !await SaveDocumentAsync(document, SaveMode.Save):
+                    return false;
+            }
         }
 
         _workspace.Close(document.Document);
@@ -193,21 +206,33 @@ public sealed partial class MainViewModel : ObservableObject
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void CloseTab(DocumentViewModel? document)
     {
-        if (document is not null)
+        if (document is not null && !IsBusy)
         {
-            CloseDocument(document);
+            RunAsync(() => CloseDocumentAsync(document));
         }
     }
 
-    /// <summary>Schließt alle Dokumente. Bricht ab, sobald der Nutzer eine Rückfrage abbricht.</summary>
-    public bool CloseAllDocuments()
+    /// <summary>
+    /// Schließt alle Dokumente. Zuerst wird für jedes geänderte Dokument gefragt (und ggf. gespeichert); bricht der
+    /// Nutzer ab oder scheitert das Speichern, bleiben alle Dokumente offen. Erst danach wird geschlossen.
+    /// </summary>
+    public async Task<bool> CloseAllDocumentsAsync()
     {
+        foreach (var document in Documents.Where(d => d.IsDirty).ToList())
+        {
+            ActiveDocument = document;
+            switch (_dialogs.AskSaveChanges(document.Document.Name))
+            {
+                case UnsavedChangesChoice.Cancel:
+                    return false;
+                case UnsavedChangesChoice.Save when !await SaveDocumentAsync(document, SaveMode.Save):
+                    return false;
+            }
+        }
+
         foreach (var document in Documents.ToList())
         {
-            if (!CloseDocument(document))
-            {
-                return false;
-            }
+            _workspace.Close(document.Document);
         }
 
         return true;
@@ -270,17 +295,21 @@ public sealed partial class MainViewModel : ObservableObject
         // Datei
         Add(AppCommand.Create(FileNew, "Cmd.File.New", NewDocument, () => !IsBusy, "Ctrl+N"));
         Add(AppCommand.Create(FileOpen, "Cmd.File.Open", () => RunAsync(OpenWithDialogAsync), () => !IsBusy, "Ctrl+O"));
-        Plan(FileSave, "Cmd.File.Save", "M7", "Ctrl+S");
-        Plan(FileSaveAs, "Cmd.File.SaveAs", "M7", "Ctrl+Shift+S");
-        Plan(FileSaveCopy, "Cmd.File.SaveCopy", "M7");
+        Add(AppCommand.Create(FileSave, "Cmd.File.Save",
+            () => RunAsync(() => SaveActiveAsync(SaveMode.Save)), HasDocAndIdle, "Ctrl+S"));
+        Add(AppCommand.Create(FileSaveAs, "Cmd.File.SaveAs",
+            () => RunAsync(() => SaveActiveAsync(SaveMode.SaveAs)), HasDocAndIdle, "Ctrl+Shift+S"));
+        Add(AppCommand.Create(FileSaveCopy, "Cmd.File.SaveCopy",
+            () => RunAsync(() => SaveActiveAsync(SaveMode.Copy)), HasDocAndIdle));
         Add(AppCommand.Create(FileImport, "Cmd.File.Import", () => RunAsync(ImportWithDialogAsync), HasDocAndIdle,
             "Ctrl+Shift+O"));
         Add(AppCommand.Create(FileExport, "Cmd.File.Export", () => RunAsync(ExportWithDialogAsync), HasDocAndIdle,
             "Ctrl+Shift+E"));
         Add(AppCommand.Create(FileDocumentInfo, "Cmd.File.DocumentInfo", ShowDocumentInfo, HasDoc));
         Add(AppCommand.Create(FileClose, "Cmd.File.Close",
-            () => { if (ActiveDocument is { } d) { CloseDocument(d); } }, HasDocAndIdle, "Ctrl+W"));
-        Add(AppCommand.Create(FileCloseAll, "Cmd.File.CloseAll", () => CloseAllDocuments(), HasDocAndIdle, "Ctrl+Shift+W"));
+            () => { if (ActiveDocument is { } d) { RunAsync(() => CloseDocumentAsync(d)); } }, HasDocAndIdle, "Ctrl+W"));
+        Add(AppCommand.Create(FileCloseAll, "Cmd.File.CloseAll", () => RunAsync(CloseAllDocumentsAsync), HasDocAndIdle,
+            "Ctrl+Shift+W"));
         Add(AppCommand.Create(FileExit, "Cmd.File.Exit", _shell.RequestExit));
 
         // Bearbeiten

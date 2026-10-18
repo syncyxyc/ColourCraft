@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Natives Projektformat .orbit: Schreiben, Prüfen, Lesen, Migration. Kennt das Dokumentmodell, keine Fenster. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+  </ItemGroup>
+</Project>

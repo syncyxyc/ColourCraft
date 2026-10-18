@@ -80,10 +80,14 @@ internal sealed class SmokeDialogService : IDialogService
     public LayerProperties? ShowLayerProperties(LayerProperties initial, LayerPropertyFocus focus) =>
         LayerPropertiesAnswers.TryDequeue(out var answer) ? answer(initial) : null;
 
-    public bool ConfirmDiscardChanges(string documentName)
+    /// <summary>Antworten auf „Ungespeicherte Änderungen“. Ohne Eintrag: <see cref="ConfirmAnswer"/> true = Verwerfen, false = Abbrechen.</summary>
+    public Queue<UnsavedChangesChoice> UnsavedAnswers { get; } = new();
+
+    public UnsavedChangesChoice AskSaveChanges(string documentName)
     {
-        Messages.Add(("confirm", "discard", documentName));
-        return ConfirmAnswer;
+        Messages.Add(("confirm", "unsaved", documentName));
+        return UnsavedAnswers.TryDequeue(out var answer) ? answer
+            : ConfirmAnswer ? UnsavedChangesChoice.Discard : UnsavedChangesChoice.Cancel;
     }
 
     public bool Confirm(string title, string message)

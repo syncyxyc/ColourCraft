@@ -19,7 +19,9 @@
 | Architekturtest | `tests/OrbitStudio.Architecture.Tests` | aktiv |
 | UI-Smoke-Test | `OrbitStudio.exe --smoke-test <Datei>` (über `build/test.ps1`) | aktiv |
 | UI-Eingabetest (echte Maus/Tastatur) | `build/ui-input-test.ps1` bzw. `test.ps1 -WithInput` | optional, braucht ungenutzte Sitzung |
-| Integrationstest Pflicht-Workflow (Abschnitt 13) | folgt in M7 | nicht ausgeführt |
+| **Integrationstest Pflicht-Workflow (Abschnitt 13)** | `tests/OrbitStudio.Integration.Tests/MandatoryWorkflowTests.cs` | aktiv |
+| **Projektformat: Rundreise, beschädigte/manipulierte/übergroße Dateien, Migration** | `tests/OrbitStudio.Storage.Tests` | aktiv |
+| Projektdateien mit echten Dateien (sichere Ersetzung, Abbruch, Schreibschutz) | `tests/OrbitStudio.Integration.Tests/MandatoryWorkflowTests.cs` | aktiv |
 | Performance (BenchmarkDotNet) | folgt in M11 | nicht gemessen |
 
 Ausführen: `powershell -ExecutionPolicy Bypass -File build/test.ps1` (optional `-WithInput`).
@@ -102,6 +104,58 @@ Mittelwert 128 ± 0,5, Standardabweichung 20 ± 0,6 (40.000 Pixel).
 | Rauschen (Statistik) | Mittelwert ±0,5, σ ±0,6 | Zufallsstichprobe mit festem Startwert |
 
 ## Ergebnisse
+
+### 18.10.2026 – M7 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+| Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |
+|---|---|---|---|
+| OrbitStudio.Domain.Tests | 74 | 0 | 0 |
+| OrbitStudio.Configuration.Tests | 19 | 0 | 0 |
+| OrbitStudio.Application.Tests | 24 | 0 | 0 |
+| OrbitStudio.Imaging.Tests | 27 | 0 | 0 |
+| OrbitStudio.Rendering.Tests | 60 | 0 | 0 |
+| OrbitStudio.Layers.Tests | 23 | 0 | 0 |
+| OrbitStudio.History.Tests | 16 | 0 | 0 |
+| OrbitStudio.Tools.Tests | 106 | 0 | 0 |
+| OrbitStudio.Effects.Tests | 42 | 0 | 0 |
+| **OrbitStudio.Storage.Tests** | **38** | 0 | 0 |
+| OrbitStudio.Integration.Tests | 29 | 0 | 0 |
+| OrbitStudio.Architecture.Tests | 30 | 0 | 0 |
+| **Summe** | **488** | **0** | **0** |
+
+Neu:
+- **Projektformat (38):** Rundreise mit Gruppen (verschachtelt), Masken (deaktiviert, Einzelwerte), Deckkraft,
+  Mischmodi, Sperre, Sichtbarkeit, teiltransparenten vormultiplizierten Pixeln (byteweise), Metadaten, aktiver Ebene;
+  Containerinhalt; Prüfung ohne Pixeldaten. Abgelehnt werden: keine ZIP-Datei, fehlendes Manifest, fremde
+  Formatkennung, neuere Version, unlesbares Manifest (3 Fälle), fehlender Datenblock, falsche Länge, **manipulierte
+  Pixel (Prüfsumme)**, abgeschnittene Datei, übergroße Abmessungen (2 Fälle, vor dem Anlegen der Puffer),
+  überschrittene Speichergrenze, ungültige Werte (Breite, Auflösung, Deckkraft, Mischmodus auch als Zahl, Typ, leerer
+  Name), doppelte IDs, unbekannte aktive Ebene, doppelt verwendeter Datenblock, zu tiefe Verschachtelung, leeres Projekt;
+  unbekannte Zusatzfelder werden ignoriert; Abbruch beim Schreiben. **Migration:** Kette 1 → 2 → 3 mit Test-Migrationen,
+  fehlender Schritt, ungültige/fehlende Versionsnummer.
+- **Speicherpunkt (4):** neues Dokument, nach Speichern, verworfener Zweig, aus der Historie gefallener Punkt.
+- **Pflicht-Workflow Abschnitt 13 (1, alle 14 Schritte):** Dokument erstellen, Ebene hinzufügen, zeichnen, Auswahl,
+  Effekt (Invertieren in der Auswahl), rückgängig, wiederholen, Ebene umbenennen, als `.orbit` speichern, schließen,
+  erneut öffnen, Pixel/Ebenen/Zustand prüfen (byteweise, inkl. Komposit), PNG exportieren, wieder einlesen und Pixel
+  prüfen.
+- **Projektdateien (6):** Ersetzen ohne Reste temporärer Dateien, Abbruch lässt die vorhandene Datei byteweise
+  unverändert, fehlender Ordner, schreibgeschützte Zieldatei (unverändert), Öffnen-Fehler, Endungserkennung.
+- 3 Architekturfälle für `OrbitStudio.Storage`.
+
+Alle Unit-/Integrationstests bestanden im ersten Lauf. Der erste Smoke-Lauf prüfte versehentlich eine veraltete EXE
+(`dotnet test` hatte die App nicht neu gebaut) – `test.ps1` baut die App seitdem vor dem Smoke-Test. Der folgende Lauf
+fand einen **Fehler im Produktcode**: „Alle schließen“/Beenden schloss unveränderte Dokumente bereits, bevor bei einem
+späteren Dokument „Abbrechen“ gewählt wurde. Behoben (E-049); danach alles bestanden.
+
+UI-Smoke-Test: Debug 166 von 166, veröffentlichte EXE (158,1 MB) 166 von 166 bestanden, Exitcode 0. Neu sind 13
+Projektprüfungen über die echten Befehle: Befehle aktiv; Strg+S ohne Pfad fragt nach dem Ziel und ergänzt `.orbit`
+(Name, Pfad, Sternchen, Statusmeldung, Zuletzt verwendet); keine temporären Dateien; Rückgängig bis zum Speicherpunkt
+entfernt das Sternchen; Strg+S mit Pfad ohne Dialog; Kopie speichern lässt Pfad/Name/Zustand; Schließen-Rückfrage
+Abbrechen bzw. Speichern; Öffnen über Datei › Öffnen mit Ebenen, Namen, Pixeln, aktiver Ebene; kein zweiter Tab; Kopie
+enthält den kopierten Stand; fremde Datei → deutsche Meldung; **Fenster schließen** mit Änderungen und „Abbrechen“
+lässt Fenster und alle Dokumente offen.
+
+UI-Eingabetest: für M7 nicht erweitert und nicht ausgeführt.
 
 ### 18.10.2026 – M6 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 

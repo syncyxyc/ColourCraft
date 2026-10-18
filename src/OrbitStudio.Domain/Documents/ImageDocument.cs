@@ -248,6 +248,29 @@ public sealed class ImageDocument
         return document;
     }
 
+    /// <summary>
+    /// Leeres Dokument ohne Ebenen (zum Laden eines Projekts). Der Aufrufer fügt die Ebenen in <see cref="Root"/> ein,
+    /// setzt <see cref="ActiveLayer"/> und danach <see cref="MarkSaved"/>. Größe und Auflösung werden geprüft.
+    /// </summary>
+    public static ImageDocument CreateEmpty(string name, int width, int height, double resolutionDpi,
+        DocumentBackground background)
+    {
+        ValidateName(name);
+        ValidateResolution(resolutionDpi);
+        if (DocumentLimits.ValidateSize(width, height) is var check && check != SizeValidationResult.Valid)
+        {
+            throw new DocumentValidationException(check);
+        }
+
+        return new ImageDocument(name, width, height, resolutionDpi, background);
+    }
+
+    /// <summary>
+    /// Freie Metadaten (Schlüssel → Text), z. B. Erstellungszeitpunkt. Werden im Projektformat gespeichert,
+    /// aber nicht in exportierte Bilder übernommen.
+    /// </summary>
+    public IDictionary<string, string> Metadata { get; } = new SortedDictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>True, wenn der Knoten im Ebenenbaum dieses Dokuments liegt.</summary>
     public bool Contains(LayerNode node)
     {
@@ -303,6 +326,16 @@ public sealed class ImageDocument
         FilePath = filePath;
         _isDirty = false;
         StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Änderungsmarkierung entfernen (z. B. Rückgängig bis zum gespeicherten Stand).</summary>
+    public void MarkClean()
+    {
+        if (_isDirty)
+        {
+            _isDirty = false;
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private static void ValidateName(string name)

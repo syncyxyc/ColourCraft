@@ -105,6 +105,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<DocumentWorkspace>();
         services.AddSingleton(_ => ImageCodecRegistry.CreateDefault());
         services.AddSingleton<ImageFileService>();
+        services.AddSingleton<ProjectFileService>();
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<ShellService>();
         services.AddSingleton<IShellService>(sp => sp.GetRequiredService<ShellService>());

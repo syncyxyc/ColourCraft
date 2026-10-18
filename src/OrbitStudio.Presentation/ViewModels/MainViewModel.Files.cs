@@ -28,7 +28,9 @@ public sealed partial class MainViewModel
             foreach (var path in paths)
             {
                 var existing = Documents.FirstOrDefault(d =>
-                    string.Equals(d.Document.SourcePath, path, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(d.Document.SourcePath, path, StringComparison.OrdinalIgnoreCase)
+                    || (d.Document.FilePath is { } saved && string.Equals(Path.GetFullPath(saved), Path.GetFullPath(path),
+                        StringComparison.OrdinalIgnoreCase)));
                 if (existing is not null)
                 {
                     ActiveDocument = existing;
@@ -36,24 +38,47 @@ public sealed partial class MainViewModel
                     continue;
                 }
 
-                var result = await _files.OpenAsync(path, Loc.Get("Layer.Background"));
-                if (result.Success)
+                string? error;
+                bool notFound;
+                if (ProjectFileService.IsProjectPath(path))
                 {
-                    _workspace.Add(result.Document!);
+                    var project = await _projects.OpenAsync(path);
+                    if (project.Success)
+                    {
+                        _workspace.Add(project.Document!);
+                    }
+
+                    error = project.Success ? null : ProjectErrorMessage(project.Error, path);
+                    notFound = project.Error == Storage.ProjectError.NotFound;
+                }
+                else
+                {
+                    var result = await _files.OpenAsync(path, Loc.Get("Layer.Background"));
+                    if (result.Success)
+                    {
+                        _workspace.Add(result.Document!);
+                    }
+
+                    error = result.Success ? null : FileErrorMessage(result.Error, path);
+                    notFound = result.Error == FileError.NotFound;
+                }
+
+                if (error is null)
+                {
                     _settings.AddRecentFile(path);
                     finalStatus = Loc.Format("Status.Opened", Path.GetFileName(path));
                     opened++;
                     continue;
                 }
 
-                if (result.Error == FileError.NotFound)
+                if (notFound)
                 {
                     _settings.RemoveRecentFile(path);
                 }
 
                 if (showErrors)
                 {
-                    _dialogs.ShowError(Loc.Get("Msg.File.OpenFailed.Title"), FileErrorMessage(result.Error, path));
+                    _dialogs.ShowError(Loc.Get("Msg.File.OpenFailed.Title"), error);
                 }
             }
         }
@@ -97,6 +122,24 @@ public sealed partial class MainViewModel
         }
     }
 
+    private static FileFilter ProjectFilter => new(Loc.Get("Format.Orbit"), ["*" + Storage.ProjectFormat.Extension]);
+
+    /// <summary>Öffnen: alle unterstützten Dateien, ORBIT-Projekte, alle Bilder, dann je Bildformat.</summary>
+    private List<FileFilter> OpenFilters()
+    {
+        var readers = _files.Codecs.Readers.Select(c => c.Format).ToList();
+        var imagePatterns = readers.SelectMany(f => f.Extensions).Select(e => "*" + e).ToList();
+        var filters = new List<FileFilter>
+        {
+            new(Loc.Get("Format.AllSupported"), ["*" + Storage.ProjectFormat.Extension, .. imagePatterns]),
+            ProjectFilter,
+            new(Loc.Get("Format.AllImages"), imagePatterns),
+        };
+        filters.AddRange(readers.Select(ToFilter));
+        return filters;
+    }
+
+    /// <summary>Nur Bilder (Importieren als Ebene).</summary>
     private List<FileFilter> ImageOpenFilters()
     {
         var readers = _files.Codecs.Readers.Select(c => c.Format).ToList();
@@ -106,9 +149,101 @@ public sealed partial class MainViewModel
         return filters;
     }
 
+    public enum SaveMode
+    {
+        /// <summary>In den bisherigen Projektpfad; ohne Pfad wie „Speichern unter“.</summary>
+        Save,
+
+        /// <summary>Neuen Pfad wählen; das Dokument heißt danach wie die Datei.</summary>
+        SaveAs,
+
+        /// <summary>Kopie schreiben; Pfad, Name und Änderungsmarkierung des Dokuments bleiben unverändert.</summary>
+        Copy,
+    }
+
+    public Task<bool> SaveActiveAsync(SaveMode mode) =>
+        ActiveDocument is { } document ? SaveDocumentAsync(document, mode) : Task.FromResult(false);
+
+    /// <summary>
+    /// Speichert ein Dokument als „.orbit“-Projekt im Hintergrund. Während des Schreibens sind Befehle und Werkzeuge
+    /// gesperrt. Liefert true bei Erfolg (false bei Abbruch im Dialog oder Fehler; Fehler werden gemeldet).
+    /// </summary>
+    public async Task<bool> SaveDocumentAsync(DocumentViewModel vm, SaveMode mode)
+    {
+        var document = vm.Document;
+        var path = mode == SaveMode.Save ? document.FilePath : null;
+        if (path is null)
+        {
+            var defaultName = Path.GetFileNameWithoutExtension(document.FilePath ?? document.Name);
+            var title = Loc.Get(mode == SaveMode.Copy ? "Dlg.SaveCopy.Title" : "Dlg.SaveAs.Title");
+            if (_dialogs.ShowSaveFile(title, [ProjectFilter], defaultName, 0) is not { } choice)
+            {
+                return false;
+            }
+
+            path = ProjectFileService.IsProjectPath(choice.Path) ? choice.Path : choice.Path + Storage.ProjectFormat.Extension;
+        }
+
+        Tools.CommitActive();
+        IsBusy = true;
+        Tools.InputBlocked = true;
+        StatusMessage = Loc.Format("Status.Saving", Path.GetFileName(path));
+        Storage.ProjectError error;
+        try
+        {
+            error = (await _projects.SaveAsync(document, path)).Error;
+        }
+        finally
+        {
+            Tools.InputBlocked = false;
+            IsBusy = false;
+        }
+
+        if (error != Storage.ProjectError.None)
+        {
+            StatusMessage = Loc.Get("Status.Ready");
+            if (error != Storage.ProjectError.Cancelled)
+            {
+                _dialogs.ShowError(Loc.Get("Msg.Project.SaveFailed.Title"), ProjectErrorMessage(error, path));
+            }
+
+            return false;
+        }
+
+        var full = Path.GetFullPath(path);
+        if (mode != SaveMode.Copy)
+        {
+            document.Name = Path.GetFileName(full);
+            document.MarkSaved(full);
+            _histories.For(document).MarkSavePoint();
+        }
+
+        _settings.AddRecentFile(full);
+        StatusMessage = Loc.Format(mode == SaveMode.Copy ? "Status.SavedCopy" : "Status.Saved", Path.GetFileName(full));
+        _registry.NotifyStateChanged();
+        return true;
+    }
+
+    public static string ProjectErrorMessage(Storage.ProjectError error, string path)
+    {
+        var key = error switch
+        {
+            Storage.ProjectError.NotFound => "Msg.File.NotFound",
+            Storage.ProjectError.AccessDenied => "Msg.File.AccessDenied",
+            Storage.ProjectError.NotAProject => "Msg.Project.NotAProject",
+            Storage.ProjectError.Corrupt => "Msg.Project.Corrupt",
+            Storage.ProjectError.UnsupportedVersion => "Msg.Project.UnsupportedVersion",
+            Storage.ProjectError.TooLarge => "Msg.Project.TooLarge",
+            Storage.ProjectError.OutOfMemory => "Msg.File.OutOfMemory",
+            Storage.ProjectError.Cancelled => "Msg.File.Cancelled",
+            _ => "Msg.File.IoError",
+        };
+        return Loc.Format(key, Path.GetFileName(path));
+    }
+
     private async Task OpenWithDialogAsync()
     {
-        var paths = _dialogs.ShowOpenFiles(Loc.Get("Dlg.Open.Title"), ImageOpenFilters());
+        var paths = _dialogs.ShowOpenFiles(Loc.Get("Dlg.Open.Title"), OpenFilters());
         if (paths is { Count: > 0 })
         {
             await OpenFilesAsync(paths);

@@ -305,6 +305,9 @@
     <sys:String x:Key="Status.Busy">Bitte warten …</sys:String>
     <sys:String x:Key="Status.Opened">Geöffnet: {0}</sys:String>
     <sys:String x:Key="Status.Exported">Exportiert: {0}</sys:String>
+    <sys:String x:Key="Status.Saving">Speichert {0} …</sys:String>
+    <sys:String x:Key="Status.Saved">Gespeichert: {0}</sys:String>
+    <sys:String x:Key="Status.SavedCopy">Kopie gespeichert: {0}</sys:String>
 
     <!-- Arbeitsfläche -->
     <sys:String x:Key="Workspace.Empty">Kein Dokument geöffnet. Mit Datei › Neu (Strg+N) ein Bild anlegen, mit Datei › Öffnen (Strg+O) ein Bild laden oder Bilddateien hierher ziehen.</sys:String>
@@ -336,7 +339,9 @@
 
     <!-- Ungespeicherte Änderungen -->
     <sys:String x:Key="Msg.Unsaved.Title">Ungespeicherte Änderungen</sys:String>
-    <sys:String x:Key="Msg.Unsaved.Body">„{0}" enthält ungespeicherte Änderungen. Änderungen verwerfen und schließen?</sys:String>
+    <sys:String x:Key="Msg.Unsaved.Body">„{0}" enthält ungespeicherte Änderungen. Möchten Sie die Änderungen speichern?</sys:String>
+    <sys:String x:Key="Msg.Unsaved.Save">_Speichern</sys:String>
+    <sys:String x:Key="Msg.Unsaved.Discard">_Nicht speichern</sys:String>
 
     <!-- Über -->
     <sys:String x:Key="Msg.About.Title">Über {0}</sys:String>
@@ -357,7 +362,11 @@
     <sys:String x:Key="Format.webp">WebP-Bild</sys:String>
     <sys:String x:Key="Format.gif">GIF-Bild (nur erstes Einzelbild)</sys:String>
     <sys:String x:Key="Format.AllImages">Alle unterstützten Bilder</sys:String>
-    <sys:String x:Key="Dlg.Open.Title">Bild öffnen</sys:String>
+    <sys:String x:Key="Format.AllSupported">Alle unterstützten Dateien</sys:String>
+    <sys:String x:Key="Format.Orbit">ORBIT-Projekt</sys:String>
+    <sys:String x:Key="Dlg.Open.Title">Öffnen</sys:String>
+    <sys:String x:Key="Dlg.SaveAs.Title">Projekt speichern unter</sys:String>
+    <sys:String x:Key="Dlg.SaveCopy.Title">Kopie des Projekts speichern</sys:String>
     <sys:String x:Key="Dlg.Export.Title">Exportieren</sys:String>
 
     <!-- Zuletzt verwendet -->
@@ -366,6 +375,11 @@
 
     <!-- Dateifehler: {0} = Dateiname -->
     <sys:String x:Key="Msg.File.OpenFailed.Title">Öffnen fehlgeschlagen</sys:String>
+    <sys:String x:Key="Msg.Project.SaveFailed.Title">Speichern fehlgeschlagen</sys:String>
+    <sys:String x:Key="Msg.Project.NotAProject">„{0}" ist kein ORBIT-Projekt.</sys:String>
+    <sys:String x:Key="Msg.Project.Corrupt">„{0}" ist beschädigt oder wurde verändert und kann nicht geöffnet werden. Die Datei wurde nicht verändert.</sys:String>
+    <sys:String x:Key="Msg.Project.UnsupportedVersion">„{0}" wurde mit einer neueren Version von ORBIT Studio gespeichert und kann mit dieser Version nicht geöffnet werden.</sys:String>
+    <sys:String x:Key="Msg.Project.TooLarge">„{0}" ist zu groß: Das Bild überschreitet die zulässige Größe oder braucht mehr Arbeitsspeicher als erlaubt.</sys:String>
     <sys:String x:Key="Msg.File.ExportFailed.Title">Export fehlgeschlagen</sys:String>
     <sys:String x:Key="Msg.File.NotFound">Die Datei „{0}" wurde nicht gefunden. Sie wurde aus der Liste „Zuletzt verwendet" entfernt, falls sie dort stand.</sys:String>
     <sys:String x:Key="Msg.File.AccessDenied">Kein Zugriff auf „{0}". Bitte Berechtigungen prüfen.</sys:String>

@@ -233,6 +233,46 @@
   über neuere Änderungen geschrieben wird. Abbruch mit Esc; ein abgebrochener Effekt ändert nichts und legt keinen
   Historieneintrag an. Vorschauen laufen ebenfalls im Hintergrund, jede Parameteränderung bricht die vorige ab.
 
+## E-043 – Projektformat: ZIP mit rohen, vormultiplizierten Pixeln (18.10.2026)
+- Spezifikation 11.2 erlaubt PNG-kodierte oder rohe Pixel je Ebene. PNG speichert gerades Alpha; die Umrechnung aus
+  dem internen vormultiplizierten Format verliert bei teiltransparenten Pixeln Information (Rundung), und das Projekt
+  müsste `OrbitStudio.Imaging`/SkiaSharp kennen. Entscheidung: rohes BGRA wie im Speicher (byteweise verlustfrei,
+  Rundreise exakt getestet), komprimiert durch das ZIP-Deflate. `OrbitStudio.Storage` hängt nur von `Domain` ab.
+- `System.IO.Compression` und `System.Text.Json` (Teil von .NET, MIT) – keine neue Abhängigkeit.
+
+## E-044 – Deflate „Fastest“ für Pixeldaten (18.10.2026)
+- Pixeldaten sind groß (12 MP = 48 MB je Ebene). „Optimal“ verlangsamt das Speichern deutlich für meist wenige Prozent
+  kleinere Dateien. Entscheidung: „Fastest“ für Pixel/Masken, „Optimal“ für das kleine Manifest. Messung in M11.
+
+## E-045 – Prüfsummen und Prüfung vor dem Laden (18.10.2026)
+- ZIP enthält CRC-32, das aber nicht vor absichtlich veränderten Dateien schützt und je nach .NET-Version nicht in
+  jedem Lesepfad geprüft wird. Entscheidung: SHA-256 je Datenblock im Manifest, Prüfung beim Lesen; zusätzlich
+  vollständige Prüfung des Manifests und aller Datenlängen **bevor** Puffer angelegt werden (Schutz vor übergroßen
+  oder manipulierten Angaben, „Zip-Bomben“ werden durch die feste erwartete Länge begrenzt).
+
+## E-046 – Migrationen auf JSON-Ebene (18.10.2026)
+- Migrationen arbeiten auf dem rohen JSON-Objekt (vor der Abbildung auf Klassen), damit alte Felder umbenannt oder
+  umgerechnet werden können, ohne alte Klassen weiter zu pflegen. Version 1 ist die erste Version; die Kette ist leer
+  und wird durch Tests mit eigenen Migrationen (1 → 2 → 3, fehlender Schritt, ungültige Version) geprüft – es wird
+  keine erfundene Vorgängerversion behauptet.
+
+## E-047 – Speicherpunkt in der Historie (18.10.2026)
+- Der Speicherpunkt ist der oberste Rückgängig-Eintrag beim Speichern (Referenz). Damit gilt ein Dokument nach
+  Rückgängig/Wiederholen bis genau dorthin wieder als ungeändert. Neue Dokumente und geöffnete Bilder haben den
+  Speicherpunkt „leerer Stapel“. Fällt der Punkt aus der begrenzten Historie, bleibt das Dokument als geändert
+  markiert (lieber einmal zu oft fragen als Änderungen verlieren).
+
+## E-048 – Speichern sperrt Bearbeitungen statt das Dokument zu kopieren (18.10.2026)
+- Alternativen: vor dem Speichern alle Ebenen kopieren (doppelter Speicher) oder während des Schreibens Bearbeitungen
+  sperren. Entscheidung: sperren (wie bei Effekten, E-042) – kein zusätzlicher Speicher, kein inkonsistenter Stand.
+
+## E-049 – Rückfrage „Speichern / Nicht speichern / Abbrechen“ (18.10.2026)
+- Eigene Schaltflächenbeschriftungen statt „Ja/Nein“ (eindeutig, Spezifikation 5.3). „Alle schließen“ und Beenden
+  stellen zuerst alle Rückfragen und schließen erst danach, damit „Abbrechen“ wirklich nichts schließt (gefunden
+  durch einen Smoke-Test: vorher wurden unveränderte Dokumente schon vor der abgebrochenen Rückfrage geschlossen).
+- „Speichern“ in der Rückfrage für Bilder ohne Projektpfad fragt nach einer `.orbit`-Datei; das Originalbild (PNG …)
+  wird nie stillschweigend überschrieben (sonst gingen Ebenen verloren).
+
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.
