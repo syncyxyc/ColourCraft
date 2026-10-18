@@ -28,6 +28,9 @@ public static class NativeInput {
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
     public const uint WHEEL = 0x0800, MIDDLEDOWN = 0x0020, MIDDLEUP = 0x0040;
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int cmd);
+    [DllImport("user32.dll")] public static extern void SwitchToThisWindow(IntPtr hWnd, bool altTab);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int max);
 }
 '@
 # Alle Koordinaten (Fenster, Maus, UI Automation, Bildschirmfoto) in echten Bildschirmpixeln, auch bei 125–200 % Skalierung.
@@ -93,14 +96,35 @@ try {
     # Sicherheitsregel: Eingaben nur senden, wenn ORBIT Studio das Vordergrundfenster ist.
     # Sonst würden Tastenkürzel in einem fremden Programm landen.
     function Test-Foreground { return [NativeInput]::GetForegroundWindow() -eq $hwnd }
+    function Get-ForegroundTitle {
+        $sb = New-Object System.Text.StringBuilder 256
+        [NativeInput]::GetWindowText([NativeInput]::GetForegroundWindow(), $sb, 256) | Out-Null
+        return $sb.ToString()
+    }
     function Assert-Foreground([string]$step) {
-        if (-not (Test-Foreground)) { throw "Fenster nicht im Vordergrund vor Schritt '$step' – Test abgebrochen, keine Eingaben gesendet." }
+        if (-not (Test-Foreground)) {
+            # Fokus wurde von einem anderen Fenster übernommen: ohne Eingaben zurückholen (Wiederherstellen/Umschalten).
+            $script:lines.Add("INFO Fokus vor '$step' bei: $(Get-ForegroundTitle) – wird zurückgeholt")
+            [NativeInput]::SetForegroundWindow($hwnd) | Out-Null
+            Start-Sleep -Milliseconds 200
+            if (-not (Test-Foreground)) { [NativeInput]::SwitchToThisWindow($hwnd, $true); Start-Sleep -Milliseconds 400 }
+        }
+        if (-not (Test-Foreground)) { throw "Fenster nicht im Vordergrund vor Schritt '$step' (vorne: $(Get-ForegroundTitle)) – Test abgebrochen, keine Eingaben gesendet." }
     }
     $deadline = (Get-Date).AddSeconds(10)
     while (-not (Test-Foreground) -and (Get-Date) -lt $deadline) {
         [NativeInput]::SetForegroundWindow($hwnd) | Out-Null
         Start-Sleep -Milliseconds 300
         if (Test-Foreground) { break }
+        # Vordergrundsperre umgehen, ohne Eingaben zu senden: Fenster minimieren und wiederherstellen bzw. umschalten.
+        [NativeInput]::ShowWindow($hwnd, 6) | Out-Null   # SW_MINIMIZE
+        Start-Sleep -Milliseconds 200
+        [NativeInput]::ShowWindow($hwnd, 9) | Out-Null   # SW_RESTORE
+        Start-Sleep -Milliseconds 400
+        if (Test-Foreground) { break }
+        [NativeInput]::SwitchToThisWindow($hwnd, $true)
+        Start-Sleep -Milliseconds 400
+        if (Test-Foreground) { [NativeInput]::GetWindowRect($hwnd, [ref]$rect) | Out-Null; break }
         # Windows verweigert die Aktivierung manchmal (Vordergrundsperre). Dann auf die eigene Titelleiste klicken –
         # aber nur, wenn dort nachweislich ORBIT Studio liegt und kein anderes Fenster darüber.
         $title = New-Object NativeInput+POINT
@@ -114,6 +138,9 @@ try {
         }
     }
     Check 'Fenster im Vordergrund' (Test-Foreground)
+    [NativeInput]::GetWindowRect($hwnd, [ref]$rect) | Out-Null
+    $cx = [int](($rect.Left + $rect.Right) / 2); $cy = [int](($rect.Top + $rect.Bottom) / 2)
+    $lines.Add("INFO Fenster $($rect.Left),$($rect.Top)–$($rect.Right),$($rect.Bottom), Mitte $cx,$cy")
     Assert-Foreground 'Start'
     Start-Sleep -Milliseconds 700 # erste Darstellung abschließen lassen
 
@@ -121,7 +148,7 @@ try {
     [NativeInput]::SetCursorPos($cx, $cy) | Out-Null
     Start-Sleep -Milliseconds 100
     Assert-Foreground 'Mausrad'
-    for ($i = 0; $i -lt 3; $i++) { [NativeInput]::mouse_event([NativeInput]::WHEEL, 0, 0, 120, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150 }
+    for ($i = 0; $i -lt 3; $i++) { Assert-Foreground "Mausrad $i"; [NativeInput]::mouse_event([NativeInput]::WHEEL, 0, 0, 120, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150 }
     Start-Sleep -Milliseconds 300
     $afterWheel = Get-ZoomValue
     Check "Mausrad vergrößert ($initial % → $afterWheel %)" ($afterWheel -gt $initial)
@@ -145,7 +172,7 @@ try {
 
     # 4) Tastatur: erst zwei Stufen vergrößern, dann Strg+0 = 100 %
     Assert-Foreground 'Mausrad oben'
-    for ($i = 0; $i -lt 2; $i++) { [NativeInput]::mouse_event([NativeInput]::WHEEL, 0, 0, 120, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150 }
+    for ($i = 0; $i -lt 2; $i++) { Assert-Foreground "Mausrad $i"; [NativeInput]::mouse_event([NativeInput]::WHEEL, 0, 0, 120, [UIntPtr]::Zero); Start-Sleep -Milliseconds 150 }
     Start-Sleep -Milliseconds 300
     $beforeKey = Get-ZoomValue
     Assert-Foreground 'Strg+0'

@@ -111,7 +111,18 @@ mit Hilfslinie und beiden Kontrollpunkten bei 200 %, Optionsleiste mit allen 14 
 
 UI-Eingabetest: um die Strichmuster-Abnahme mit echter Maus und Tastatur erweitert (Linie aufziehen, beide
 Kontrollpunkte ziehen, Parameter tippen + Enter, Vorschau-Pixel am Bildschirm, „Anwenden“ klicken, Strg+Z, Strg+Y);
-Skript syntaktisch geprüft, **nicht ausgeführt** (Sitzung aktiv benutzt, der Test bewegt den Mauszeiger).
+Skript syntaktisch geprüft. Ausführungsversuche am 18.10.2026 (4 Läufe), **nicht abgeschlossen**:
+1. Abbruch vor der ersten Eingabe: Windows verweigerte die Aktivierung (Vordergrundsperre). → Aktivierung über
+   Minimieren/Wiederherstellen und `SwitchToThisWindow` ergänzt (ohne Eingaben).
+2. Aktivierung, Mausrad (51,6 % → 150 %), Ziehen mit der mittleren Maustaste, Mausrad runter bestanden; danach übernahm
+   ein anderes Programm den Fokus. → Vor jeder Eingabe wird der Vordergrund geprüft und ohne Eingaben zurückgeholt; das
+   Fenster, das den Fokus hatte, wird protokolliert.
+3./4. Ein Programm im Vollbild (Videoanruf mit Bildschirmübertragung) holte sich wiederholt den Fokus; Schritte danach
+   schlugen fehl oder brachen ab. Der Test wurde nicht weiter wiederholt, weil Eingaben in einer laufenden Übertragung
+   nicht vertretbar sind. Ergebnis: Das Strichmuster mit echter Windows-Maus bleibt **nicht ausgeführt**.
+
+Voraussetzung für einen Lauf: keine Programme, die sich in den Vordergrund holen (Anrufe, Bildschirmübertragung,
+Overlays), Maus und Tastatur unberührt.
 
 ### 18.10.2026 – M4 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 
