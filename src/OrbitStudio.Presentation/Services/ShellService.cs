@@ -47,4 +47,6 @@ public sealed class ShellService : IShellService
     }
 
     public void RequestExit() => _window?.Close();
+
+    public void SetBusy(bool busy) => System.Windows.Input.Mouse.OverrideCursor = busy ? System.Windows.Input.Cursors.Wait : null;
 }

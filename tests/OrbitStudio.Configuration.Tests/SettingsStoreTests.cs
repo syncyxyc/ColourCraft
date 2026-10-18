@@ -138,6 +138,55 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void WithRecentFile_MovesExistingEntryToFrontCaseInsensitive()
+    {
+        var settings = new GlobalSettings { RecentFiles = [@"C:\a.png", @"C:\b.png"] };
+
+        var result = settings.WithRecentFile(@"C:\B.PNG");
+
+        result.RecentFiles.ShouldBe([@"C:\B.PNG", @"C:\a.png"]);
+    }
+
+    [Fact]
+    public void WithRecentFile_KeepsAtMostTenEntries()
+    {
+        var settings = new GlobalSettings();
+        for (var i = 0; i < 15; i++)
+        {
+            settings = settings.WithRecentFile($@"C:\{i}.png");
+        }
+
+        settings.RecentFiles.Count.ShouldBe(GlobalSettings.MaxRecentFiles);
+        settings.RecentFiles[0].ShouldBe(@"C:\14.png");
+    }
+
+    [Fact]
+    public void WithoutRecentFile_RemovesEntry()
+    {
+        new GlobalSettings { RecentFiles = [@"C:\a.png", @"C:\b.png"] }
+            .WithoutRecentFile(@"c:\A.png").RecentFiles.ShouldBe([@"C:\b.png"]);
+    }
+
+    [Theory]
+    [InlineData(0, 92)]
+    [InlineData(101, 92)]
+    [InlineData(1, 1)]
+    [InlineData(100, 100)]
+    public void JpegQuality_IsNormalized(int input, int expected)
+    {
+        GlobalSettings.Normalize(new GlobalSettings { JpegQuality = input }, out _).JpegQuality.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Workspace_PixelGridDefaultsOn_AndRoundTrips()
+    {
+        new WorkspaceSettings().ShowPixelGrid.ShouldBeTrue();
+        var store = SettingsStores.Workspace(_paths);
+        store.Save(new WorkspaceSettings { ShowPixelGrid = false });
+        store.Load().Value.ShowPixelGrid.ShouldBeFalse();
+    }
+
+    [Fact]
     public void AppInfo_ProvidesProductNameAndVersion()
     {
         AppInfo.ProductName.ShouldBe("ORBIT Studio");

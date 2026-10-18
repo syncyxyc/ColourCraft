@@ -9,6 +9,7 @@
         Background="{DynamicResource Brush.Window.Background}"
         Foreground="{DynamicResource Brush.Text}"
         UseLayoutRounding="True"
+        AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop"
         TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisible" />
@@ -24,6 +25,9 @@
                 <Style TargetType="MenuItem">
                     <Setter Property="Header" Value="{Binding Header}" />
                     <Setter Property="Command" Value="{Binding Command}" />
+                    <Setter Property="CommandParameter" Value="{Binding CommandParameter}" />
+                    <Setter Property="IsChecked" Value="{Binding IsChecked, Mode=OneWay}" />
+                    <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
                     <Setter Property="InputGestureText" Value="{Binding GestureText}" />
                     <Setter Property="ToolTip" Value="{Binding ToolTip}" />
                     <Setter Property="ItemsSource" Value="{Binding Items}" />
@@ -54,6 +58,11 @@
                 <TextBlock Text="{Binding ToolStatusText}" />
             </StatusBarItem>
             <Separator />
+            <StatusBarItem DockPanel.Dock="Right">
+                <TextBlock x:Name="StatusMessageText" Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis"
+                           AutomationProperties.LiveSetting="Polite" />
+            </StatusBarItem>
+            <Separator DockPanel.Dock="Right" />
             <StatusBarItem>
                 <TextBlock x:Name="SizeStatus" MinWidth="110"
                            Text="{Binding ActiveDocument.SizeText, FallbackValue={StaticResource Status.NoDocument}, TargetNullValue={StaticResource Status.NoDocument}}" />

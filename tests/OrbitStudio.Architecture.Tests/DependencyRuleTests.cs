@@ -16,7 +16,9 @@ public class DependencyRuleTests
         { "OrbitStudio.Domain", [] },
         { "OrbitStudio.Configuration", [] },
         { "OrbitStudio.Diagnostics", [] },
-        { "OrbitStudio.Application", ["OrbitStudio.Domain", "OrbitStudio.Configuration"] },
+        { "OrbitStudio.Imaging", ["OrbitStudio.Domain"] },
+        { "OrbitStudio.Rendering", ["OrbitStudio.Domain"] },
+        { "OrbitStudio.Application", ["OrbitStudio.Domain", "OrbitStudio.Configuration", "OrbitStudio.Imaging"] },
     };
 
     [Theory]
@@ -32,8 +34,20 @@ public class DependencyRuleTests
 
     [Theory]
     [InlineData("OrbitStudio.Domain")]
+    [InlineData("OrbitStudio.Rendering")]
+    [InlineData("OrbitStudio.Application")]
+    public void Project_DoesNotReferenceCodecLibrary(string assemblyName)
+    {
+        // Codecs (SkiaSharp) sind auf OrbitStudio.Imaging beschränkt.
+        Load(assemblyName).GetReferencedAssemblies().Select(a => a.Name!).ShouldNotContain("SkiaSharp");
+    }
+
+    [Theory]
+    [InlineData("OrbitStudio.Domain")]
     [InlineData("OrbitStudio.Configuration")]
     [InlineData("OrbitStudio.Diagnostics")]
+    [InlineData("OrbitStudio.Imaging")]
+    [InlineData("OrbitStudio.Rendering")]
     [InlineData("OrbitStudio.Application")]
     public void CoreProject_HasNoUiDependency(string assemblyName)
     {

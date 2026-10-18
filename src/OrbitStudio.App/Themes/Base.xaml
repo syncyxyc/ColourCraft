@@ -17,6 +17,7 @@
     <Color x:Key="Color.Checker.Light">#FFFFFFFF</Color>
     <Color x:Key="Color.Checker.Dark">#FFCCCCCC</Color>
     <Color x:Key="Color.Document.Paper">#FFFFFFFF</Color>
+    <Color x:Key="Color.PixelGrid">#59808080</Color>
 
     <SolidColorBrush x:Key="Brush.Window.Background" Color="{StaticResource Color.Window.Background}" />
     <SolidColorBrush x:Key="Brush.Menu.Background" Color="{StaticResource Color.Menu.Background}" />
@@ -28,6 +29,7 @@
     <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" />
     <SolidColorBrush x:Key="Brush.Error" Color="{StaticResource Color.Error}" />
     <SolidColorBrush x:Key="Brush.Document.Paper" Color="{StaticResource Color.Document.Paper}" />
+    <SolidColorBrush x:Key="Brush.PixelGrid" Color="{StaticResource Color.PixelGrid}" />
 
     <!-- Schachbrett für transparente Bereiche: 8×8-Felder, Kachel 16×16 Einheiten. -->
     <DrawingBrush x:Key="Brush.Checkerboard" TileMode="Tile" Viewport="0,0,16,16" ViewportUnits="Absolute"

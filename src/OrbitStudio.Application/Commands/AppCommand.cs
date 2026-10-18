@@ -8,6 +8,7 @@ public sealed class AppCommand
 {
     private readonly Action _execute;
     private readonly Func<bool> _canExecute;
+    private Func<bool>? _isChecked;
 
     private AppCommand(string id, string textKey, string? defaultGesture, Action execute, Func<bool> canExecute,
         string? plannedMilestone)
@@ -38,9 +39,19 @@ public sealed class AppCommand
     /// <summary>Meilenstein, in dem der Befehl umgesetzt wird (z. B. "M2"), sonst null.</summary>
     public string? PlannedMilestone { get; }
 
+    /// <summary>Bei Umschaltbefehlen (z. B. Pixelraster) der aktuelle Zustand, sonst null.</summary>
+    public bool? IsChecked => _isChecked?.Invoke();
+
+    public bool IsToggle => _isChecked is not null;
+
     public static AppCommand Create(string id, string textKey, Action execute, Func<bool>? canExecute = null,
         string? gesture = null) =>
         new(id, textKey, gesture, execute, canExecute ?? (() => true), null);
+
+    /// <summary>Umschaltbefehl mit sichtbarem Häkchen im Menü.</summary>
+    public static AppCommand Toggle(string id, string textKey, Action toggle, Func<bool> isChecked,
+        Func<bool>? canExecute = null, string? gesture = null) =>
+        new(id, textKey, gesture, toggle, canExecute ?? (() => true), null) { _isChecked = isChecked };
 
     /// <summary>Befehl, der im Menü sichtbar, aber bis zum genannten Meilenstein deaktiviert ist.</summary>
     public static AppCommand Planned(string id, string textKey, string milestone, string? gesture = null)

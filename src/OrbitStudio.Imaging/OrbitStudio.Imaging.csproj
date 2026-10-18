@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Bild-Codecs (Import/Export). Kennt das Pixelmodell der Domäne, aber keine ViewModels. -->
+  <PropertyGroup>
+    <!-- Nur für das Anheften der Pixelpuffer an SkiaSharp (fixed). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+</Project>

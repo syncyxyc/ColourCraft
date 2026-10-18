@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
     <ProjectReference Include="..\OrbitStudio.Configuration\OrbitStudio.Configuration.csproj" />
+    <ProjectReference Include="..\OrbitStudio.Imaging\OrbitStudio.Imaging.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

@@ -10,9 +10,12 @@ public static class MenuLayout
 {
     public const string Separator = "-";
 
+    /// <summary>Platzhalter für das dynamische Untermenü „Zuletzt verwendet".</summary>
+    public const string RecentFiles = "@recent";
+
     public static IReadOnlyList<(string TextKey, string[] Items)> Default { get; } =
     [
-        ("Menu.File", [FileNew, FileOpen, FileRecent, Separator, FileSave, FileSaveAs, FileSaveCopy, Separator,
+        ("Menu.File", [FileNew, FileOpen, RecentFiles, Separator, FileSave, FileSaveAs, FileSaveCopy, Separator,
             FileImport, FileExport, Separator, FileDocumentInfo, Separator, FileClose, FileCloseAll, Separator, FileExit]),
         ("Menu.Edit", [EditUndo, EditRedo, Separator, EditCut, EditCopy, EditPaste, EditDelete, Separator,
             EditSelectAll, EditDeselect, EditInvertSelection, Separator, EditPreferences]),

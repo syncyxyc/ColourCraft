@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OrbitStudio.Application.Commands;
 using OrbitStudio.Application.Documents;
+using OrbitStudio.Application.Files;
+using OrbitStudio.Imaging.Codecs;
 using OrbitStudio.Application.Settings;
 using OrbitStudio.Configuration;
 using OrbitStudio.Diagnostics;
@@ -27,9 +29,10 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         var smokeResultFile = SmokeTest.ParseArguments(e.Args);
-        var paths = smokeResultFile is null
-            ? AppPaths.CreateDefault()
-            : SmokeTest.CreateIsolatedPaths();
+        var dataDir = ParseDataDir(e.Args);
+        var paths = smokeResultFile is not null ? SmokeTest.CreateIsolatedPaths()
+            : dataDir is not null ? new AppPaths(Path.Combine(dataDir, "settings"), dataDir)
+            : AppPaths.CreateDefault();
 
         _fileLogger = new FileLoggerProvider(paths.LogDirectory);
         _services = ConfigureServices(paths, _fileLogger);
@@ -57,6 +60,26 @@ public partial class App : System.Windows.Application
         }
 
         ReportSettingsIssues(issues);
+
+        // Beim Start übergebene Dateien öffnen (z. B. „Öffnen mit" oder Ziehen auf die EXE).
+        var files = e.Args.Where((a, i) => !a.StartsWith("--", StringComparison.Ordinal)
+                                            && (i == 0 || e.Args[i - 1] != DataDirArgument)).ToList();
+        if (files.Count > 0)
+        {
+            _ = window.ViewModel.OpenFilesAsync(files);
+        }
+    }
+
+    private const string DataDirArgument = "--data-dir";
+
+    /// <summary>
+    /// <c>--data-dir &lt;Ordner&gt;</c>: Einstellungen und Logs in diesem Ordner statt im Benutzerprofil
+    /// (für Tests und portable Nutzung).
+    /// </summary>
+    private static string? ParseDataDir(string[] args)
+    {
+        var index = Array.IndexOf(args, DataDirArgument);
+        return index >= 0 && index + 1 < args.Length ? Path.GetFullPath(args[index + 1]) : null;
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -79,6 +102,8 @@ public partial class App : System.Windows.Application
         services.AddSingleton(paths);
         services.AddSingleton<SettingsService>();
         services.AddSingleton<DocumentWorkspace>();
+        services.AddSingleton(_ => ImageCodecRegistry.CreateDefault());
+        services.AddSingleton<ImageFileService>();
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<ShellService>();
         services.AddSingleton<IShellService>(sp => sp.GetRequiredService<ShellService>());

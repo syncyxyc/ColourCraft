@@ -4,7 +4,7 @@
 |---|---|---|
 | M0 | Bestandsaufnahme | ✅ abgeschlossen (18.10.2026) |
 | M1 | Grundgerüst | ✅ abgeschlossen (18.10.2026) |
-| M2 | Dokumentmodell, Import, Darstellung | offen |
+| M2 | Dokumentmodell, Import, Darstellung | ✅ abgeschlossen (18.10.2026) |
 | M3 | Ebenen und Komposition | offen |
 | M4 | Werkzeuge, Auswahl, Historie | offen |
 | M5 | Strichmuster-Werkzeug | offen |
@@ -54,8 +54,37 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Symbolleisten, andockbare Panels, Farbfelder → M8.
 - App-Icon → M8.
 
-## Nächster Schritt: M2
+## M2 – Dokumentmodell, Import, Darstellung (18.10.2026)
 
-Pixelpuffer (BGRA, premultiplied) in Domain/Imaging, SkiaSharp-Codecs für PNG/JPEG/BMP,
-Darstellung des Puffers, zentrale Koordinatentransformation (Dokument ↔ Viewport ↔ Bildschirm)
-inkl. DPI, Zoom (Mausrad um den Mauszeiger, Anpassen, 100 %), Schwenken, Exportieren.
+Erfüllt:
+- Pixelmodell in der Domäne: `Bgra32` (vormultipliert), `PixelBuffer` (dokumentiertes Layout,
+  Größenprüfung vor Reservierung), `ColorMath`, `IntRect`, `PointD`, verlustfreies Drehen/Spiegeln.
+- Dokumente besitzen einen Pixelpuffer; Weiß/Transparent beim Anlegen; Pixeländerungen werden mit
+  Bereich gemeldet (Dirty-Rectangle) und nur dort neu übertragen.
+- Neues Projekt `OrbitStudio.Imaging`: Codec-Vertrag mit Fähigkeiten und Fehlerklassen, Registry,
+  PNG/JPEG/WebP/GIF-Lesen über SkiaSharp (sRGB, EXIF-Ausrichtung), eigener BMP-Encoder.
+- Neues Projekt `OrbitStudio.Rendering`: zentrale `ViewTransform` (Dokument ↔ Viewport ↔ DIP, Zoom um
+  einen Ankerpunkt, Stufen 1–3.200 %, Anpassen, 100 % = 1 Gerätepixel, Zentrieren, Grenzen, Scrollleisten).
+- Leinwand `CanvasView`: scharfe Pixel ab 100 %, hochwertige Verkleinerung darunter, Pixelraster ab 800 %
+  (abschaltbar, gespeichert), Mausrad-Zoom am Mauszeiger, Verschieben mit mittlerer Maustaste oder
+  Leertaste + Ziehen, eigene Scrollleisten, Cursorposition in Bildpixeln.
+- Datei › Öffnen (Mehrfachauswahl), Drag-and-drop, Kommandozeile, „Zuletzt verwendet“ (bereinigt
+  fehlende Dateien), bereits geöffnete Dateien werden nur aktiviert.
+- Datei › Exportieren nach PNG, JPEG, BMP, WebP; Warnung, wenn Transparenz verloren geht; Lesen und
+  Schreiben im Hintergrund; atomares Ersetzen; deutsche Fehlermeldungen je Fehlerart.
+- Ansicht › Vergrößern, Verkleinern, 100 %, Bild anpassen, Pixelraster.
+- Startparameter `--data-dir <Ordner>` für isolierte Einstellungen/Logs.
+- Tests: 181 Unit-/Integrations-/Architekturtests, 42 Smoke-Prüfungen, Eingabetest mit echter
+  Maus/Tastatur (siehe testing.de.md). Single-File-EXE gestartet, Smoke-Test bestanden.
+
+Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
+- „Importieren“ (Bild als Ebene) → M3; „Speichern“ als `.orbit` → M7.
+- PNG-Export-Warnung „Ebenen werden zusammengeführt“ → M3 (erst mit mehreren Ebenen sinnvoll).
+- TIFF wird nicht unterstützt (SkiaSharp kann es nicht).
+- DPI-Darstellung bei 150 %/200 % nur per Unit-Test geprüft, nicht manuell am Bildschirm.
+
+## Nächster Schritt: M3
+
+Ebenenmodell (Ebene, Gruppe, Sichtbarkeit, Deckkraft, Mischmodi, Sperren, Masken-Basis), CPU-Komposition
+in `OrbitStudio.Rendering` mit Referenztests (exakte Werte je Mischmodus), Ebenenbefehle im Menü,
+Importieren als Ebene, Anzeige des Kompositums mit Dirty-Rectangles.

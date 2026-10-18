@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ansichtstransformation und (ab M3) Ebenenkomposition. Ohne WPF. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Domain\OrbitStudio.Domain.csproj" />
+  </ItemGroup>
+</Project>

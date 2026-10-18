@@ -1,26 +1,26 @@
 <UserControl x:Class="OrbitStudio.Presentation.Views.DocumentView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:conv="clr-namespace:OrbitStudio.Presentation.Converters">
-    <UserControl.Resources>
-        <conv:BoolToVisibilityConverter x:Key="BoolToCollapsed" Invert="True" />
-    </UserControl.Resources>
+             xmlns:vp="clr-namespace:OrbitStudio.Presentation.Viewport">
+    <!-- Arbeitsfläche mit eigenen Scrollleisten. Zoom und Verschiebung stehen in DocumentViewModel.View. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-    <!-- Arbeitsfläche: Schachbrett für Transparenz, darüber der Dokumenthintergrund.
-         In M1 entspricht 1 Dokumentpixel 1 geräteunabhängiger Einheit (Zoom/DPI-Abbildung folgt in M2). -->
-    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                  Background="{DynamicResource Brush.Workspace.Background}" Focusable="False">
-        <Border x:Name="Page" Margin="32"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                Width="{Binding Width}" Height="{Binding Height}"
-                SnapsToDevicePixels="True"
-                MouseMove="OnPageMouseMove" MouseLeave="OnPageMouseLeave"
-                AutomationProperties.Name="Leinwand">
-            <Grid>
-                <Rectangle Fill="{DynamicResource Brush.Checkerboard}" />
-                <Rectangle Fill="{DynamicResource Brush.Document.Paper}"
-                           Visibility="{Binding IsTransparent, Converter={StaticResource BoolToCollapsed}}" />
-            </Grid>
-        </Border>
-    </ScrollViewer>
+        <vp:CanvasView x:Name="Canvas" ViewModel="{Binding}"
+                       ShowPixelGrid="{Binding DataContext.ShowPixelGrid, RelativeSource={RelativeSource AncestorType=Window}}"
+                       ToolTip="{StaticResource Workspace.CanvasHint}" ToolTipService.InitialShowDelay="2000"
+                       AutomationProperties.Name="Leinwand" />
+
+        <ScrollBar x:Name="VerticalBar" Grid.Column="1" Orientation="Vertical" Minimum="0"
+                   ValueChanged="OnVerticalScroll" AutomationProperties.Name="Vertikal scrollen" />
+        <ScrollBar x:Name="HorizontalBar" Grid.Row="1" Orientation="Horizontal" Minimum="0"
+                   ValueChanged="OnHorizontalScroll" AutomationProperties.Name="Horizontal scrollen" />
+    </Grid>
 </UserControl>

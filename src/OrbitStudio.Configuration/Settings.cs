@@ -22,6 +22,9 @@ public sealed record GlobalSettings : IVersionedSettings
 
     public int NewDocumentHeight { get; init; } = 1080;
 
+    /// <summary>Qualität für JPEG/WebP-Export (1–100).</summary>
+    public int JpegQuality { get; init; } = 92;
+
     /// <summary>Bringt geladene Werte in gültige Bereiche. Liefert true, wenn etwas korrigiert wurde.</summary>
     public static GlobalSettings Normalize(GlobalSettings s, out bool changed)
     {
@@ -34,6 +37,7 @@ public sealed record GlobalSettings : IVersionedSettings
             .ToList();
         var width = s.NewDocumentWidth is > 0 and <= 65_535 ? s.NewDocumentWidth : defaults.NewDocumentWidth;
         var height = s.NewDocumentHeight is > 0 and <= 65_535 ? s.NewDocumentHeight : defaults.NewDocumentHeight;
+        var quality = s.JpegQuality is >= 1 and <= 100 ? s.JpegQuality : defaults.JpegQuality;
 
         var result = s with
         {
@@ -42,14 +46,31 @@ public sealed record GlobalSettings : IVersionedSettings
             RecentFiles = recent,
             NewDocumentWidth = width,
             NewDocumentHeight = height,
+            JpegQuality = quality,
         };
         changed = language != s.Language
                   || width != s.NewDocumentWidth
                   || height != s.NewDocumentHeight
+                  || quality != s.JpegQuality
                   || s.RecentFiles is null
                   || !recent.SequenceEqual(s.RecentFiles);
         return result;
     }
+
+    /// <summary>Setzt eine Datei an den Anfang der Liste „Zuletzt verwendet".</summary>
+    public GlobalSettings WithRecentFile(string path) => this with
+    {
+        RecentFiles = RecentFiles
+            .Where(p => !string.Equals(p, path, StringComparison.OrdinalIgnoreCase))
+            .Prepend(path)
+            .Take(MaxRecentFiles)
+            .ToList(),
+    };
+
+    public GlobalSettings WithoutRecentFile(string path) => this with
+    {
+        RecentFiles = RecentFiles.Where(p => !string.Equals(p, path, StringComparison.OrdinalIgnoreCase)).ToList(),
+    };
 }
 
 /// <summary>Arbeitsbereich: Fensterposition und -zustand. Panels und Layouts folgen in M8/M9.</summary>
@@ -71,6 +92,9 @@ public sealed record WorkspaceSettings : IVersionedSettings
     public double WindowHeight { get; init; } = 800;
 
     public bool IsMaximized { get; init; }
+
+    /// <summary>Pixelraster bei starker Vergrößerung (ab 800 %) anzeigen.</summary>
+    public bool ShowPixelGrid { get; init; } = true;
 
     public static WorkspaceSettings Normalize(WorkspaceSettings s, out bool changed)
     {

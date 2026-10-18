@@ -11,7 +11,8 @@
 | Skript | Zweck |
 |---|---|
 | `build/build.ps1 [-Configuration Debug\|Release\|All]` | Restore und Build (Standard: beide Konfigurationen) |
-| `build/test.ps1 [-Configuration Debug\|Release] [-SkipSmoke]` | Alle Tests + UI-Smoke-Test, Ergebnisse in `artifacts/testresults/` |
+| `build/test.ps1 [-Configuration Debug\|Release] [-SkipSmoke] [-WithInput]` | Alle Tests + UI-Smoke-Test (+ optional Eingabetest), Ergebnisse in `artifacts/testresults/` |
+| `build/ui-input-test.ps1` | Eingabetest mit echter Maus/Tastatur (nur in ungenutzter Sitzung) |
 | `build/publish.ps1` | Single-File-EXE nach `artifacts/publish/OrbitStudio.exe` |
 | `build/clean.ps1` | Entfernt `bin/`, `obj/`, `artifacts/` |
 
@@ -36,7 +37,8 @@ ReadyToRun) stehen in `OrbitStudio.App.csproj` und gelten nur beim Veröffentlic
 
 | Datum | Build | Ergebnis |
 |---|---|---|
-| 18.10.2026 | `artifacts/publish/OrbitStudio.exe`, 142,3 MB, Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (Exitcode 0) |
+| 18.10.2026 (M1) | `artifacts/publish/OrbitStudio.exe`, 142,3 MB, Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (18/18, Exitcode 0) |
+| 18.10.2026 (M2) | `artifacts/publish/OrbitStudio.exe`, 156,6 MB (inkl. SkiaSharp-Native), Windows 11 Pro 10.0.26200 | Start erfolgreich, UI-Smoke-Test bestanden (42/42, Exitcode 0) – inkl. Öffnen/Export über SkiaSharp aus der Single-File-EXE |
 
 Hinweis: Auf dem Prüfrechner ist das .NET SDK installiert. Ein Start auf einem Rechner ganz ohne
 .NET wurde noch nicht geprüft (→ M12, Release-Checkliste).

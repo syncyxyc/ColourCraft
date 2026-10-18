@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
 using OrbitStudio.Application.Commands;
 using OrbitStudio.Application.Documents;
+using OrbitStudio.Application.Files;
 using OrbitStudio.Application.Settings;
 using OrbitStudio.Configuration;
 using OrbitStudio.Domain.Documents;
@@ -13,7 +14,7 @@ using static OrbitStudio.Presentation.Commands.CommandIds;
 
 namespace OrbitStudio.Presentation.ViewModels;
 
-/// <summary>ViewModel des Hauptfensters: Menüs, Dokument-Tabs, Statusleiste.</summary>
+/// <summary>ViewModel des Hauptfensters: Menüs, Dokument-Tabs, Statusleiste. Dateioperationen: MainViewModel.Files.cs.</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly DocumentWorkspace _workspace;
@@ -21,16 +22,19 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly IShellService _shell;
     private readonly SettingsService _settings;
+    private readonly ImageFileService _files;
     private readonly ILogger<MainViewModel> _logger;
+    private readonly ObservableCollection<MenuItemViewModel> _recentItems = [];
 
     public MainViewModel(DocumentWorkspace workspace, CommandRegistry registry, IDialogService dialogs,
-        IShellService shell, SettingsService settings, ILogger<MainViewModel> logger)
+        IShellService shell, SettingsService settings, ImageFileService files, ILogger<MainViewModel> logger)
     {
         _workspace = workspace;
         _registry = registry;
         _dialogs = dialogs;
         _shell = shell;
         _settings = settings;
+        _files = files;
         _logger = logger;
 
         _workspace.DocumentAdded += (_, doc) => Documents.Add(new DocumentViewModel(doc));
@@ -47,9 +51,16 @@ public sealed partial class MainViewModel : ObservableObject
             ActiveDocument = Documents.FirstOrDefault(d => d.Document == _workspace.ActiveDocument);
             _registry.NotifyStateChanged();
         };
+        _settings.RecentFilesChanged += (_, _) => RebuildRecentItems();
+        _settings.WorkspaceChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(ShowPixelGrid));
+            _registry.NotifyStateChanged();
+        };
 
         RegisterCommands();
         Menus = BuildMenus();
+        RebuildRecentItems();
     }
 
     public string WindowTitle => ActiveDocument is null
@@ -66,10 +77,32 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string ToolStatusText => Loc.Get("Status.Tool");
 
+    /// <summary>Pixelraster ab 800 % (Arbeitsbereichs-Einstellung, gilt für alle Dokumente).</summary>
+    public bool ShowPixelGrid => _settings.Workspace.ShowPixelGrid;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
     [NotifyPropertyChangedFor(nameof(HasDocuments))]
     private DocumentViewModel? _activeDocument;
+
+    /// <summary>Kurze Meldung in der Statusleiste (z. B. „Exportiert: bild.png").</summary>
+    [ObservableProperty]
+    private string _statusMessage = Loc.Get("Status.Ready");
+
+    /// <summary>True während Datei-Vorgängen. Dateibefehle sind dann gesperrt.</summary>
+    [ObservableProperty]
+    private bool _isBusy;
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        _shell.SetBusy(value);
+        if (value)
+        {
+            StatusMessage = Loc.Get("Status.Busy");
+        }
+
+        _registry.NotifyStateChanged();
+    }
 
     partial void OnActiveDocumentChanged(DocumentViewModel? oldValue, DocumentViewModel? newValue)
     {
@@ -152,9 +185,19 @@ public sealed partial class MainViewModel : ObservableObject
         var defaultName = Loc.Format("Dlg.New.Untitled", _workspace.NextUntitledNumber());
         var request = _dialogs.ShowNewDocument(defaultName, _settings.Global.NewDocumentWidth,
             _settings.Global.NewDocumentHeight);
-        if (request is not null)
+        if (request is null)
+        {
+            return;
+        }
+
+        try
         {
             CreateDocument(request);
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "Nicht genug Speicher für {Width}x{Height}", request.Width, request.Height);
+            _dialogs.ShowError(Loc.Get("Msg.Error.Title"), Loc.Format("Msg.File.OutOfMemory", request.Name));
         }
     }
 
@@ -171,7 +214,7 @@ public sealed partial class MainViewModel : ObservableObject
             : "Dlg.New.Background.Transparent");
         _dialogs.ShowInformation(Loc.Get("Msg.DocInfo.Title"), Loc.Format("Msg.DocInfo.Body",
             doc.Name, doc.Width, doc.Height, doc.ResolutionDpi, background,
-            doc.FilePath ?? Loc.Get("Msg.DocInfo.NotSaved"),
+            doc.FilePath ?? doc.SourcePath ?? Loc.Get("Msg.DocInfo.NotSaved"),
             Loc.Get(doc.IsDirty ? "Msg.Yes" : "Msg.No")));
     }
 
@@ -179,27 +222,31 @@ public sealed partial class MainViewModel : ObservableObject
         _dialogs.ShowInformation(Loc.Format("Msg.About.Title", AppInfo.ProductName),
             Loc.Format("Msg.About.Body", AppInfo.ProductName, AppInfo.Version));
 
+    private void TogglePixelGrid() =>
+        _settings.UpdateWorkspace(_settings.Workspace with { ShowPixelGrid = !_settings.Workspace.ShowPixelGrid });
+
     private void RegisterCommands()
     {
         bool HasDoc() => _workspace.ActiveDocument is not null;
+        bool HasDocAndIdle() => HasDoc() && !IsBusy;
 
         void Add(AppCommand c) => _registry.Register(c);
         void Plan(string id, string key, string milestone, string? gesture = null) =>
             Add(AppCommand.Planned(id, key, milestone, gesture));
 
         // Datei
-        Add(AppCommand.Create(FileNew, "Cmd.File.New", NewDocument, gesture: "Ctrl+N"));
-        Plan(FileOpen, "Cmd.File.Open", "M2", "Ctrl+O");
-        Plan(FileRecent, "Cmd.File.Recent", "M2");
+        Add(AppCommand.Create(FileNew, "Cmd.File.New", NewDocument, () => !IsBusy, "Ctrl+N"));
+        Add(AppCommand.Create(FileOpen, "Cmd.File.Open", () => RunAsync(OpenWithDialogAsync), () => !IsBusy, "Ctrl+O"));
         Plan(FileSave, "Cmd.File.Save", "M7", "Ctrl+S");
         Plan(FileSaveAs, "Cmd.File.SaveAs", "M7", "Ctrl+Shift+S");
         Plan(FileSaveCopy, "Cmd.File.SaveCopy", "M7");
-        Plan(FileImport, "Cmd.File.Import", "M2");
-        Plan(FileExport, "Cmd.File.Export", "M2", "Ctrl+Shift+E");
+        Plan(FileImport, "Cmd.File.Import", "M3");
+        Add(AppCommand.Create(FileExport, "Cmd.File.Export", () => RunAsync(ExportWithDialogAsync), HasDocAndIdle,
+            "Ctrl+Shift+E"));
         Add(AppCommand.Create(FileDocumentInfo, "Cmd.File.DocumentInfo", ShowDocumentInfo, HasDoc));
         Add(AppCommand.Create(FileClose, "Cmd.File.Close",
-            () => { if (ActiveDocument is { } d) { CloseDocument(d); } }, HasDoc, "Ctrl+W"));
-        Add(AppCommand.Create(FileCloseAll, "Cmd.File.CloseAll", () => CloseAllDocuments(), HasDoc, "Ctrl+Shift+W"));
+            () => { if (ActiveDocument is { } d) { CloseDocument(d); } }, HasDocAndIdle, "Ctrl+W"));
+        Add(AppCommand.Create(FileCloseAll, "Cmd.File.CloseAll", () => CloseAllDocuments(), HasDocAndIdle, "Ctrl+Shift+W"));
         Add(AppCommand.Create(FileExit, "Cmd.File.Exit", _shell.RequestExit));
 
         // Bearbeiten
@@ -215,14 +262,14 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(EditPreferences, "Cmd.Edit.Preferences", "M9");
 
         // Ansicht
-        Plan(ViewZoomIn, "Cmd.View.ZoomIn", "M2", "Ctrl+OemPlus");
-        Plan(ViewZoomOut, "Cmd.View.ZoomOut", "M2", "Ctrl+OemMinus");
-        Plan(ViewActualSize, "Cmd.View.ActualSize", "M2", "Ctrl+D0");
-        Plan(ViewFitToWindow, "Cmd.View.FitToWindow", "M2", "Ctrl+B");
+        Add(AppCommand.Create(ViewZoomIn, "Cmd.View.ZoomIn", () => ActiveDocument?.ZoomIn(), HasDoc, "Ctrl+OemPlus"));
+        Add(AppCommand.Create(ViewZoomOut, "Cmd.View.ZoomOut", () => ActiveDocument?.ZoomOut(), HasDoc, "Ctrl+OemMinus"));
+        Add(AppCommand.Create(ViewActualSize, "Cmd.View.ActualSize", () => ActiveDocument?.ActualSize(), HasDoc, "Ctrl+D0"));
+        Add(AppCommand.Create(ViewFitToWindow, "Cmd.View.FitToWindow", () => ActiveDocument?.FitToWindow(), HasDoc, "Ctrl+B"));
         Plan(ViewRulers, "Cmd.View.Rulers", "M8");
         Plan(ViewGrid, "Cmd.View.Grid", "M8");
         Plan(ViewGuides, "Cmd.View.Guides", "M8");
-        Plan(ViewPixelGrid, "Cmd.View.PixelGrid", "M2");
+        Add(AppCommand.Toggle(ViewPixelGrid, "Cmd.View.PixelGrid", TogglePixelGrid, () => ShowPixelGrid));
         Add(AppCommand.Create(ViewFullScreen, "Cmd.View.FullScreen", _shell.ToggleFullScreen, gesture: "F11"));
         Plan(ViewPanels, "Cmd.View.Panels", "M8");
         Plan(ViewWorkspaces, "Cmd.View.Workspaces", "M9");
@@ -291,8 +338,7 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(HelpLicenses, "Cmd.Help.Licenses", "M12");
         Add(AppCommand.Create(HelpAbout, "Cmd.Help.About", ShowAbout));
 
-        var conflicts = _registry.FindGestureConflicts();
-        foreach (var conflict in conflicts)
+        foreach (var conflict in _registry.FindGestureConflicts())
         {
             _logger.LogError("Tastenkürzel-Konflikt {Gesture}: {Commands}", conflict.Gesture,
                 string.Join(", ", conflict.CommandIds));
@@ -302,8 +348,14 @@ public sealed partial class MainViewModel : ObservableObject
     private IReadOnlyList<MenuItemViewModel> BuildMenus() =>
         MenuLayout.Default.Select(menu => MenuItemViewModel.Submenu(
             Loc.Get(menu.TextKey),
-            menu.Items.Select(id => id == MenuLayout.Separator
-                ? MenuItemViewModel.Separator()
-                : MenuItemViewModel.ForCommand(_registry.Get(id), _registry,
-                    id == HelpAbout ? Loc.Format("Cmd.Help.About", AppInfo.ProductName) : null)).ToList())).ToList();
+            menu.Items.Select(BuildMenuItem).ToList())).ToList();
+
+    private MenuItemViewModel BuildMenuItem(string id) => id switch
+    {
+        MenuLayout.Separator => MenuItemViewModel.Separator(),
+        MenuLayout.RecentFiles => MenuItemViewModel.Submenu(Loc.Get("Cmd.File.Recent"), _recentItems),
+        HelpAbout => MenuItemViewModel.ForCommand(_registry.Get(id), _registry,
+            Loc.Format("Cmd.Help.About", AppInfo.ProductName)),
+        _ => MenuItemViewModel.ForCommand(_registry.Get(id), _registry),
+    };
 }

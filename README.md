@@ -3,8 +3,9 @@
 Windows-Bildbearbeitung (WPF, .NET 10) mit Ebenen, Werkzeugen, Effekten und eigenem Projektformat `.orbit`.
 Vollständig deutsche Oberfläche, keine Telemetrie.
 
-> Status: **Meilenstein M1 (Grundgerüst)**. Viele Menübefehle sind noch deaktiviert und nennen den
-> Meilenstein, in dem sie folgen. Details: [docs/implementation-roadmap.de.md](docs/implementation-roadmap.de.md)
+> Status: **Meilenstein M2** – Bilder öffnen (PNG, JPEG, BMP, WebP, GIF), anzeigen mit Zoom und Verschieben,
+> exportieren (PNG, JPEG, BMP, WebP). Bearbeitungsfunktionen folgen ab M3; noch nicht verfügbare Menübefehle
+> sind deaktiviert und nennen ihren Meilenstein. Details: [docs/implementation-roadmap.de.md](docs/implementation-roadmap.de.md)
 
 ## Schnellstart
 
@@ -17,6 +18,7 @@ Voraussetzung: .NET SDK 10 (`winget install Microsoft.DotNet.SDK.10`).
 
 ## Dokumentation
 
+- [Benutzerhandbuch](docs/user-guide.de.md)
 - [Architektur](docs/architecture.md)
 - [Umsetzungsplan](docs/implementation-roadmap.de.md)
 - [Tests](docs/testing.de.md)

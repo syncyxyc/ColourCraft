@@ -1,3 +1,5 @@
+using OrbitStudio.Domain.Imaging;
+
 namespace OrbitStudio.Domain.Documents;
 
 /// <summary>Farbmodus eines Dokuments. Intern wird ausschließlich BGRA mit 8 Bit je Kanal verwendet.</summary>
@@ -17,20 +19,24 @@ public enum DocumentBackground
 /// Ein geöffnetes Bilddokument. Jedes Dokument besitzt seinen eigenen Zustand;
 /// zwischen Dokumenten wird nichts geteilt.
 /// </summary>
+/// <remarks>
+/// Bis M3 besitzt ein Dokument genau einen Pixelpuffer. Mit dem Ebenenmodell (M3) wird daraus die unterste Ebene.
+/// </remarks>
 public sealed class ImageDocument
 {
     /// <summary>Aktuelle Version des Dokumentmodells, wird ins Projektformat übernommen.</summary>
     public const int CurrentFormatVersion = 1;
 
+    public const double DefaultResolutionDpi = 96.0;
+
     private string _name;
     private bool _isDirty;
 
-    private ImageDocument(string name, int width, int height, double resolutionDpi, DocumentBackground background)
+    private ImageDocument(string name, PixelBuffer pixels, double resolutionDpi, DocumentBackground background)
     {
         Id = Guid.NewGuid();
         _name = name;
-        Width = width;
-        Height = height;
+        Pixels = pixels;
         ResolutionDpi = resolutionDpi;
         Background = background;
     }
@@ -55,9 +61,12 @@ public sealed class ImageDocument
         }
     }
 
-    public int Width { get; }
+    public int Width => Pixels.Width;
 
-    public int Height { get; }
+    public int Height => Pixels.Height;
+
+    /// <summary>Bildinhalt. Änderungen müssen über <see cref="CommitPixelChange"/> gemeldet werden.</summary>
+    public PixelBuffer Pixels { get; }
 
     public double ResolutionDpi { get; }
 
@@ -65,8 +74,11 @@ public sealed class ImageDocument
 
     public DocumentBackground Background { get; }
 
-    /// <summary>Speicherpfad, falls das Dokument bereits gespeichert oder aus einer Datei geöffnet wurde.</summary>
+    /// <summary>Speicherpfad des Projekts (.orbit), falls bereits gespeichert.</summary>
     public string? FilePath { get; private set; }
+
+    /// <summary>Bilddatei, aus der das Dokument geöffnet wurde (PNG, JPEG, …), sonst null.</summary>
+    public string? SourcePath { get; private set; }
 
     public int FormatVersion { get; } = CurrentFormatVersion;
 
@@ -75,26 +87,44 @@ public sealed class ImageDocument
 
     public event EventHandler? StateChanged;
 
-    public static ImageDocument Create(string name, int width, int height, double resolutionDpi = 96.0,
+    /// <summary>Pixel im angegebenen Bereich haben sich geändert (für inkrementelles Neuzeichnen).</summary>
+    public event EventHandler<IntRect>? PixelsChanged;
+
+    public static ImageDocument Create(string name, int width, int height, double resolutionDpi = DefaultResolutionDpi,
         DocumentBackground background = DocumentBackground.White)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        ValidateName(name);
+        ValidateResolution(resolutionDpi);
+        var pixels = PixelBuffer.Create(width, height);
+        if (background == DocumentBackground.White)
         {
-            throw new ArgumentException("Der Dokumentname darf nicht leer sein.", nameof(name));
+            pixels.Fill(Bgra32.White);
         }
 
-        var sizeResult = DocumentLimits.ValidateSize(width, height);
-        if (sizeResult != SizeValidationResult.Valid)
+        return new ImageDocument(name, pixels, resolutionDpi, background);
+    }
+
+    /// <summary>Dokument aus vorhandenen Pixeln, z. B. aus einer geöffneten Bilddatei. Der Puffer wird übernommen.</summary>
+    public static ImageDocument FromPixels(string name, PixelBuffer pixels, string? sourcePath = null,
+        double resolutionDpi = DefaultResolutionDpi)
+    {
+        ValidateName(name);
+        ValidateResolution(resolutionDpi);
+        ArgumentNullException.ThrowIfNull(pixels);
+        return new ImageDocument(name, pixels, resolutionDpi, DocumentBackground.Transparent) { SourcePath = sourcePath };
+    }
+
+    /// <summary>Meldet eine Pixeländerung: markiert das Dokument als geändert und informiert die Ansicht.</summary>
+    public void CommitPixelChange(IntRect region)
+    {
+        var clipped = region.Intersect(Pixels.Bounds);
+        if (clipped.IsEmpty)
         {
-            throw new DocumentValidationException(sizeResult);
+            return;
         }
 
-        if (!DocumentLimits.IsValidResolution(resolutionDpi))
-        {
-            throw new ArgumentOutOfRangeException(nameof(resolutionDpi), resolutionDpi, "Ungültige Auflösung.");
-        }
-
-        return new ImageDocument(name, width, height, resolutionDpi, background);
+        PixelsChanged?.Invoke(this, clipped);
+        MarkDirty();
     }
 
     public void MarkDirty()
@@ -112,6 +142,22 @@ public sealed class ImageDocument
         FilePath = filePath;
         _isDirty = false;
         StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static void ValidateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Der Dokumentname darf nicht leer sein.", nameof(name));
+        }
+    }
+
+    private static void ValidateResolution(double dpi)
+    {
+        if (!DocumentLimits.IsValidResolution(dpi))
+        {
+            throw new ArgumentOutOfRangeException(nameof(dpi), dpi, "Ungültige Auflösung.");
+        }
     }
 }
 

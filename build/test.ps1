@@ -4,10 +4,13 @@
     Ergebnisse: artifacts/testresults/*.trx, smoke-test.txt, smoke-test.png
 .PARAMETER SkipSmoke
     Überspringt den UI-Smoke-Test (z. B. ohne interaktive Sitzung).
+.PARAMETER WithInput
+    Führt zusätzlich ui-input-test.ps1 aus (echte Maus-/Tastatureingaben; Maus währenddessen nicht bewegen).
 #>
 param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
-    [switch]$SkipSmoke
+    [switch]$SkipSmoke,
+    [switch]$WithInput
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -36,4 +39,11 @@ if (-not $process.WaitForExit(120000)) {
 }
 Get-Content $resultFile -Encoding UTF8 | ForEach-Object { Write-Host $_ }
 if ($process.ExitCode -ne 0) { throw "UI-Smoke-Test fehlgeschlagen (Exitcode $($process.ExitCode))." }
+
+if ($WithInput) {
+    Write-Host '== UI-Eingabetest (echte Maus/Tastatur) ==' -ForegroundColor Cyan
+    & (Join-Path $PSScriptRoot 'ui-input-test.ps1') -Configuration $Configuration
+    if ($LASTEXITCODE -ne 0) { throw 'UI-Eingabetest fehlgeschlagen.' }
+}
+
 Write-Host 'Alle Tests bestanden.' -ForegroundColor Green

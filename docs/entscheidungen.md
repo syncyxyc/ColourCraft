@@ -53,6 +53,46 @@
   eigene Control-Templates (M9). Bis dahin helle Oberfläche, dunkle Arbeitsfläche für neutralen
   Bildkontrast. Alle Farben bereits als Tokens.
 
+## E-011 – SkiaSharp für Codecs, Anzeige über WriteableBitmap (18.10.2026)
+- SkiaSharp 4.153.1 (MIT, aktiv gepflegt, .NET 10, Windows-Native-Assets) dekodiert PNG/JPEG/BMP/WebP/GIF und
+  kodiert PNG/JPEG/WebP. Für die Anzeige wird kein `SkiaSharp.Views.WPF` gebraucht: Das interne Format ist
+  identisch mit WPF `Pbgra32`, eine `WriteableBitmap` genügt (weniger Abhängigkeiten, keine Umrechnung).
+
+## E-012 – Eigener BMP-Encoder (18.10.2026)
+- Skia kann BMP lesen, aber nicht schreiben. Eigener Encoder: 24 Bit (BITMAPINFOHEADER) für deckende Bilder
+  wegen größter Kompatibilität, 32 Bit BGRA mit BITMAPV4HEADER/BI_BITFIELDS bei Transparenz.
+
+## E-013 – Zusätzliche Formate WebP (lesen/schreiben) und GIF (nur lesen) (18.10.2026)
+- Ohne Mehraufwand über SkiaSharp verfügbar und durch Tests abgedeckt. GIF: nur das erste Einzelbild.
+  TIFF wird nicht angeboten, da SkiaSharp es nicht unterstützt (Spezifikation: „soweit zuverlässig“).
+
+## E-014 – „Öffnen“ = neues Dokument, „Importieren“ = Ebene (18.10.2026)
+- Öffnen legt je Bilddatei ein eigenes Dokument an. Importieren fügt künftig ein Bild als Ebene in das
+  aktive Dokument ein und folgt daher mit dem Ebenenmodell (M3). Eine bereits geöffnete Datei wird nur aktiviert.
+
+## E-015 – Mausrad zoomt, mittlere Maustaste/Leertaste verschiebt (18.10.2026)
+- Spezifikation verlangt „Zoom (Mausrad, Zoom um den Mauszeiger)“. Deshalb zoomt das Mausrad ohne
+  Modifizierer; Verschieben mit mittlerer Maustaste oder Leertaste + linker Maustaste sowie über die
+  Scrollleisten. Das Handwerkzeug folgt in M4.
+
+## E-016 – 100 % = 1 Bildpixel pro Gerätepixel (18.10.2026)
+- Alternativen: 1 Bildpixel pro DIP (bei 150 % Skalierung unscharf/vergrößert).
+- Entscheidung: Zoom bezieht sich auf physische Pixel; die `ViewTransform` rechnet mit der aktuellen
+  DPI-Skalierung um. So ist „100 %“ auf jedem Monitor pixelgenau.
+
+## E-017 – Export-Qualität aus den Einstellungen, noch ohne Dialog (18.10.2026)
+- JPEG/WebP-Qualität kommt aus `GlobalSettings.JpegQuality` (Standard 92). Ein Optionsdialog beim Export
+  bzw. in den Einstellungen folgt mit dem Einstellungsdialog (M9).
+
+## E-018 – Startparameter `--data-dir` (18.10.2026)
+- Einstellungen und Logs in einem frei wählbaren Ordner. Nötig für den Eingabetest (keine Veränderung
+  der echten Nutzereinstellungen) und Grundlage der portablen Version (M12).
+
+## E-019 – Eingabetest nur mit Vordergrundprüfung (18.10.2026)
+- Ein erster Lauf hat Tastenkürzel an ein anderes Fenster gesendet, weil ORBIT Studio nicht im
+  Vordergrund war. Seitdem prüft der Test vor jeder Eingabe das Vordergrundfenster und bricht sonst ab.
+  Er ist optional (`-WithInput`), da er eine unbenutzte Sitzung braucht.
+
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.

@@ -24,6 +24,19 @@ Architektur und Abhängigkeitsregeln: [architecture.md](architecture.md).
 - Nach jedem Meilenstein: Build, Tests, Doku (`implementation-roadmap.de.md`, `testing.de.md`,
   `bekannte-einschraenkungen.md`), Commit.
 
+## Tests
+
+- Unit-/Integrationstests: `dotnet test OrbitStudio.sln` oder `build/test.ps1`.
+- Smoke-Test der echten Oberfläche: `OrbitStudio.exe --smoke-test <Ergebnisdatei>` (isolierte Einstellungen).
+  Neue Oberflächenfunktionen bekommen dort eine Prüfung (`src/OrbitStudio.App/SmokeTest.cs`).
+- Eingabetest mit echter Maus/Tastatur: `build/ui-input-test.ps1` – nur in einer ungenutzten Sitzung starten.
+- Zum manuellen Ausprobieren ohne die eigenen Einstellungen zu verändern: `OrbitStudio.exe --data-dir C:\temp\orbit`.
+
+## Pixel und Koordinaten
+
+Siehe [architecture.md](architecture.md): BGRA vormultipliert, Stride = Breite·4, Ursprung oben links,
+`ViewTransform` für alle Umrechnungen Dokument ↔ Viewport ↔ DIP. Niemals eigene Umrechnungen in Views.
+
 ## Logs
 
 `%LOCALAPPDATA%\OrbitStudio\logs\orbit-JJJJMMTT.log`. Niemals Bildinhalte oder Dateiinhalte loggen.

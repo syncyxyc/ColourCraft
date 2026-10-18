@@ -1,4 +1,5 @@
 using System.Windows;
+using Microsoft.Win32;
 using OrbitStudio.Presentation.Localization;
 using OrbitStudio.Presentation.Views;
 
@@ -15,9 +16,38 @@ public sealed class WpfDialogService : IDialogService
         return dialog.ShowDialog() == true ? dialog.Result : null;
     }
 
+    public IReadOnlyList<string>? ShowOpenFiles(string title, IReadOnlyList<FileFilter> filters)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = title,
+            Filter = BuildFilter(filters),
+            Multiselect = true,
+            CheckFileExists = true,
+        };
+        return ShowCommon(dialog) ? dialog.FileNames : null;
+    }
+
+    public (string Path, int FilterIndex)? ShowSaveFile(string title, IReadOnlyList<FileFilter> filters,
+        string defaultFileName, int defaultFilterIndex)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = title,
+            Filter = BuildFilter(filters),
+            FilterIndex = defaultFilterIndex + 1, // WPF zählt ab 1
+            FileName = defaultFileName,
+            AddExtension = true,
+            OverwritePrompt = true,
+        };
+        return ShowCommon(dialog) ? (dialog.FileName, dialog.FilterIndex - 1) : null;
+    }
+
     public bool ConfirmDiscardChanges(string documentName) =>
-        Show(Loc.Get("Msg.Unsaved.Title"), Loc.Format("Msg.Unsaved.Body", documentName),
-            MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK;
+        Confirm(Loc.Get("Msg.Unsaved.Title"), Loc.Format("Msg.Unsaved.Body", documentName));
+
+    public bool Confirm(string title, string message) =>
+        Show(title, message, MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK;
 
     public void ShowInformation(string title, string message) =>
         Show(title, message, MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
@@ -27,6 +57,17 @@ public sealed class WpfDialogService : IDialogService
 
     public void ShowError(string title, string message) =>
         Show(title, message, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+
+    /// <summary>"Beschreibung (*.a;*.b)|*.a;*.b|…"</summary>
+    public static string BuildFilter(IReadOnlyList<FileFilter> filters) =>
+        string.Join('|', filters.Select(f =>
+        {
+            var patterns = string.Join(';', f.Patterns);
+            return $"{f.Description} ({patterns})|{patterns}";
+        }));
+
+    private static bool ShowCommon(CommonDialog dialog) =>
+        (Owner is { } owner ? dialog.ShowDialog(owner) : dialog.ShowDialog()) == true;
 
     private static MessageBoxResult Show(string title, string message, MessageBoxButton buttons, MessageBoxImage image,
         MessageBoxResult defaultResult) =>

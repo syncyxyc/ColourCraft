@@ -5,7 +5,7 @@ public static class CommandIds
 {
     public const string FileNew = "file.new";
     public const string FileOpen = "file.open";
-    public const string FileRecent = "file.recent";
+
     public const string FileSave = "file.save";
     public const string FileSaveAs = "file.saveAs";
     public const string FileSaveCopy = "file.saveCopy";

@@ -132,14 +132,18 @@
     <!-- Statusleiste -->
     <sys:String x:Key="Status.Ready">Bereit</sys:String>
     <sys:String x:Key="Status.NoDocument">Kein Dokument geöffnet</sys:String>
-    <sys:String x:Key="Status.Zoom">Zoom: {0:0} %</sys:String>
+    <sys:String x:Key="Status.Zoom">Zoom: {0:0.#} %</sys:String>
     <sys:String x:Key="Status.Size">{0} × {1} px</sys:String>
     <sys:String x:Key="Status.Cursor">{0}, {1}</sys:String>
     <sys:String x:Key="Status.CursorOutside">–</sys:String>
     <sys:String x:Key="Status.Tool">Werkzeug: keines (folgt in M4)</sys:String>
+    <sys:String x:Key="Status.Busy">Bitte warten …</sys:String>
+    <sys:String x:Key="Status.Opened">Geöffnet: {0}</sys:String>
+    <sys:String x:Key="Status.Exported">Exportiert: {0}</sys:String>
 
     <!-- Arbeitsfläche -->
-    <sys:String x:Key="Workspace.Empty">Kein Dokument geöffnet. Mit Datei › Neu (Strg+N) ein Bild anlegen.</sys:String>
+    <sys:String x:Key="Workspace.Empty">Kein Dokument geöffnet. Mit Datei › Neu (Strg+N) ein Bild anlegen, mit Datei › Öffnen (Strg+O) ein Bild laden oder Bilddateien hierher ziehen.</sys:String>
+    <sys:String x:Key="Workspace.CanvasHint">Mausrad: Zoom · Mittlere Maustaste oder Leertaste + Ziehen: Verschieben</sys:String>
     <sys:String x:Key="Workspace.CloseTab">Dokument schließen</sys:String>
 
     <!-- Dialog: Neues Bild -->
@@ -181,6 +185,37 @@
     <sys:String x:Key="Msg.Settings.Corrected">In „{0}" waren ungültige Werte. Sie wurden durch Standardwerte ersetzt.</sys:String>
     <sys:String x:Key="Msg.Settings.NoBackup">keine (Kopie fehlgeschlagen)</sys:String>
     <sys:String x:Key="Msg.Settings.SaveFailed">Die Einstellungen konnten nicht gespeichert werden: {0}</sys:String>
+
+    <!-- Dateiformate (Schlüssel: Format.<Id> aus ImageFileFormat) -->
+    <sys:String x:Key="Format.png">PNG-Bild</sys:String>
+    <sys:String x:Key="Format.jpeg">JPEG-Bild</sys:String>
+    <sys:String x:Key="Format.bmp">Windows-Bitmap</sys:String>
+    <sys:String x:Key="Format.webp">WebP-Bild</sys:String>
+    <sys:String x:Key="Format.gif">GIF-Bild (nur erstes Einzelbild)</sys:String>
+    <sys:String x:Key="Format.AllImages">Alle unterstützten Bilder</sys:String>
+    <sys:String x:Key="Dlg.Open.Title">Bild öffnen</sys:String>
+    <sys:String x:Key="Dlg.Export.Title">Exportieren</sys:String>
+
+    <!-- Zuletzt verwendet -->
+    <sys:String x:Key="Recent.Empty">(keine)</sys:String>
+    <sys:String x:Key="Recent.Item">_{0} {1}</sys:String>
+
+    <!-- Dateifehler: {0} = Dateiname -->
+    <sys:String x:Key="Msg.File.OpenFailed.Title">Öffnen fehlgeschlagen</sys:String>
+    <sys:String x:Key="Msg.File.ExportFailed.Title">Export fehlgeschlagen</sys:String>
+    <sys:String x:Key="Msg.File.NotFound">Die Datei „{0}" wurde nicht gefunden. Sie wurde aus der Liste „Zuletzt verwendet" entfernt, falls sie dort stand.</sys:String>
+    <sys:String x:Key="Msg.File.AccessDenied">Kein Zugriff auf „{0}". Bitte Berechtigungen prüfen.</sys:String>
+    <sys:String x:Key="Msg.File.IoError">„{0}" konnte nicht gelesen oder geschrieben werden (Ein-/Ausgabefehler). Ist die Datei in einem anderen Programm geöffnet?</sys:String>
+    <sys:String x:Key="Msg.File.UnknownFormat">Das Dateiformat von „{0}" wird nicht unterstützt. Unterstützt: PNG, JPEG, BMP, WebP, GIF.</sys:String>
+    <sys:String x:Key="Msg.File.FormatNotWritable">In das Format von „{0}" kann nicht exportiert werden. Bitte PNG, JPEG, BMP oder WebP wählen.</sys:String>
+    <sys:String x:Key="Msg.File.Corrupt">„{0}" ist beschädigt, unvollständig oder kein gültiges Bild.</sys:String>
+    <sys:String x:Key="Msg.File.Unsupported">„{0}" verwendet eine Formatvariante, die nicht unterstützt wird.</sys:String>
+    <sys:String x:Key="Msg.File.TooLarge">„{0}" ist zu groß. Erlaubt sind höchstens 65.535 Pixel Kantenlänge, 268 Megapixel und 1 GiB Dateigröße.</sys:String>
+    <sys:String x:Key="Msg.File.OutOfMemory">Für „{0}" reicht der Arbeitsspeicher nicht aus. Bitte andere Dokumente schließen und erneut versuchen.</sys:String>
+    <sys:String x:Key="Msg.File.EncodeFailed">„{0}" konnte nicht erzeugt werden. Die vorhandene Datei wurde nicht verändert.</sys:String>
+    <sys:String x:Key="Msg.File.Cancelled">Der Vorgang für „{0}" wurde abgebrochen.</sys:String>
+    <sys:String x:Key="Msg.Export.AlphaLost.Title">Transparenz geht verloren</sys:String>
+    <sys:String x:Key="Msg.Export.AlphaLost.Body">Das Format {0} kann keine Transparenz speichern. Transparente Bereiche werden weiß gefüllt. Fortfahren?</sys:String>
 
     <!-- Fehler -->
     <sys:String x:Key="Msg.Error.Title">Fehler</sys:String>

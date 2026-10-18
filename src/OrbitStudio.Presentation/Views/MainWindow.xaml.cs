@@ -45,6 +45,24 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) && !_viewModel.IsBusy
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    /// <summary>Bilddateien in das Fenster ziehen öffnet sie als neue Dokumente.</summary>
+    private async void OnDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files && !_viewModel.IsBusy)
+        {
+            e.Handled = true;
+            await _viewModel.OpenFilesAsync(files);
+        }
+    }
+
     protected override void OnClosing(CancelEventArgs e)
     {
         if (!_viewModel.CloseAllDocuments())
