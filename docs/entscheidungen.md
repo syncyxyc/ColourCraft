@@ -276,3 +276,20 @@
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.
+
+## E-050 – Farbkurven: monotone kubische Interpolation, Effekt noch nicht im Menü (22.10.2026)
+- Alternativen: natürlicher kubischer Spline (überschwingt bei steilen Sprüngen, Werte außerhalb von 0–255 oder
+  nicht-monotone Tonwerte), lineare Segmente (sichtbare Knicke). Entscheidung: monotoner kubischer Hermite-Spline nach
+  Fritsch–Carlson; die Kurve läuft exakt durch alle Punkte und bleibt zwischen zwei Punkten monoton.
+- Reihenfolge der Anwendung: erst Gesamtkurve, dann Kanalkurve; Eingang auf ganze Zahlen gerundet, Ausgabe aus einer
+  256er-Tabelle (kaufmännisch gerundet, wie alle Effekte).
+- Der Effekt ist absichtlich nicht in `StandardEffects` registriert: Ohne Kurveneditor wäre ein Menüpunkt eine Demo-
+  Oberfläche ohne Funktion (Grundregel 0). Der Test `Parameter_ValidatesType_AndIsNotRegisteredInDefaultSet` hält das fest
+  und muss beim Anschluss des Editors angepasst werden.
+
+## E-051 – Farbfelder: Modell in Domain, Speicherung als Hex-Liste im Arbeitsbereich (22.10.2026)
+- `Configuration` darf nach den Architekturregeln keine Projekte referenzieren; deshalb speichert `WorkspaceSettings`
+  die Palette als Textliste („#RRGGBB“/„#RRGGBBAA“) und normalisiert sie selbst (kanonische Großschreibung, ungültige und
+  doppelte Einträge entfallen). Die Umwandlung in Farben macht `SwatchPalette.FromHex` in der Domain.
+- `Swatches = null` bedeutet Standardpalette, eine leere Liste eine absichtlich geleerte Palette.
+

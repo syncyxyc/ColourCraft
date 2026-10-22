@@ -10,7 +10,7 @@
 | M5 | Strichmuster-Werkzeug | ✅ abgeschlossen (18.10.2026) |
 | M6 | Effekte | ✅ abgeschlossen (18.10.2026) |
 | M7 | Projektformat `.orbit` | ✅ abgeschlossen (18.10.2026) |
-| M8 | Professionelle Oberfläche | offen |
+| M8 | Professionelle Oberfläche | in Arbeit (Modelle fertig, WPF-Oberfläche ausstehend unter Windows) |
 | M9 | Anpassbarkeit | offen |
 | M10 | Plugin-API | offen |
 | M11 | Stabilisierung | offen |
@@ -209,7 +209,26 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Auswahl, Ansicht und Historie werden nicht im Projekt gespeichert; kein Vorschaubild, keine automatische Sicherung.
 - Laufzeit von Speichern/Öffnen großer Projekte nicht gemessen (M11).
 
-## Nächster Schritt: M8
+## M8 – Professionelle Oberfläche (begonnen 22.10.2026, macOS ohne WPF-Laufzeit)
+
+Umgebung: Dieser Teil entstand auf macOS (.NET SDK 10.0.402, Core-Teile gebaut und getestet; `OrbitStudio.Presentation`
+kompiliert mit `-p:EnableWindowsTargeting=true`, **wurde aber nicht gestartet**). Gemäß Spezifikation 15.4 gilt alles
+mit WPF als „ausstehend unter Windows“.
+
+Erfüllt (Modell und Logik, getestet):
+- **Farbkurven:** `ToneCurve` (2–16 Kontrollpunkte, monotone kubische Interpolation nach Fritsch–Carlson, 256er-Tabelle,
+  Editor-Operationen Hinzufügen/Verschieben/Entfernen/Treffertest) und Effekt `CurvesEffect` (Gesamt-, Rot-, Grün-,
+  Blaukurve) mit `CurveParameter`. 21 neue Tests mit exakten Werten (u. a. Invertierkurve = `InvertEffect` Byte für Byte).
+- **Farbfelder:** `SwatchPalette` (Domain; Hinzufügen, Entfernen, Ersetzen, Verschieben, Hex-Rundreise, Standardpalette,
+  Höchstzahl 256, keine Doppelten) und `WorkspaceSettings.Swatches` (Speichern, Normalisieren, Meldung „korrigiert“).
+  9 + 3 neue Tests.
+- Testlauf auf macOS: Domain 83, Configuration 22, Effects 63, Architektur 30 – alle bestanden.
+
+Offen (ausstehend unter Windows): Kurveneditor-Steuerelement und Registrierung von „Farbkurven“ im Menü, Farbfelder-Panel,
+andockbare Panels (AvalonDock-Lizenz/.NET-10-Prüfung), Symbolleisten, Historie-Panel, Navigator, Effektbrowser, Lineale,
+Raster, Hilfslinien, Icons, Layoutspeicherung.
+
+## Nächster Schritt: M8 (Rest)
 
 Professionelle Oberfläche: andockbare Panels (Ebenen, Farben, Historie, Navigator, Eigenschaften, Werkzeugoptionen,
 Effektbrowser), Symbolleisten, Farbfelder, Farbkurven-Editor, Lineale/Raster/Hilfslinien, eigene Icons, Layoutspeicherung.

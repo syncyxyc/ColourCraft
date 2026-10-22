@@ -106,6 +106,8 @@ public sealed class EffectSettings
 
     public ColorRgba Color(string id) => (ColorRgba)_values[id];
 
+    public ToneCurve Curve(string id) => (ToneCurve)_values[id];
+
     /// <summary>
     /// Kopie für eine Vorschau im Maßstab <paramref name="scale"/>: Längen (Spatial) werden skaliert, aber nicht unter
     /// das Minimum des Parameters (ganzzahlige Parameter werden gerundet).

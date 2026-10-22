@@ -111,9 +111,19 @@ public sealed record WorkspaceSettings : IVersionedSettings
     /// <summary>Leiste mit den Optionen des aktiven Werkzeugs anzeigen.</summary>
     public bool ShowToolOptions { get; init; } = true;
 
+    /// <summary>Höchstzahl gespeicherter Farbfelder (entspricht <c>SwatchPalette.MaximumColors</c>).</summary>
+    public const int MaxSwatches = 256;
+
+    /// <summary>
+    /// Farbfelder als „#RRGGBB" bzw. „#RRGGBBAA". null = mitgelieferte Standardpalette; eine leere Liste ist eine
+    /// absichtlich geleerte Palette.
+    /// </summary>
+    public IReadOnlyList<string>? Swatches { get; init; }
+
     public static WorkspaceSettings Normalize(WorkspaceSettings s, out bool changed)
     {
         var defaults = new WorkspaceSettings();
+        var swatches = NormalizeSwatches(s.Swatches, out var swatchesChanged);
         var width = IsValidSize(s.WindowWidth, MinWindowWidth) ? s.WindowWidth : defaults.WindowWidth;
         var height = IsValidSize(s.WindowHeight, MinWindowHeight) ? s.WindowHeight : defaults.WindowHeight;
         var left = s.WindowLeft is { } l && double.IsFinite(l) ? s.WindowLeft : null;
@@ -126,9 +136,48 @@ public sealed record WorkspaceSettings : IVersionedSettings
             WindowHeight = height,
             WindowLeft = left,
             WindowTop = top,
+            Swatches = swatches,
         };
-        changed = width != s.WindowWidth || height != s.WindowHeight || left != s.WindowLeft || top != s.WindowTop;
+        changed = width != s.WindowWidth || height != s.WindowHeight || left != s.WindowLeft || top != s.WindowTop
+                  || swatchesChanged;
         return result;
+    }
+
+    /// <summary>Behält gültige, eindeutige Farbwerte (in kanonischer Schreibweise, höchstens <see cref="MaxSwatches"/>).</summary>
+    private static List<string>? NormalizeSwatches(IReadOnlyList<string>? swatches, out bool changed)
+    {
+        changed = false;
+        if (swatches is null)
+        {
+            return null;
+        }
+
+        var result = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var text in swatches)
+        {
+            var hex = CanonicalHex(text);
+            if (hex is null || !seen.Add(hex) || result.Count >= MaxSwatches)
+            {
+                changed = true;
+                continue;
+            }
+
+            changed |= hex != text;
+            result.Add(hex);
+        }
+
+        return result;
+    }
+
+    private static string? CanonicalHex(string? text)
+    {
+        if (text is not { Length: 7 or 9 } || text[0] != '#' || !text.Skip(1).All(Uri.IsHexDigit))
+        {
+            return null;
+        }
+
+        return text.ToUpperInvariant();
     }
 
     private static bool IsValidSize(double value, double min) => double.IsFinite(value) && value >= min && value <= 32_000;

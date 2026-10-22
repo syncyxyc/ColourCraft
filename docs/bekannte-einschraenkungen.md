@@ -6,7 +6,8 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
 
 - **Werkzeuggruppe „Erweitert“:** Text, Klonen und Retusche fehlen (Hand und Zoom sind umgesetzt). Sie sind
   keinem Meilenstein fest zugeordnet; Entscheidung über Umfang spätestens in M11.
-- **Farbfelder (Palette):** fehlen; Farben werden über Farbdialog oder Pipette gewählt. → M8
+- **Farbfelder (Palette):** Modell (`SwatchPalette`) und Speicherung (`WorkspaceSettings.Swatches`) sind getestet, ein Panel
+  zum Auswählen und Bearbeiten fehlt noch; Farben werden weiter über Farbdialog oder Pipette gewählt. → M8 (Windows)
 - **Ebene transformieren:** Drehen und Skalieren nur über einen Zahlendialog, ohne Anfasser auf der Leinwand und ohne
   Live-Vorschau; Ergebnis bilinear in der Bildgröße (über den Rand ragende Teile werden abgeschnitten). → M8
 - **Verschieben-Werkzeug:** verschiebt nur ganze Pixel; keine Unterpixel-Positionen, kein Drehen/Skalieren der Auswahl.
@@ -14,7 +15,8 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - **Zwischenablage:** Einfügen fügt immer als neue Ebene ein (nicht in die aktive Ebene); „Kopieren aus allen Ebenen“
   fehlt.
 - **Pinsel:** nur rund; keine Druckempfindlichkeit für Grafiktabletts.
-- **Farbkurven:** fehlen (brauchen einen Kurveneditor). → M8
+- **Farbkurven:** Kurvenmodell und Effekt `curves` sind getestet, aber **nicht im Menü und nicht in der Standard-Effektliste**,
+  weil der Kurveneditor (WPF-Steuerelement) fehlt; `EffectDialog` kennt `CurveParameter` noch nicht. → M8 (Windows)
 - **Effekte allgemein:** wirken destruktiv auf die Ebenenpixel (mit Rückgängig), nicht als nachträglich änderbare
   Ebeneneffekte (E-039). Kein „Letzten Effekt wiederholen“, kein Effektbrowser (→ M8). Im Modus „Maske bearbeiten“
   wirken Effekte trotzdem auf die Pixel, nicht auf die Maske.

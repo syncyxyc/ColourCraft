@@ -187,6 +187,43 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Workspace_Swatches_DefaultToNull_AndRoundTrip_IncludingEmptyPalette()
+    {
+        new WorkspaceSettings().Swatches.ShouldBeNull();
+        var store = SettingsStores.Workspace(_paths);
+
+        store.Save(new WorkspaceSettings { Swatches = ["#FF0000", "#00FF0080"] });
+        var loaded = store.Load();
+        loaded.Status.ShouldBe(SettingsLoadStatus.Loaded);
+        loaded.Value.Swatches.ShouldBe(["#FF0000", "#00FF0080"]);
+
+        // Absichtlich geleerte Palette bleibt leer (nicht wieder die Standardpalette).
+        store.Save(new WorkspaceSettings { Swatches = [] });
+        store.Load().Value.Swatches.ShouldBe([]);
+    }
+
+    [Fact]
+    public void Workspace_Swatches_InvalidAndDuplicateEntriesAreDropped_AndReportedAsCorrected()
+    {
+        var normalized = WorkspaceSettings.Normalize(
+            new WorkspaceSettings { Swatches = ["#ff0000", "#FF0000", "rot", "#12345", "#GG0000", "#0000FF"] }, out var changed);
+        changed.ShouldBeTrue();
+        normalized.Swatches.ShouldBe(["#FF0000", "#0000FF"]);
+
+        WorkspaceSettings.Normalize(new WorkspaceSettings { Swatches = ["#FF0000", "#0000FF"] }, out var unchanged);
+        unchanged.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Workspace_Swatches_AreCappedAtMaximum()
+    {
+        var many = Enumerable.Range(0, WorkspaceSettings.MaxSwatches + 20).Select(i => $"#{i:X6}").ToList();
+        var normalized = WorkspaceSettings.Normalize(new WorkspaceSettings { Swatches = many }, out var changed);
+        changed.ShouldBeTrue();
+        normalized.Swatches!.Count.ShouldBe(WorkspaceSettings.MaxSwatches);
+    }
+
+    [Fact]
     public void AppInfo_ProvidesProductNameAndVersion()
     {
         AppInfo.ProductName.ShouldBe("ORBIT Studio");
