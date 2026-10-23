@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Theme-Modell mit Design-Tokens, Prüfung, Import/Export und eingebauten Themes. Kennt weder WPF noch andere Projekte. -->
+</Project>

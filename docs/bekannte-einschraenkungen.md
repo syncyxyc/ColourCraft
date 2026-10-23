@@ -38,13 +38,19 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
   innerhalb einer Gruppe (nicht per Ziehen, nicht in/aus Gruppen); Auswahlfarbe ohne Fokus ist das Windows-Grau. → M8
 - **Panels allgemein:** Werkzeugleiste, Optionsleiste und Ebenen-Panel sind fest angeordnet; kein Historie-Panel
   (Rückgängig nur schrittweise), kein Navigator; Werkzeugsymbole sind Unicode-Zeichen statt eigener Vektor-Icons. → M8
-- **Symbolleisten, andockbare Panels, Fenster-Menü, Lineale, Raster, Hilfslinien:** fehlen bzw. deaktiviert. → M8
+- **Symbolleisten, andockbare Panels, Fenster-Menü, Lineale, Raster, Hilfslinien:** fehlen bzw. deaktiviert. Rechenmodell für
+  Hilfslinien, Raster und Lineal-Teilung (`ViewAids`) ist getestet, wird aber nirgends gezeichnet oder gespeichert (Hilfslinien
+  sind noch nicht Teil des `.orbit`-Formats). → M8 (Windows)
 - **Werkzeugoptionen und Farben** werden nicht über einen Neustart hinweg gespeichert. → M9
 - **Layout zurücksetzen / Arbeitsbereiche:** Das Modell (`PanelLayout`, `WorkspaceCatalog` in `OrbitStudio.Docking`) ist getestet,
   aber nicht an die Oberfläche angebunden: Es gibt weiterhin nur Fensterposition und Pixelraster-Einstellung. → M8 (Windows)
-- **Einstellungen-Dialog, Tastenkürzel-Editor, Theme-Wechsel, Menüanpassung, Arbeitsbereiche:** deaktiviert.
+- **Einstellungen-Dialog, Tastenkürzel-Editor, Theme-Wechsel, Menüanpassung, Arbeitsbereiche:** deaktiviert. Die Modelle
+  `OrbitStudio.Themes` (Prüfung, Import/Export) und `GestureProfile` (Import/Export, Konfliktauflösung) sind getestet, aber ohne
+  Oberfläche. Ein Theme-Wechsel zur Laufzeit (WPF-Ressourcen aus den Tokens) fehlt.
   Die JPEG/WebP-Qualität (Standard 92) ist nur über `settings.json` änderbar. → M9
-- **Plugins, Erweiterungen:** deaktiviert. → M10
+- **Plugins, Erweiterungen:** Laufzeit, Vertrag und Beispielplugin sind getestet (siehe `plugin-development.de.md`), aber nicht
+  angebunden: kein Verwaltungsdialog, kein Laden beim Programmstart, Menü „Erweiterungen“ deaktiviert. API 1 kennt nur Effekte;
+  Plugin-Effekte haben noch keine eigenen Texte. → M10 (Windows)
 - **Diagnosebericht, Diagnose-Panel:** deaktiviert. Logs liegen unter `%LOCALAPPDATA%\OrbitStudio\logs`. → M11
 - **Benutzerhandbuch (F1), Lizenzinformationen im Programm:** deaktiviert; Handbuch liegt als
   `docs/user-guide.de.md` vor. → M12

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Öffentlicher, versionierter Plugin-Vertrag. Enthält nur Schnittstellen und Metadaten; verwendet die Effekt-API. -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Effects\OrbitStudio.Effects.csproj" />
+  </ItemGroup>
+</Project>

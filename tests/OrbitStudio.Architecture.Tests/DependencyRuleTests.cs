@@ -17,6 +17,9 @@ public class DependencyRuleTests
         { "OrbitStudio.Configuration", [] },
         { "OrbitStudio.Diagnostics", [] },
         { "OrbitStudio.Docking", [] },
+        { "OrbitStudio.Themes", [] },
+        { "OrbitStudio.Plugin.Abstractions", ["OrbitStudio.Effects", "OrbitStudio.Domain"] },
+        { "OrbitStudio.Plugin.Runtime", ["OrbitStudio.Plugin.Abstractions", "OrbitStudio.Effects"] },
         { "OrbitStudio.Imaging", ["OrbitStudio.Domain"] },
         { "OrbitStudio.Rendering", ["OrbitStudio.Domain"] },
         { "OrbitStudio.Layers", ["OrbitStudio.Domain", "OrbitStudio.Rendering"] },
@@ -60,6 +63,9 @@ public class DependencyRuleTests
     [InlineData("OrbitStudio.Configuration")]
     [InlineData("OrbitStudio.Diagnostics")]
     [InlineData("OrbitStudio.Docking")]
+    [InlineData("OrbitStudio.Themes")]
+    [InlineData("OrbitStudio.Plugin.Abstractions")]
+    [InlineData("OrbitStudio.Plugin.Runtime")]
     [InlineData("OrbitStudio.Imaging")]
     [InlineData("OrbitStudio.Rendering")]
     [InlineData("OrbitStudio.Layers")]

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Beispielplugin: ein echter Effekt „Tonwertstufen“ (Posterisieren). Ablauf siehe docs/plugin-development.de.md. -->
+  <PropertyGroup>
+    <AssemblyName>OrbitStudio.SamplePlugin</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OrbitStudio.Plugin.Abstractions\OrbitStudio.Plugin.Abstractions.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+    <None Include="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
