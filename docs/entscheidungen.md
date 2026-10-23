@@ -293,3 +293,14 @@
   doppelte Einträge entfallen). Die Umwandlung in Farben macht `SwatchPalette.FromHex` in der Domain.
 - `Swatches = null` bedeutet Standardpalette, eine leere Liste eine absichtlich geleerte Palette.
 
+## E-052 – Docking-Modell unabhängig von AvalonDock (23.10.2026)
+- Das Layout (welches Panel auf welcher Seite, Reihenfolge, Größe, Sichtbarkeit) ist ein eigenes, unveränderliches Modell
+  in `OrbitStudio.Docking` ohne UI-Abhängigkeit. Alternative: AvalonDock-XML-Layouts direkt speichern – wäre an die
+  Bibliothek und an Windows gebunden, nicht testbar und bei Bibliotheksupdates fragil. Die spätere Oberfläche bildet das
+  Modell auf AvalonDock ab (und zurück).
+- Gelesene Layouts werden nie abgelehnt, sondern repariert (`Normalize`): unbekannte/doppelte Panels entfallen, fehlende
+  (z. B. nach einem Update neu hinzugekommene) kommen mit Standardwerten dazu. „Standard“ ist als Arbeitsbereichsname
+  reserviert, damit „Layout zurücksetzen“ immer eindeutig ist.
+- Mindestgröße 48 statt 120: Die schmale Werkzeugleiste (Standard 64) ist ein gültiges Layout; das haben die Tests
+  beim ersten Lauf aufgedeckt.
+

@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Panel-Layouts und benannte Arbeitsbereiche (Modell, Prüfung, Speicherung). Kennt weder WPF noch AvalonDock. -->
+</Project>

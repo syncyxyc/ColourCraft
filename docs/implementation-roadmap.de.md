@@ -222,10 +222,17 @@ Erfüllt (Modell und Logik, getestet):
 - **Farbfelder:** `SwatchPalette` (Domain; Hinzufügen, Entfernen, Ersetzen, Verschieben, Hex-Rundreise, Standardpalette,
   Höchstzahl 256, keine Doppelten) und `WorkspaceSettings.Swatches` (Speichern, Normalisieren, Meldung „korrigiert“).
   9 + 3 neue Tests.
-- Testlauf auf macOS: Domain 83, Configuration 22, Effects 63, Architektur 30 – alle bestanden.
+- **Panel-Layouts und Arbeitsbereiche:** neues Projekt `OrbitStudio.Docking` (keine Abhängigkeiten, kein WPF/AvalonDock):
+  `PanelLayout` (8 Standard-Panels, Sichtbarkeit, Größe, Seite und Reihenfolge, Standardanordnung, Prüfung und Reparatur
+  fehlerhafter Layouts) und `WorkspaceCatalog` (benannte Arbeitsbereiche speichern, laden, umbenennen, löschen, „Standard“
+  geschützt, „Layout zurücksetzen“, versioniertes JSON mit Fallback bei beschädigten oder neueren Dateien). 33 neue Tests;
+  Architekturtest um das Projekt erweitert.
+- Testlauf auf macOS: Domain 83, Configuration 22, Effects 63, Docking 33, Architektur 32 – alle bestanden; die gesamte
+  Solution (inkl. WPF-Projekte) kompiliert mit `-p:EnableWindowsTargeting=true`.
 
 Offen (ausstehend unter Windows): Kurveneditor-Steuerelement und Registrierung von „Farbkurven“ im Menü, Farbfelder-Panel,
-andockbare Panels (AvalonDock-Lizenz/.NET-10-Prüfung), Symbolleisten, Historie-Panel, Navigator, Effektbrowser, Lineale,
+Anbindung von `PanelLayout`/`WorkspaceCatalog` an andockbare Panels (AvalonDock-Lizenz/.NET-10-Prüfung) und an eine Datei
+im Arbeitsbereich-Ordner, Fenster-Menü „Panels“/„Arbeitsbereiche“, Symbolleisten, Historie-Panel, Navigator, Effektbrowser, Lineale,
 Raster, Hilfslinien, Icons, Layoutspeicherung.
 
 ## Nächster Schritt: M8 (Rest)

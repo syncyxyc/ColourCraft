@@ -40,7 +40,8 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
   (Rückgängig nur schrittweise), kein Navigator; Werkzeugsymbole sind Unicode-Zeichen statt eigener Vektor-Icons. → M8
 - **Symbolleisten, andockbare Panels, Fenster-Menü, Lineale, Raster, Hilfslinien:** fehlen bzw. deaktiviert. → M8
 - **Werkzeugoptionen und Farben** werden nicht über einen Neustart hinweg gespeichert. → M9
-- **Layout zurücksetzen:** es gibt nur Fensterposition und Pixelraster-Einstellung. → M8
+- **Layout zurücksetzen / Arbeitsbereiche:** Das Modell (`PanelLayout`, `WorkspaceCatalog` in `OrbitStudio.Docking`) ist getestet,
+  aber nicht an die Oberfläche angebunden: Es gibt weiterhin nur Fensterposition und Pixelraster-Einstellung. → M8 (Windows)
 - **Einstellungen-Dialog, Tastenkürzel-Editor, Theme-Wechsel, Menüanpassung, Arbeitsbereiche:** deaktiviert.
   Die JPEG/WebP-Qualität (Standard 92) ist nur über `settings.json` änderbar. → M9
 - **Plugins, Erweiterungen:** deaktiviert. → M10
