@@ -6,7 +6,8 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
 
 - **Werkzeuggruppe „Erweitert“:** Text, Klonen und Retusche fehlen (Hand und Zoom sind umgesetzt). Sie sind
   keinem Meilenstein fest zugeordnet; Entscheidung über Umfang spätestens in M11.
-- **Farbfelder (Palette):** fehlen; Farben werden über Farbdialog oder Pipette gewählt. → M8
+- **Farbfelder (Palette):** Modell (`SwatchPalette`) und Speicherung (`WorkspaceSettings.Swatches`) sind getestet, ein Panel
+  zum Auswählen und Bearbeiten fehlt noch; Farben werden weiter über Farbdialog oder Pipette gewählt. → M8 (Windows)
 - **Ebene transformieren:** Drehen und Skalieren nur über einen Zahlendialog, ohne Anfasser auf der Leinwand und ohne
   Live-Vorschau; Ergebnis bilinear in der Bildgröße (über den Rand ragende Teile werden abgeschnitten). → M8
 - **Verschieben-Werkzeug:** verschiebt nur ganze Pixel; keine Unterpixel-Positionen, kein Drehen/Skalieren der Auswahl.
@@ -14,7 +15,8 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
 - **Zwischenablage:** Einfügen fügt immer als neue Ebene ein (nicht in die aktive Ebene); „Kopieren aus allen Ebenen“
   fehlt.
 - **Pinsel:** nur rund; keine Druckempfindlichkeit für Grafiktabletts.
-- **Farbkurven:** fehlen (brauchen einen Kurveneditor). → M8
+- **Farbkurven:** Kurvenmodell und Effekt `curves` sind getestet, aber **nicht im Menü und nicht in der Standard-Effektliste**,
+  weil der Kurveneditor (WPF-Steuerelement) fehlt; `EffectDialog` kennt `CurveParameter` noch nicht. → M8 (Windows)
 - **Effekte allgemein:** wirken destruktiv auf die Ebenenpixel (mit Rückgängig), nicht als nachträglich änderbare
   Ebeneneffekte (E-039). Kein „Letzten Effekt wiederholen“, kein Effektbrowser (→ M8). Im Modus „Maske bearbeiten“
   wirken Effekte trotzdem auf die Pixel, nicht auf die Maske.
@@ -36,12 +38,19 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
   innerhalb einer Gruppe (nicht per Ziehen, nicht in/aus Gruppen); Auswahlfarbe ohne Fokus ist das Windows-Grau. → M8
 - **Panels allgemein:** Werkzeugleiste, Optionsleiste und Ebenen-Panel sind fest angeordnet; kein Historie-Panel
   (Rückgängig nur schrittweise), kein Navigator; Werkzeugsymbole sind Unicode-Zeichen statt eigener Vektor-Icons. → M8
-- **Symbolleisten, andockbare Panels, Fenster-Menü, Lineale, Raster, Hilfslinien:** fehlen bzw. deaktiviert. → M8
+- **Symbolleisten, andockbare Panels, Fenster-Menü, Lineale, Raster, Hilfslinien:** fehlen bzw. deaktiviert. Rechenmodell für
+  Hilfslinien, Raster und Lineal-Teilung (`ViewAids`) ist getestet, wird aber nirgends gezeichnet oder gespeichert (Hilfslinien
+  sind noch nicht Teil des `.orbit`-Formats). → M8 (Windows)
 - **Werkzeugoptionen und Farben** werden nicht über einen Neustart hinweg gespeichert. → M9
-- **Layout zurücksetzen:** es gibt nur Fensterposition und Pixelraster-Einstellung. → M8
-- **Einstellungen-Dialog, Tastenkürzel-Editor, Theme-Wechsel, Menüanpassung, Arbeitsbereiche:** deaktiviert.
+- **Layout zurücksetzen / Arbeitsbereiche:** Das Modell (`PanelLayout`, `WorkspaceCatalog` in `OrbitStudio.Docking`) ist getestet,
+  aber nicht an die Oberfläche angebunden: Es gibt weiterhin nur Fensterposition und Pixelraster-Einstellung. → M8 (Windows)
+- **Einstellungen-Dialog, Tastenkürzel-Editor, Theme-Wechsel, Menüanpassung, Arbeitsbereiche:** deaktiviert. Die Modelle
+  `OrbitStudio.Themes` (Prüfung, Import/Export) und `GestureProfile` (Import/Export, Konfliktauflösung) sind getestet, aber ohne
+  Oberfläche. Ein Theme-Wechsel zur Laufzeit (WPF-Ressourcen aus den Tokens) fehlt.
   Die JPEG/WebP-Qualität (Standard 92) ist nur über `settings.json` änderbar. → M9
-- **Plugins, Erweiterungen:** deaktiviert. → M10
+- **Plugins, Erweiterungen:** Laufzeit, Vertrag und Beispielplugin sind getestet (siehe `plugin-development.de.md`), aber nicht
+  angebunden: kein Verwaltungsdialog, kein Laden beim Programmstart, Menü „Erweiterungen“ deaktiviert. API 1 kennt nur Effekte;
+  Plugin-Effekte haben noch keine eigenen Texte. → M10 (Windows)
 - **Diagnosebericht, Diagnose-Panel:** deaktiviert. Logs liegen unter `%LOCALAPPDATA%\OrbitStudio\logs`. → M11
 - **Benutzerhandbuch (F1), Lizenzinformationen im Programm:** deaktiviert; Handbuch liegt als
   `docs/user-guide.de.md` vor. → M12

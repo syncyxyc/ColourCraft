@@ -404,3 +404,11 @@ Bildgrenzen, Maske, Pfeiltasten, Umschalt-Einrasten, gesperrte Ebene, „Vorscha
 Das Skript ist vorbereitet; es bewegt den Mauszeiger und darf nur in einer unbenutzten Sitzung laufen.
 Darstellung bei Windows-Skalierung 150 %/200 % nicht am Bildschirm geprüft (Trefferprüfung rechnet mit der
 DPI-Skalierung, siehe E-037).
+
+## Lauf vom 23.10.2026 auf macOS (nur Logik-Tests)
+
+Ergebnis je Testprojekt und Erklärung des einen Fehlschlags stehen in `implementation-roadmap.de.md` unter „Testergebnisse
+23.10.2026“. Neu seit M7: `Docking.Tests`, `Themes.Tests`, `Plugin.Tests`, Erweiterungen in `Effects.Tests` (Farbkurven),
+`Domain.Tests` (Farbfelder), `Configuration.Tests`, `Rendering.Tests` (Hilfslinien, Raster, Lineale), `Application.Tests`
+(Tastenkürzel-Profile) und `Architecture.Tests` (neue Projekte). Smoke- und UI-Tests wurden dabei **nicht ausgeführt**.
+

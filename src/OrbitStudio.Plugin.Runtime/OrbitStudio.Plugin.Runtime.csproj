@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Laden, Prüfen, Registrieren und Fehlerisolierung von Plugins. Plugins laufen im selben Prozess (keine Sandbox). -->
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitStudio.Plugin.Abstractions\OrbitStudio.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+{
+  "id": "orbit-sample",
+  "name": "Beispielplugin Tonwertstufen",
+  "version": "1.0.0",
+  "vendor": "ORBIT Studio",
+  "apiVersion": 1,
+  "assembly": "OrbitStudio.SamplePlugin.dll",
+  "entryType": "OrbitStudio.SamplePlugin.SamplePlugin"
+}

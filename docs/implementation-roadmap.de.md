@@ -10,9 +10,9 @@
 | M5 | Strichmuster-Werkzeug | ✅ abgeschlossen (18.10.2026) |
 | M6 | Effekte | ✅ abgeschlossen (18.10.2026) |
 | M7 | Projektformat `.orbit` | ✅ abgeschlossen (18.10.2026) |
-| M8 | Professionelle Oberfläche | offen |
-| M9 | Anpassbarkeit | offen |
-| M10 | Plugin-API | offen |
+| M8 | Professionelle Oberfläche | in Arbeit (Modelle fertig, WPF-Oberfläche ausstehend unter Windows) |
+| M9 | Anpassbarkeit | in Arbeit (Modelle fertig, Oberfläche ausstehend unter Windows) |
+| M10 | Plugin-API | in Arbeit (Laufzeit und Beispielplugin fertig, Verwaltungsdialog ausstehend unter Windows) |
 | M11 | Stabilisierung | offen |
 | M12 | Release | offen |
 
@@ -209,7 +209,90 @@ Offen / bewusst verschoben (siehe bekannte-einschraenkungen.md):
 - Auswahl, Ansicht und Historie werden nicht im Projekt gespeichert; kein Vorschaubild, keine automatische Sicherung.
 - Laufzeit von Speichern/Öffnen großer Projekte nicht gemessen (M11).
 
-## Nächster Schritt: M8
+## M8 – Professionelle Oberfläche (begonnen 22.10.2026, macOS ohne WPF-Laufzeit)
+
+Umgebung: Dieser Teil entstand auf macOS (.NET SDK 10.0.402, Core-Teile gebaut und getestet; `OrbitStudio.Presentation`
+kompiliert mit `-p:EnableWindowsTargeting=true`, **wurde aber nicht gestartet**). Gemäß Spezifikation 15.4 gilt alles
+mit WPF als „ausstehend unter Windows“.
+
+Erfüllt (Modell und Logik, getestet):
+- **Farbkurven:** `ToneCurve` (2–16 Kontrollpunkte, monotone kubische Interpolation nach Fritsch–Carlson, 256er-Tabelle,
+  Editor-Operationen Hinzufügen/Verschieben/Entfernen/Treffertest) und Effekt `CurvesEffect` (Gesamt-, Rot-, Grün-,
+  Blaukurve) mit `CurveParameter`. 21 neue Tests mit exakten Werten (u. a. Invertierkurve = `InvertEffect` Byte für Byte).
+- **Farbfelder:** `SwatchPalette` (Domain; Hinzufügen, Entfernen, Ersetzen, Verschieben, Hex-Rundreise, Standardpalette,
+  Höchstzahl 256, keine Doppelten) und `WorkspaceSettings.Swatches` (Speichern, Normalisieren, Meldung „korrigiert“).
+  9 + 3 neue Tests.
+- **Panel-Layouts und Arbeitsbereiche:** neues Projekt `OrbitStudio.Docking` (keine Abhängigkeiten, kein WPF/AvalonDock):
+  `PanelLayout` (8 Standard-Panels, Sichtbarkeit, Größe, Seite und Reihenfolge, Standardanordnung, Prüfung und Reparatur
+  fehlerhafter Layouts) und `WorkspaceCatalog` (benannte Arbeitsbereiche speichern, laden, umbenennen, löschen, „Standard“
+  geschützt, „Layout zurücksetzen“, versioniertes JSON mit Fallback bei beschädigten oder neueren Dateien). 33 neue Tests;
+  Architekturtest um das Projekt erweitert.
+- **Hilfslinien, Raster, Lineale:** `GuideSet` (Hilfslinien mit Treffertest und Einrasten), `GridSettings` (Rasterpunkte) und
+  `RulerScale` (1-2-5-Teilung nach Zoom, Teilstriche im sichtbaren Bereich) in `OrbitStudio.Rendering`. 21 neue Tests.
+- Testlauf auf macOS: siehe „Testergebnisse 23.10.2026“ unten; die gesamte Solution (inkl. WPF-Projekte) kompiliert mit
+  `-p:EnableWindowsTargeting=true`.
+
+Offen (ausstehend unter Windows): Kurveneditor-Steuerelement und Registrierung von „Farbkurven“ im Menü, Farbfelder-Panel,
+Anbindung von `PanelLayout`/`WorkspaceCatalog` an andockbare Panels (AvalonDock-Lizenz/.NET-10-Prüfung) und an eine Datei
+im Arbeitsbereich-Ordner, Fenster-Menü „Panels“/„Arbeitsbereiche“, Symbolleisten, Historie-Panel, Navigator, Effektbrowser, Lineale,
+Raster, Hilfslinien, Icons, Layoutspeicherung.
+
+## M9 – Anpassbarkeit (Modelle, 23.10.2026, macOS)
+
+Erfüllt (ohne Oberfläche, getestet):
+- **Themes:** neues Projekt `OrbitStudio.Themes`: 11 Farb-Tokens, Abstand, Eckenradius, UI-Größe; eingebaute Themes „Hell“ und
+  „Dunkel“ (beide bestehen die Prüfung); Validierung inkl. WCAG-Kontrast (Text 4,5:1, Akzent/Fokus 3:1); Import/Export als
+  versioniertes JSON (wirft nie, liefert deutsche Fehler); `ThemeCatalog` mit Rückfall auf „Hell“ bei unbekanntem oder
+  ungültigem Theme. 22 Tests.
+- **Tastenkürzel-Profile:** `GestureProfile` (Application): Export der Abweichungen, Import mit Prüfung, Konfliktauflösung und
+  Meldung übersprungener Einträge, `AssignExclusive` für den Editor (verdrängte Befehle werden gemeldet). 11 Tests.
+
+Offen (ausstehend unter Windows): Theme-Editor und Wechsel zur Laufzeit (WPF-Ressourcen aus den Tokens), Tastenkürzel-Editor-Dialog
+mit Suche, Layoutmanager-Dialog, Menü-/Symbolleistenanpassung, Einstellungen-Dialog, Konfigurationsimport/-export als Gesamtpaket.
+
+## M10 – Plugin-API (Laufzeit, 23.10.2026, macOS)
+
+Erfüllt (getestet, mit echten Assembly-Ladevorgängen):
+- `OrbitStudio.Plugin.Abstractions` (API Version 1: `IOrbitPlugin`, `IPluginHost`, `PluginManifest`) und
+  `OrbitStudio.Plugin.Runtime` (`PluginLoader`): Laden nur aus dem Plugin-Ordner, Manifestprüfung, Pfadgrenze, API-Versionsprüfung,
+  Deaktivieren, Fehlerisolierung (ein defektes Plugin stoppt weder den Start noch andere Plugins; halb angemeldete Effekte werden
+  nicht übernommen), Präfix- und Duplikatprüfung der Effekt-IDs.
+- Beispielplugin `plugins/OrbitStudio.SamplePlugin` mit echtem Effekt „Tonwertstufen“; Weg von Bauen über Installieren bis Nutzen
+  wird im Test `SamplePlugin_IsBuiltInstalledAndUsed_EndToEnd` ausgeführt. 17 Tests.
+- `docs/plugin-development.de.md` mit Vertrauensmodell (**keine Sandbox**), Schritt-für-Schritt und Fehlertabelle.
+
+Offen (ausstehend unter Windows): Plugin-Verwaltungsdialog und Menü „Erweiterungen“, Laden beim Programmstart aus
+`%APPDATA%\OrbitStudio\plugins`, Speichern der Deaktivierungsliste, Plugin-Panels/-Werkzeuge/-Importer (API ≥ 2), Plugin-Konfiguration.
+
+## Testergebnisse 23.10.2026 (macOS, .NET SDK 10.0.402, nur Logik-Tests; keine UI-/Smoke-Tests)
+
+| Testprojekt | bestanden | fehlgeschlagen |
+|---|---|---|
+| Application | 37 | 0 |
+| Architecture | 38 | 0 |
+| Configuration | 22 | 0 |
+| Docking | 33 | 0 |
+| Domain | 83 | 0 |
+| Effects | 63 | 0 |
+| History | 16 | 0 |
+| Imaging | 27 | 0 |
+| Integration | 28 | 1 |
+| Layers | 23 | 0 |
+| Plugin | 17 | 0 |
+| Rendering | 89 | 0 |
+| Storage | 38 | 0 |
+| Themes | 22 | 0 |
+| Tools | 106 | 0 |
+| **Summe** | **642** | **1** |
+
+Der eine Fehlschlag ist `ProjectFileServiceTests.SaveOverReadOnlyFile_ReportsAccessDenied_AndKeepsFile` (Integration): Unter
+macOS überschreibt `File.Move(..., overwrite: true)` eine Datei mit gesetztem Schreibschutz-Attribut ohne Fehler (Ergebnis
+`ProjectError.None` statt `AccessDenied`); unter Windows ist das Verhalten ein anderes (dort in M7 bestanden). Er trat schon vor
+den Änderungen vom 22./23.10. auf. **Nicht ausgeführt** auf diesem Rechner: alle Smoke-/UI-Tests (brauchen Windows und WPF) und
+die Build-Skripte (PowerShell, `build/*.ps1`). Die gesamte Solution wurde nur *kompiliert*
+(`dotnet build OrbitStudio.sln -p:EnableWindowsTargeting=true`: 0 Warnungen, 0 Fehler), die App nie gestartet.
+
+## Nächster Schritt: M8 (Rest)
 
 Professionelle Oberfläche: andockbare Panels (Ebenen, Farben, Historie, Navigator, Eigenschaften, Werkzeugoptionen,
 Effektbrowser), Symbolleisten, Farbfelder, Farbkurven-Editor, Lineale/Raster/Hilfslinien, eigene Icons, Layoutspeicherung.

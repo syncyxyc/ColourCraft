@@ -292,3 +292,57 @@
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.
+
+## E-050 – Farbkurven: monotone kubische Interpolation, Effekt noch nicht im Menü (22.10.2026)
+- Alternativen: natürlicher kubischer Spline (überschwingt bei steilen Sprüngen, Werte außerhalb von 0–255 oder
+  nicht-monotone Tonwerte), lineare Segmente (sichtbare Knicke). Entscheidung: monotoner kubischer Hermite-Spline nach
+  Fritsch–Carlson; die Kurve läuft exakt durch alle Punkte und bleibt zwischen zwei Punkten monoton.
+- Reihenfolge der Anwendung: erst Gesamtkurve, dann Kanalkurve; Eingang auf ganze Zahlen gerundet, Ausgabe aus einer
+  256er-Tabelle (kaufmännisch gerundet, wie alle Effekte).
+- Der Effekt ist absichtlich nicht in `StandardEffects` registriert: Ohne Kurveneditor wäre ein Menüpunkt eine Demo-
+  Oberfläche ohne Funktion (Grundregel 0). Der Test `Parameter_ValidatesType_AndIsNotRegisteredInDefaultSet` hält das fest
+  und muss beim Anschluss des Editors angepasst werden.
+
+## E-051 – Farbfelder: Modell in Domain, Speicherung als Hex-Liste im Arbeitsbereich (22.10.2026)
+- `Configuration` darf nach den Architekturregeln keine Projekte referenzieren; deshalb speichert `WorkspaceSettings`
+  die Palette als Textliste („#RRGGBB“/„#RRGGBBAA“) und normalisiert sie selbst (kanonische Großschreibung, ungültige und
+  doppelte Einträge entfallen). Die Umwandlung in Farben macht `SwatchPalette.FromHex` in der Domain.
+- `Swatches = null` bedeutet Standardpalette, eine leere Liste eine absichtlich geleerte Palette.
+
+## E-052 – Docking-Modell unabhängig von AvalonDock (23.10.2026)
+- Das Layout (welches Panel auf welcher Seite, Reihenfolge, Größe, Sichtbarkeit) ist ein eigenes, unveränderliches Modell
+  in `OrbitStudio.Docking` ohne UI-Abhängigkeit. Alternative: AvalonDock-XML-Layouts direkt speichern – wäre an die
+  Bibliothek und an Windows gebunden, nicht testbar und bei Bibliotheksupdates fragil. Die spätere Oberfläche bildet das
+  Modell auf AvalonDock ab (und zurück).
+- Gelesene Layouts werden nie abgelehnt, sondern repariert (`Normalize`): unbekannte/doppelte Panels entfallen, fehlende
+  (z. B. nach einem Update neu hinzugekommene) kommen mit Standardwerten dazu. „Standard“ ist als Arbeitsbereichsname
+  reserviert, damit „Layout zurücksetzen“ immer eindeutig ist.
+- Mindestgröße 48 statt 120: Die schmale Werkzeugleiste (Standard 64) ist ein gültiges Layout; das haben die Tests
+  beim ersten Lauf aufgedeckt.
+
+## E-053 – Lineal-Teilung: 1-2-5-Schritte, Hauptabstand mindestens 60 Gerätepixel (23.10.2026)
+- Der Hauptstrich-Abstand ist der kleinste Wert aus {1, 2, 5} · 10ⁿ Bildpixeln, der auf dem Bildschirm mindestens 60 Gerätepixel
+  misst; dazwischen 5 Teilstriche (also ≥ 12 Gerätepixel Abstand). Ein eigener „dichter“ Sonderfall entfiel, weil er
+  rechnerisch nie eintritt. Gerundet wird auf 9 Nachkommastellen, damit 0,4-Schritte keine 0,4000000001 liefern.
+- Raster rastet auf den nächsten Rasterpunkt ein, bei genau der Mitte auf den größeren Wert (kaufmännisch).
+
+## E-054 – Themes: Kontrastprüfung vor Aktivierung, Rückfall auf „Hell“ (23.10.2026)
+- Ein Theme ist nur gültig, wenn alle Tokens definiert sind und Text-, Sekundärtext-, Fehlertext- und Akzenttext-Farben gegen
+  ihre Hintergründe mindestens 4,5:1 (WCAG AA, normaler Text) und Fokusrahmen 3:1 erreichen. Alternative: nur Format prüfen –
+  dann wären unlesbare Themes möglich, was gegen „ein fehlerhaftes Theme darf die Anwendung nicht unbenutzbar machen“ verstößt.
+- Farben nur als „#RRGGBB“ (kein Alpha): Hintergründe und Texte sollen deckend sein; Transparenz-Effekte gehören ins UI-Styling.
+
+## E-055 – Tastenkürzel-Import: Datei verdrängt Standard, alphabetisch erster gewinnt (23.10.2026)
+- Das Profil enthält nur Abweichungen vom Standard. Beim Import wird zuerst auf den Standard zurückgesetzt, dann die Datei angewendet.
+  Kollidiert eine Belegung der Datei mit einer Standardbelegung, verliert die Standardbelegung (wird gemeldet); kollidieren zwei
+  Dateieinträge, gewinnt die alphabetisch kleinere Befehls-ID. Ergebnis hat nie Konflikte; die Meldungen stehen im Importergebnis.
+
+## E-056 – Plugin-API 1 nur mit Effekten; Plugin-Typen werden mit dem Programm geteilt (23.10.2026)
+- Umfang: Die Spezifikation nennt viele Erweiterungspunkte; API 1 liefert bewusst nur Effekte (die einzige Kategorie mit fertiger,
+  getesteter Registry). Alles andere wäre eine Schnittstelle ohne Funktion (Grundregel 0). Jede Erweiterung erhöht die API-Version.
+- Plugins laden in einem eigenen `AssemblyLoadContext`; `Plugin.Abstractions`, `Effects`, `Domain` und `History` kommen aus dem
+  Programm, damit `IEffect` im Plugin derselbe Typ ist wie im Programm. Alternative: Plugins in eigenen Prozessen – echte Isolation,
+  aber für Effekte auf großen Pixelpuffern unverhältnismäßig; deshalb **keine Sandbox** und ausdrückliche Dokumentation.
+- Plugin-Effekt-IDs müssen mit `<Plugin-ID>.` beginnen (verhindert Überschreiben eingebauter Effekte); Anmeldung erst nach
+  fehlerfreiem `Register` (kein halb angemeldetes Plugin).
+
