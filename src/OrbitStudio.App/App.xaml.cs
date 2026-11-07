@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
@@ -8,6 +9,7 @@ using OrbitStudio.Application.Documents;
 using OrbitStudio.Application.Files;
 using OrbitStudio.Imaging.Codecs;
 using OrbitStudio.Application.Settings;
+using OrbitStudio.Application.Updates;
 using OrbitStudio.Configuration;
 using OrbitStudio.Diagnostics;
 using OrbitStudio.Presentation.Localization;
@@ -106,6 +108,8 @@ public partial class App : System.Windows.Application
         services.AddSingleton(_ => ImageCodecRegistry.CreateDefault());
         services.AddSingleton<ImageFileService>();
         services.AddSingleton<ProjectFileService>();
+        services.AddSingleton(_ => new HttpClient { Timeout = Timeout.InfiniteTimeSpan });
+        services.AddSingleton<UpdateChecker>();
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<ShellService>();
         services.AddSingleton<IShellService>(sp => sp.GetRequiredService<ShellService>());

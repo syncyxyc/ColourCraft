@@ -273,7 +273,7 @@
 - „Speichern“ in der Rückfrage für Bilder ohne Projektpfad fragt nach einer `.orbit`-Datei; das Originalbild (PNG …)
   wird nie stillschweigend überschrieben (sonst gingen Ebenen verloren).
 
-## E-050 – Gebogene Strichmuster-Linien über Kontrollpunkte (07.11.2026)
+## E-057 – Gebogene Strichmuster-Linien über Kontrollpunkte (07.11.2026)
 - Anlass: Die Linie war nur gerade (zwei Punkte). Gewünscht sind Biegungen wie beim Pfadwerkzeug gängiger Bildeditoren.
 - Alternativen: (a) Bézierkurven mit Griffen pro Punkt – präzise, aber zwei Griffe je Punkt machen die Bedienung
   schwer; (b) Kurven durch die Punkte (Catmull-Rom). Entscheidung (b): Ein Klick auf die Linie fügt einen Punkt ein,
@@ -288,6 +288,30 @@
   Tastaturweitergabe für alle Werkzeuge und wird deshalb nicht im Zug ergänzt.
 - Die Winkelanzeige bezieht sich auf die Verbindung Anfang → Ende (eindeutig, wenn die Kurve gebogen ist); die Länge ist
   die Länge der Kurve.
+
+## E-058 – Updates nur auf Anforderung, GitHub Releases als Quelle (07.11.2026)
+- Anlass: Die Anwendung soll aktualisierbar sein und an Kollegen weitergegeben werden. Gleichzeitig verbietet
+  CLAUDE.md Netzzugriffe ohne Notwendigkeit und jede Telemetrie.
+- Entscheidung: Prüfung nur über Hilfe › Nach Updates suchen, nie automatisch beim Start. Die Anfrage geht an die
+  öffentliche GitHub-API (`/repos/syncyxyc/ColourCraft/releases/latest`), ohne Anmeldung und ohne eigene Daten.
+  Quelle der Dateien ist das Release (`OrbitStudio.exe` plus `OrbitStudio.exe.sha256`).
+- Alternativen: (a) automatische Prüfung beim Start – verletzt die Vorgabe „keine Netzzugriffe ohne Notwendigkeit“;
+  (b) nur ein Link auf die Release-Seite – einfacher, aber kein Update im Programm; (c) eigener Update-Server – mehr
+  Betrieb, keine Notwendigkeit.
+- Installation: Das Programm kann sich nicht selbst überschreiben, solange es läuft. Ein kleines Batch-Skript wartet
+  auf das Ende des Prozesses, ersetzt die Datei (mit Wiederholungen) und startet die neue Version. Nicht-ASCII-Pfade
+  und Pfade mit Anführungszeichen oder % werden abgelehnt, weil Batch-Dateien sie je nach Codepage falsch lesen.
+- Sicherheit: Keine Installation ohne SHA-256-Prüfung der Datei gegen die Prüfsumme aus dem Release. Fehlt die
+  Prüfsumme, wird nichts installiert. Ungespeicherte Dokumente verhindern die Installation.
+
+## E-059 – Versionierung und Verteilung (07.11.2026)
+- Versionsnummer in `Directory.Build.props` (`<Version>`); das Release-Tag ist `v<Version>`. Der Updater vergleicht
+  Zahlen (0.10.0 ist neuer als 0.9.0), nicht Text.
+- Verteilt wird die Einzeldatei `OrbitStudio.exe` (ohne Installer, ohne Abhängigkeiten). Das Repo ist öffentlich,
+  Build-Ergebnisse liegen nicht im Repo, sondern im Release.
+- Keine Code-Signatur: kein Zertifikat vorhanden. Folge: Windows-SmartScreen-Warnung für alle Nutzer, die die Datei
+  von Hand laden. Eine Signatur ist ein späterer, optionaler Schritt (CLAUDE.md, Abschnitt 15.3).
+- Kein Delta-Update: Die Datei ist 158 MB groß und wird komplett geladen.
 
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist

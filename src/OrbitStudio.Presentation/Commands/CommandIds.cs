@@ -118,4 +118,5 @@ public static class CommandIds
     public const string HelpAbout = "help.about";
     public const string HelpDiagnostics = "help.diagnostics";
     public const string HelpLicenses = "help.licenses";
+    public const string HelpCheckUpdates = "help.checkUpdates";
 }

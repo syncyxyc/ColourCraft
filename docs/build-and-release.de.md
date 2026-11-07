@@ -14,6 +14,7 @@
 | `build/test.ps1 [-Configuration Debug\|Release] [-SkipSmoke] [-WithInput]` | Alle Tests + UI-Smoke-Test (baut die App vorher neu; + optional Eingabetest), Ergebnisse in `artifacts/testresults/` |
 | `build/ui-input-test.ps1` | Eingabetest mit echter Maus/Tastatur (nur in ungenutzter Sitzung) |
 | `build/publish.ps1` | Single-File-EXE nach `artifacts/publish/OrbitStudio.exe` |
+| `build/release.ps1` | Publish plus SHA-256-Prüfsumme für ein GitHub-Release nach `artifacts/release/` (E-059) |
 | `build/clean.ps1` | Entfernt `bin/`, `obj/`, `artifacts/` |
 
 Aufruf, falls Skriptausführung gesperrt ist:
@@ -51,3 +52,29 @@ Hinweis: Auf dem Prüfrechner ist das .NET SDK installiert. Ein Start auf einem 
 ## Release-Checkliste
 
 Wird in M12 vervollständigt (portable ZIP, Installer, Handbuch, Lizenzen).
+
+## Veröffentlichen (GitHub Release)
+
+Das Programm holt Updates aus den GitHub-Releases von `syncyxyc/ColourCraft` (E-058). Ein Release braucht genau
+zwei Dateien mit diesen Namen:
+
+- `OrbitStudio.exe` – die Programmdatei
+- `OrbitStudio.exe.sha256` – die SHA-256-Summe im Format `<hex>  OrbitStudio.exe`
+
+Ablauf für eine neue Version:
+
+1. Versionsnummer in `Directory.Build.props` (`<Version>`) erhöhen und `CHANGELOG.md` ergänzen.
+2. Alle Tests grün: `build/test.ps1`.
+3. `build/release.ps1` ausführen. Es erstellt `artifacts/release/OrbitStudio.exe` und die Prüfsummendatei.
+4. Committen, Tag `v<Version>` setzen und pushen.
+5. Release anlegen (GitHub CLI):
+
+```
+gh release create v0.9.0 artifacts/release/OrbitStudio.exe artifacts/release/OrbitStudio.exe.sha256 --title "ORBIT Studio 0.9.0" --notes-file artifacts/release/notes.md
+```
+
+   `--notes-file` soll nur den Abschnitt dieser Version aus `CHANGELOG.md` enthalten (den Text zwischen `## <Version>` und dem nächsten `## `).
+6. Prüfen: `gh release view v0.9.0`. Das Release muss nicht als Vorabversion markiert sein, sonst findet
+   die Updateprüfung es nicht (sie nutzt „latest“).
+
+Kollegen bekommen den Link zur Release-Seite. Dort steht die EXE unter „Assets“.

@@ -5,6 +5,7 @@ using OrbitStudio.Application.Commands;
 using OrbitStudio.Application.Documents;
 using OrbitStudio.Application.Files;
 using OrbitStudio.Application.Settings;
+using OrbitStudio.Application.Updates;
 using OrbitStudio.Configuration;
 using OrbitStudio.Domain.Documents;
 using OrbitStudio.Presentation.Commands;
@@ -28,11 +29,12 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ILogger<MainViewModel> _logger;
     private readonly HistoryService _histories;
     private readonly IClipboardService _clipboard;
+    private readonly UpdateChecker _updates;
     private readonly ObservableCollection<MenuItemViewModel> _recentItems = [];
 
     public MainViewModel(DocumentWorkspace workspace, CommandRegistry registry, IDialogService dialogs,
         IShellService shell, SettingsService settings, ImageFileService files, ProjectFileService projects, ToolController tools,
-        HistoryService histories, IClipboardService clipboard, ILogger<MainViewModel> logger)
+        HistoryService histories, IClipboardService clipboard, UpdateChecker updates, ILogger<MainViewModel> logger)
     {
         _workspace = workspace;
         _registry = registry;
@@ -44,6 +46,7 @@ public sealed partial class MainViewModel : ObservableObject
         Tools = tools;
         _histories = histories;
         _clipboard = clipboard;
+        _updates = updates;
         _logger = logger;
 
         Tools.ProblemReported += OnToolProblem;
@@ -358,6 +361,7 @@ public sealed partial class MainViewModel : ObservableObject
         Plan(HelpUserGuide, "Cmd.Help.UserGuide", "M12", "F1");
         Plan(HelpShortcuts, "Cmd.Help.Shortcuts", "M9");
         Plan(HelpDiagnostics, "Cmd.Help.Diagnostics", "M11");
+        Add(AppCommand.Create(HelpCheckUpdates, "Cmd.Help.CheckUpdates", () => RunAsync(CheckForUpdatesAsync), () => !IsBusy));
         Plan(HelpLicenses, "Cmd.Help.Licenses", "M12");
         Add(AppCommand.Create(HelpAbout, "Cmd.Help.About", ShowAbout));
 

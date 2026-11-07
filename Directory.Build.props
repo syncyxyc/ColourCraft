@@ -10,7 +10,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <Company>ORBIT Studio</Company>
     <Product>ORBIT Studio</Product>
-    <Version>0.1.0</Version>
+    <Version>0.9.0</Version>
     <NeutralLanguage>de-DE</NeutralLanguage>
     <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
   </PropertyGroup>

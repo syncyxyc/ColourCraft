@@ -39,6 +39,6 @@ public static class MenuLayout
             EditPreferences]),
         ("Menu.Window", [WindowTools, WindowLayers, WindowColors, WindowHistory, WindowNavigator, WindowProperties,
             WindowEffectBrowser, WindowPlugins, WindowDiagnostics]),
-        ("Menu.Help", [HelpUserGuide, HelpShortcuts, Separator, HelpDiagnostics, HelpLicenses, Separator, HelpAbout]),
+        ("Menu.Help", [HelpUserGuide, HelpShortcuts, Separator, HelpCheckUpdates, HelpDiagnostics, HelpLicenses, Separator, HelpAbout]),
     ];
 }

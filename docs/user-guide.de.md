@@ -284,6 +284,25 @@ OrbitStudio.exe [Bilddateien …] [--data-dir <Ordner>]
 
 ## Datenschutz
 
-ORBIT Studio sendet keine Daten ins Netz. Logs (`%LOCALAPPDATA%\OrbitStudio\logs`, 14 Tage aufbewahrt)
-enthalten keine Bildinhalte und keine Dateiinhalte. Bei Datei-Fehlern werden Dateiname bzw. -pfad
-protokolliert.
+ORBIT Studio sendet keine Daten ins Netz und hat keine Telemetrie. Es gibt genau eine Ausnahme: **Hilfe ›
+Nach Updates suchen** fragt auf Knopfdruck die öffentliche Release-Seite auf GitHub (`api.github.com`) ab und
+lädt bei einem Update die neue Programmdatei von `github.com`. Dabei wird im Anfrage-Kopf (User-Agent) nur die
+installierte Versionsnummer mitgeschickt, sonst nichts. Ohne Klick findet keine Verbindung statt.
+
+Logs (`%LOCALAPPDATA%\OrbitStudio\logs`, 14 Tage aufbewahrt) enthalten keine Bildinhalte und keine
+Dateiinhalte. Bei Datei-Fehlern werden Dateiname bzw. -pfad protokolliert.
+
+## Updates
+
+Hilfe › Nach Updates suchen prüft, ob ein neueres Release veröffentlicht ist.
+
+- **Aktuell:** Es erscheint die Meldung, dass das Programm aktuell ist.
+- **Neue Version:** Nach Bestätigung lädt ORBIT Studio die neue Programmdatei, prüft sie gegen die im Release
+  veröffentlichte SHA-256-Prüfsumme und beendet sich. Danach ersetzt ein kleines Skript die Programmdatei und
+  startet die neue Version. Die Installation bricht ab, wenn Dokumente ungespeichert sind, wenn die Prüfsumme
+  nicht stimmt oder wenn das Programm nicht als `OrbitStudio.exe` läuft.
+- Die Datei muss an einem Ort liegen, in den Sie schreiben dürfen (zum Beispiel Desktop oder
+  `Dokumente\ORBIT Studio`), nicht in `C:\Program Files`.
+- **Windows-Warnung:** Die Programmdatei ist nicht mit einem Zertifikat signiert. Windows zeigt beim ersten Start
+  deshalb eventuell „Der Computer wurde durch Windows geschützt“. Mit **Weitere Informationen › Trotzdem
+  ausführen** startet das Programm. Das gilt für jede neue Version, die Sie von Hand herunterladen.

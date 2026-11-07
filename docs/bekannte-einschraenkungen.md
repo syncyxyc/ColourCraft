@@ -62,7 +62,7 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
   sowie darüberliegende Ebenen wirken erst nach dem Anwenden (E-033). Im Modus „Maske bearbeiten“ zeigt die Vorschau
   ebenfalls die Farbe, nicht die Wirkung auf die Maske. Unter 100 % Zoom wird die Vorschau in reduzierter Auflösung
   berechnet; das angewendete Ergebnis hat immer volle Auflösung.
-- **Linien** sind Kurven durch bis zu 16 Punkte (Catmull-Rom-Spline, E-050). Enden und Striche sind flach; keine
+- **Linien** sind Kurven durch bis zu 16 Punkte (Catmull-Rom-Spline, E-057). Enden und Striche sind flach; keine
   runden Enden, keine Muster aus mehreren Strichlängen, keine Tangenten-Griffe pro Punkt (Kurvenform nur über die
   Punkte).
 - **Punkte entfernen** nur per Rechtsklick auf einen inneren Punkt; keine Taste dafür (ToolKey kennt kein Entf).
@@ -133,3 +133,13 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
   (Pinselstrich + Strg+Z) und M5 (Strichmuster mit echter Maus: Kontrollpunkte ziehen, Werte tippen, Anwenden,
   Strg+Z/Strg+Y) ergänzten Schritte wurden noch nicht ausgeführt. Die Abnahme des Strichmusters ist über den
   Smoke-Test im echten Fenster belegt (Eingaben über den Werkzeug-Controller, nicht über Windows-Mausereignisse).
+
+## Updates
+
+- **Keine automatische Prüfung:** Updates werden nur auf Anforderung gesucht (E-058).
+- **Keine Signatur:** Windows-SmartScreen warnt bei jeder von Hand geladenen Version. → offen, optional in M12.
+- **Pfad muss beschreibbar sein:** Liegt die EXE in `C:\Program Files` oder ist der Pfad nicht ASCII-fähig, bricht die
+  Installation mit Meldung ab.
+- **Kein Zurückrollen:** Es gibt keine automatische Rückkehr zur alten Version; die alte Datei wird ersetzt.
+- **Kein Delta-Update:** Immer die komplette EXE (158 MB).
+- **Ein Release pro Stand:** Es gibt keine Kanäle (Beta, Stabil).

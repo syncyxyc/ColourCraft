@@ -105,6 +105,48 @@ Mittelwert 128 ± 0,5, Standardabweichung 20 ± 0,6 (40.000 Pixel).
 
 ## Ergebnisse
 
+### 07.11.2026 – Version 0.9.0 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+Vollständiger Lauf `build/test.ps1` auf dem zusammengeführten Stand (M0–M7 plus Commits M8–M10 aus dem Repo):
+
+| Testprojekt | Bestanden | Fehlgeschlagen |
+|---|---|---|
+| OrbitStudio.Configuration.Tests | 22 | 0 |
+| OrbitStudio.Domain.Tests | 83 | 0 |
+| OrbitStudio.Imaging.Tests | 27 | 0 |
+| OrbitStudio.Rendering.Tests | 89 | 0 |
+| OrbitStudio.Layers.Tests | 23 | 0 |
+| OrbitStudio.History.Tests | 16 | 0 |
+| OrbitStudio.Tools.Tests | 128 | 0 |
+| OrbitStudio.Effects.Tests | 63 | 0 |
+| OrbitStudio.Storage.Tests | 38 | 0 |
+| OrbitStudio.Application.Tests | 59 | 0 |
+| OrbitStudio.Docking.Tests | 33 | 0 |
+| OrbitStudio.Themes.Tests | 22 | 0 |
+| OrbitStudio.Plugin.Tests | 17 | 0 |
+| OrbitStudio.Integration.Tests | 29 | 0 |
+| OrbitStudio.Architecture.Tests | 38 | 0 |
+| **Summe** | **687** | **0** |
+
+UI-Smoke-Test: 170 von 170 bestanden, Exitcode 0. Neu: „Hilfe › Nach Updates suchen“ ist vorhanden und aktiv
+(ohne Netzzugriff geprüft).
+
+Reparaturen beim Zusammenführen:
+- Plugin-Tests (7 Fehler): Der Aufräum-Code fing nur `IOException`; Windows meldet die gesperrte Datei als
+  `UnauthorizedAccessException`. Außerdem hatte das Testmanifest einen Backslash im JSON (`..\draussen.dll`), den
+  das JSON-Format als ungültige Escape-Sequenz ablehnt. Beides ist im Test behoben, die Plugin-Logik ist unverändert.
+
+Update-Funktion (neu):
+- `UpdateChecker`: Antwortverarbeitung, Versionsvergleich als Zahlen, Fehlermeldungen (kein Release, HTTP-Fehler,
+  unlesbare Antwort, keine Verbindung, Abbruch) mit gefälschtem HTTP-Handler, ohne echtes Netzwerk.
+- `UpdateChecker.VerifyAsync`: SHA-256 einer Datei gegen den erwarteten Wert.
+- `UpdateInstaller`: Inhalt des Skripts (PID, Pfade, Wiederholungen, Neustart, Selbstlöschung) und Ablehnung von
+  Pfaden mit Nicht-ASCII-Zeichen, Anführungszeichen oder `%`.
+
+**Nicht geprüft:** Der echte Ablauf der Installation (Skript ersetzt laufende EXE, startet neue Version) ist nicht
+ausgeführt. Der Versuch, das Skript mit einer Notepad-Kopie zu testen, wurde von der Sicherheitsprüfung verweigert,
+weil dabei fremde Prozesse beendet werden müssten. Dieser Ablauf ist vor dem ersten echten Update von Hand zu prüfen.
+
 ### 07.11.2026 – Gebogene Strichmuster-Linien (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 
 Geänderte Komponente: `DashPath.cs` (neu), `DashPatternTool.cs`, `DashPattern.cs` (alter Rasterizer entfernt).

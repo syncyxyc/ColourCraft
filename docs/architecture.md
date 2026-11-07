@@ -177,7 +177,7 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
 - Werkzeuge: Auswahl (Rechteck, Ellipse, Lasso, Polygon, Zauberstab, Farbbereich), Transformation (Verschieben,
   Zuschneiden), Zeichnen (Pinsel, Bleistift, Radierer, Freihand, Linie, **Strichmuster**, Rechteck, gefülltes Rechteck,
   Ellipse, gefüllte Ellipse), Füllung (Farbeimer, Verlauf, Pipette), Ansicht (Hand, Zoom).
-- **Strichmuster mit Biegung** (E-050): `DashPath.cs` – Kontrollpunkte (2–16); zwei Punkte = gerade Linie, ab drei
+- **Strichmuster mit Biegung** (E-057): `DashPath.cs` – Kontrollpunkte (2–16); zwei Punkte = gerade Linie, ab drei
   ein uniformer Catmull-Rom-Spline mit verdoppelten Endpunkten, zerlegt in gerade Stücke ≤ 0,5 px. Striche liegen
   auf der Bogenlänge. `DashPathRasterizer`: je Stück Band-Rasterung, je Zelle minimaler signierter Abstand über
   alle Stücke und Striche (Vereinigung), Abdeckung wie zuvor. Das Werkzeug arbeitet mit `DashPath`; `DashLine`
@@ -379,3 +379,14 @@ XAML nutzt `{StaticResource Schlüssel}`, Code nutzt `Loc.Get`/`Loc.Format`. For
 
 `src/OrbitStudio.App/Themes/Base.xaml` definiert Design-Tokens (`Color.*`, `Brush.*`, u. a. `Brush.PixelGrid`).
 Views verwenden sie nur über `DynamicResource`/`TryFindResource`.
+
+## Updates (`OrbitStudio.Application/Updates`, E-058)
+
+- `UpdateChecker`: fragt die GitHub-API nach dem neuesten Release ab (30 s Zeitlimit), liest Version, Adresse
+  der EXE und der Prüfsumme; `IsNewer` vergleicht Versionsnummern als Zahlen. Lädt die EXE in eine `.part`-Datei
+  und benennt sie erst nach vollständigem Download um. `VerifyAsync` prüft die SHA-256-Summe.
+- `UpdateInstaller`: schreibt `install-update.cmd` in `%LOCALAPPDATA%\OrbitStudio\updates`. Das Skript wartet auf das
+  Ende des Prozesses (per PID), ersetzt die Datei mit bis zu 30 Wiederholungen und startet die neue Version.
+- Oberfläche: `MainViewModel.Updates.cs` (Befehl „Hilfe › Nach Updates suchen“). Prüft vor der Installation
+  Dokumente, Programmname und Prüfsumme, dann ruft es `RequestExit` auf.
+- Netzzugriff nur durch diesen Befehl; `HttpClient` ist als Singleton in der Kompositionswurzel registriert.

@@ -69,7 +69,7 @@ public sealed class PluginLoaderTests : IDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Geladene Assemblies können unter Windows gesperrt bleiben; Temp-Ordner räumt das System auf.
         }
@@ -260,7 +260,7 @@ public sealed class PluginLoaderTests : IDisposable
         File.Copy(TestAssemblyPath, Path.Combine(_root, "draussen.dll"));
         File.WriteAllText(Path.Combine(escape, PluginLoader.ManifestFileName), $$"""
             { "id": "escape-plugin", "name": "n", "version": "1", "vendor": "v", "apiVersion": 1,
-              "assembly": "..{{Path.DirectorySeparatorChar}}draussen.dll", "entryType": "{{typeof(GoodTestPlugin).FullName}}" }
+              "assembly": "../draussen.dll", "entryType": "{{typeof(GoodTestPlugin).FullName}}" }
             """);
 
         var infos = PluginLoader.LoadAll(_root, new EffectRegistry());

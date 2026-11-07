@@ -159,6 +159,7 @@ internal static class SmokeTest
             !c.CanExecute(CommandIds.FileClose) && !c.CanExecute(CommandIds.ViewZoomIn)
             && !c.CanExecute(CommandIds.LayerNew));
         c.Check("Geplante Befehle deaktiviert", !c.CanExecute(CommandIds.EditUndo));
+        c.Check("Hilfe › Nach Updates suchen vorhanden und aktiv (ohne Netzzugriff geprüft)", c.CanExecute(CommandIds.HelpCheckUpdates));
 
         // Neu über den echten Befehl (Dialog liefert die Eingaben)
         c.Dialogs.NewDocumentAnswers.Enqueue(new NewDocumentRequest("Smoke A", 320, 240, DocumentBackground.White));

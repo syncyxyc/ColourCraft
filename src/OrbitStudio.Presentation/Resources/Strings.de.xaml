@@ -294,6 +294,17 @@
     <sys:String x:Key="Cmd.Help.About">Ü_ber {0}</sys:String>
     <sys:String x:Key="Cmd.Help.Diagnostics">_Diagnosebericht</sys:String>
     <sys:String x:Key="Cmd.Help.Licenses">_Lizenzinformationen</sys:String>
+    <sys:String x:Key="Cmd.Help.CheckUpdates">Nach _Updates suchen …</sys:String>
+    <sys:String x:Key="Msg.Update.Title">Update</sys:String>
+    <sys:String x:Key="Msg.Update.UpToDate">{0} {1} ist aktuell.</sys:String>
+    <sys:String x:Key="Msg.Update.Available">Version {0} ist verfügbar (installiert: {1}).&#10;&#10;Jetzt herunterladen und installieren? Das Programm wird danach beendet und startet automatisch in der neuen Version.</sys:String>
+    <sys:String x:Key="Msg.Update.Unsaved">Bitte speichern oder schließen Sie zuerst alle geänderten Dokumente. Danach kann das Update installiert werden.</sys:String>
+    <sys:String x:Key="Msg.Update.NotExe">Die Aktualisierung funktioniert nur mit der Programmdatei OrbitStudio.exe.</sys:String>
+    <sys:String x:Key="Msg.Update.NoChecksum">Das Release enthält keine Prüfsumme. Aus Sicherheitsgründen wird nichts installiert.</sys:String>
+    <sys:String x:Key="Msg.Update.ChecksumFailed">Die Prüfsumme der heruntergeladenen Datei stimmt nicht. Die Datei wurde verworfen und nichts installiert.</sys:String>
+    <sys:String x:Key="Msg.Update.Failed">Das Update konnte nicht installiert werden: {0}</sys:String>
+    <sys:String x:Key="Status.Update.Checking">Suche nach Updates …</sys:String>
+    <sys:String x:Key="Status.Update.Downloading">Lade Version {0} herunter …</sys:String>
 
     <!-- Statusleiste -->
     <sys:String x:Key="Status.Ready">Bereit</sys:String>
