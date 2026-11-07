@@ -53,8 +53,10 @@ Stand: 18.10.2026, nach M7. Jeder Punkt nennt den Meilenstein, in dem er behoben
   sowie darüberliegende Ebenen wirken erst nach dem Anwenden (E-033). Im Modus „Maske bearbeiten“ zeigt die Vorschau
   ebenfalls die Farbe, nicht die Wirkung auf die Maske. Unter 100 % Zoom wird die Vorschau in reduzierter Auflösung
   berechnet; das angewendete Ergebnis hat immer volle Auflösung.
-- **Nur gerade Linien** mit flachen Enden; keine Linienzüge, Kurven, runden Enden oder Muster aus mehreren
-  Strichlängen.
+- **Linien** sind Kurven durch bis zu 16 Punkte (Catmull-Rom-Spline, E-050). Enden und Striche sind flach; keine
+  runden Enden, keine Muster aus mehreren Strichlängen, keine Tangenten-Griffe pro Punkt (Kurvenform nur über die
+  Punkte).
+- **Punkte entfernen** nur per Rechtsklick auf einen inneren Punkt; keine Taste dafür (ToolKey kennt kein Entf).
 - **Länge und Winkel** werden angezeigt, aber nicht als Eingabefelder angeboten (Eingabe über X1/Y1/X2/Y2).
 - **Optionsleiste:** Das Werkzeug hat 14 Optionen; die Leiste bricht in mehrere Zeilen um und nimmt bei schmalem
   Fenster viel Höhe ein. Eine andockbare Werkzeugoptionen-Palette folgt. → M8

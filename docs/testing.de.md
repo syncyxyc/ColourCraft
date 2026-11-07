@@ -105,6 +105,36 @@ Mittelwert 128 ± 0,5, Standardabweichung 20 ± 0,6 (40.000 Pixel).
 
 ## Ergebnisse
 
+### 07.11.2026 – Gebogene Strichmuster-Linien (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
+
+Geänderte Komponente: `DashPath.cs` (neu), `DashPatternTool.cs`, `DashPattern.cs` (alter Rasterizer entfernt).
+
+| Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |
+|---|---|---|---|
+| OrbitStudio.Tools.Tests | 128 (vorher 106) | 0 | 0 |
+| OrbitStudio.Integration.Tests | 29 | 0 | 0 |
+| übrige Projekte | unverändert | 0 | 0 |
+
+Neu: **Geometrie gebogener Linien (`DashPathGeometryTests`)**: Zwei Punkte = ein Stück mit exakter Länge; Kurve läuft
+exakt durch jeden Kontrollpunkt; Länge zwischen Sehne und 110 % des Kontrollpolygons; kollineare Punkte ergeben die
+exakte Gerade (Länge 100, Punkt bei 37 px auf y = 0); Anfang und Ende; Monotonie der Bogenlänge; Striche entlang der
+Bogenlänge; leere Linie bei identischen Punkten; Ränder; Grenzen (1 und 17 Punkte, NaN, ungültige Striche).
+**Werkzeug (`DashPathToolTests`)**: Klick auf die Linie fügt einen Punkt ein; Ziehen eines inneren Punkts biegt die Linie;
+Rechtsklick entfernt einen inneren Punkt, Rechtsklick auf Anfang/Ende nicht; Ziehen auf der Linie verschiebt alle Punkte;
+gebogene Linie: Kontrollpunkt-Pixel voll deckend, Pixel fern der Kurve transparent; **Vorschau = Ergebnis** bei
+gebogener, gestrichelter, teiltransparenter Linie (byteweise über alle Pixel); Anzeige Länge/Winkel/Anzahl; ein
+Rückgängig-Schritt.
+Die vorhandenen geraden Linien (Pixeltests, Apply/Cancel, Maske, Auswahl, Undo) laufen unverändert durch. Ein Test
+prüfte zunächst die alte Overlay-Form (`OverlayLine`) und wurde auf `OverlayPolyline` angepasst – eine Änderung der
+Überlagerung, kein Fehler im Ergebnis.
+
+UI-Smoke-Test: 169 von 169 (Debug), davon 3 neu: Klick auf die Linie fügt einen Punkt ein und Ziehen biegt sie; Länge
+der Kurve größer als die Sehne; Escape verwirft die gebogene Linie. Die veröffentlichte EXE wurde für diese Änderung
+nicht neu geprüft (kein Publish im Zug; Stand der Build-Dokumentation bleibt M7).
+
+Nicht geprüft: Eine Sichtprüfung eines Bildschirmfotos der gebogenen Linie fehlt; die Darstellung ist über Geometrie-
+und Vorschau-Tests abgedeckt.
+
 ### 18.10.2026 – M7 (Debug, Windows 11 Pro 10.0.26200, .NET SDK 10.0.402)
 
 | Testprojekt | Bestanden | Fehlgeschlagen | Übersprungen |

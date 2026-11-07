@@ -177,6 +177,11 @@ cs = Quelle·Deckkraft·Maske/255 (vormultipliert), Cs = cs/αs, Cb = cb/αb
 - Werkzeuge: Auswahl (Rechteck, Ellipse, Lasso, Polygon, Zauberstab, Farbbereich), Transformation (Verschieben,
   Zuschneiden), Zeichnen (Pinsel, Bleistift, Radierer, Freihand, Linie, **Strichmuster**, Rechteck, gefülltes Rechteck,
   Ellipse, gefüllte Ellipse), Füllung (Farbeimer, Verlauf, Pipette), Ansicht (Hand, Zoom).
+- **Strichmuster mit Biegung** (E-050): `DashPath.cs` – Kontrollpunkte (2–16); zwei Punkte = gerade Linie, ab drei
+  ein uniformer Catmull-Rom-Spline mit verdoppelten Endpunkten, zerlegt in gerade Stücke ≤ 0,5 px. Striche liegen
+  auf der Bogenlänge. `DashPathRasterizer`: je Stück Band-Rasterung, je Zelle minimaler signierter Abstand über
+  alle Stücke und Striche (Vereinigung), Abdeckung wie zuvor. Das Werkzeug arbeitet mit `DashPath`; `DashLine`
+  bleibt für Anfang-zu-Ende-Anzeige (Winkel, Richtung, Mitte) und die Geometrie gerader Linien.
 - **Strichmuster** (Spezifikation 1.1, `Tools/Drawing/DashPattern.cs`, `DashPatternTool.cs`):
   - `DashLine` (ohne UI): Länge, normierte Richtung, Winkel (0° = rechts, gegen den Uhrzeigersinn, 0 ≤ w < 360),
     Mittelpunkt, Anzahl und Lage der Striche. Strich i = [i · Periode, min(i · Periode + Strichlänge, Länge)],

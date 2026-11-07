@@ -68,13 +68,18 @@ Zeichnet eine gestrichelte Linie, die sich vor dem Übernehmen beliebig nachbear
 1. **Linie aufziehen:** Maustaste am Startpunkt drücken und zum Endpunkt ziehen. Die Linie erscheint als Vorschau
    über dem Bild; die Ebene selbst bleibt unverändert, bis Sie „Anwenden“ wählen.
 2. **Nachbearbeiten:**
-   - Die beiden **Kontrollpunkte** (kleine Quadrate) lassen sich mit der Maus ziehen; die Linie selbst verschiebt
-     beide Punkte gemeinsam. **Umschalt** beim Ziehen rastet den Winkel in 15°-Schritten ein.
+   - Die **Kontrollpunkte** (kleine Quadrate) lassen sich mit der Maus ziehen. Ziehen auf der Linie selbst verschiebt
+     alle Punkte gemeinsam. **Umschalt** beim Ziehen rastet den Winkel in 15°-Schritten ein.
+   - **Linie biegen:** Ein Klick auf die Linie (ohne Ziehen) setzt dort einen neuen Kontrollpunkt. Ziehen Sie ihn, und
+     die Linie wird gebogen. Sie verläuft als glatte Kurve durch alle Punkte. Bis zu 16 Punkte sind möglich.
+     **Rechtsklick** auf einen inneren Punkt entfernt ihn; Anfang und Ende bleiben immer erhalten.
+     Die Striche folgen der Kurve, Länge und Abstand werden entlang der Kurve gemessen.
    - **Pfeiltasten** verschieben die Linie um 1 px, mit Umschalt um 10 px.
    - Die Felder **X1, Y1, X2, Y2** zeigen die Punkte in Bildpixeln und lassen sich direkt bearbeiten (Enter übernimmt).
      Punkte dürfen außerhalb des Bildes liegen; gezeichnet wird nur innerhalb.
    - Daneben stehen **Länge, Winkel** (0° = nach rechts, 90° = nach oben), **Richtung** (Einheitsvektor in
-     Bildkoordinaten), **Mitte** und die Anzahl der Striche.
+     Bildkoordinaten), **Mitte** und die Anzahl der Striche. Bei einer gebogenen Linie ist die Länge die Länge der
+     Kurve; Winkel, Richtung und Mitte beziehen sich auf die Verbindung von Anfang zu Ende.
 3. **Parameter** (Optionsleiste, jeweils Feld und Schieberegler):
 
    | Parameter | Standard | Bereich |

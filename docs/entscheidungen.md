@@ -273,6 +273,22 @@
 - „Speichern“ in der Rückfrage für Bilder ohne Projektpfad fragt nach einer `.orbit`-Datei; das Originalbild (PNG …)
   wird nie stillschweigend überschrieben (sonst gingen Ebenen verloren).
 
+## E-050 – Gebogene Strichmuster-Linien über Kontrollpunkte (07.11.2026)
+- Anlass: Die Linie war nur gerade (zwei Punkte). Gewünscht sind Biegungen wie beim Pfadwerkzeug gängiger Bildeditoren.
+- Alternativen: (a) Bézierkurven mit Griffen pro Punkt – präzise, aber zwei Griffe je Punkt machen die Bedienung
+  schwer; (b) Kurven durch die Punkte (Catmull-Rom). Entscheidung (b): Ein Klick auf die Linie fügt einen Punkt ein,
+  der Punkt wird gezogen, die Kurve läuft durch ihn. Die Kurvenform ergibt sich aus den Punkten ohne weitere Griffe.
+- Uniform, Endpunkte verdoppelt: Der Verlauf ist eindeutig, ohne Zusatzparameter; Schwingungen an den Enden sind bei
+  dicht gesetzten Punkten gering. Die Länge wird aus den zerlegten Stücken gemessen, damit Striche entlang der Kurve
+  laufen.
+- Begrenzung auf 16 Punkte (`DashPath.MaxControlPoints`): Die Rasterung ist ∝ Länge × Stärke; mehr Punkte würden die
+  Bedienung nicht verbessern. Stücke ≤ 0,5 px; Obergrenze 1 Mio. Stücke gegen Speicherüberlauf.
+- Zwei Punkte bleiben exakt eine gerade Linie (ein einziges Stück), damit die bestehenden Pixeltests unverändert gelten.
+- Entfernen per Rechtsklick statt Entf-Taste: `ToolKey` kennt keine Entf-Taste; eine neue Taste wäre eine Änderung der
+  Tastaturweitergabe für alle Werkzeuge und wird deshalb nicht im Zug ergänzt.
+- Die Winkelanzeige bezieht sich auf die Verbindung Anfang → Ende (eindeutig, wenn die Kurve gebogen ist); die Länge ist
+  die Länge der Kurve.
+
 ## E-010 – Repository-Name ColourCraft, Produktname ORBIT Studio (18.10.2026)
 - Das GitHub-Repository heißt `syncyxyc/ColourCraft`. Der Produktname laut Spezifikation ist
   „ORBIT Studio“ und zentral in `AppInfo.cs` austauschbar.

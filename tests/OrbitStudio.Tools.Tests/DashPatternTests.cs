@@ -248,7 +248,7 @@ public class DashPatternToolTests : ToolTestBase
         History.UndoCount.ShouldBe(0);
         _tool.Overlay.OfType<OverlayRaster>().ShouldHaveSingleItem();
         _tool.Overlay.OfType<OverlayHandle>().Count().ShouldBe(2);
-        _tool.Overlay.OfType<OverlayLine>().ShouldHaveSingleItem();
+        _tool.Overlay.OfType<OverlayPolyline>().ShouldHaveSingleItem();
     }
 
     [Fact]

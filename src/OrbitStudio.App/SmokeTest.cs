@@ -766,6 +766,23 @@ internal static class SmokeTest
             && tool.Color.Value == ColorRgba.Black && tool.Opacity.Value == 100
             && Field(Loc.Get("Opt.Dash.Thickness")).Text == "4");
 
+        // Gebogene Linie: Klick auf die Linie fügt einen Kontrollpunkt ein, Ziehen des Punkts biegt die Linie
+        Drag(20, 100, 180, 100);
+        var onLine = new PointD(100, 100);
+        tools.PointerDown(doc, onLine, doc.View.DocumentToViewport(onLine), OrbitStudio.Tools.PointerButton.Primary,
+            OrbitStudio.Tools.ToolModifiers.None, 1);
+        tools.PointerUp(doc, onLine, doc.View.DocumentToViewport(onLine), OrbitStudio.Tools.PointerButton.Primary,
+            OrbitStudio.Tools.ToolModifiers.None);
+        Flush(c.Window);
+        var inserted = tool.ControlPoints?.Count == 3;
+        Drag(100, 100, 100, 70);
+        c.Check("Klick auf die Linie fügt einen Punkt ein, Ziehen biegt die Linie",
+            inserted && tool.ControlPoints![1] == new PointD(100, 70));
+        c.Check("Gebogene Linie ist länger als ihre Sehne", tool.CurrentPath!.Length > tool.CurrentLine!.Length + 10);
+        tools.Key(doc, OrbitStudio.Tools.ToolKey.Escape, OrbitStudio.Tools.ToolModifiers.None);
+        Flush(c.Window);
+        c.Check("Escape verwirft die gebogene Linie", !tool.IsActiveOperation && layer.Pixels.ContentEquals(applied));
+
         // Werkzeugwechsel übernimmt eine laufende Linie (wie bei allen Werkzeugen) – nichts geht still verloren.
         Drag(20, 100, 60, 100);
         c.Execute(CommandIds.ToolPrefix + "brush");
